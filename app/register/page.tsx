@@ -72,7 +72,7 @@ export default function RegisterPage() {
 
           <div className="mt-6">
             <a
-              href={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/api/auth/google`}
+              href="/api/auth/google"
               className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24">
