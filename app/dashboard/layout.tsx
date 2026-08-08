@@ -48,6 +48,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (user?.role === 'STUDENT') {
     mainLinks = [
       { name: 'Dashboard', href: '/dashboard/student', icon: LayoutDashboard },
+      { name: 'My Profile', href: '/profile', icon: Users },
+      { name: 'Resume', href: '/resume', icon: FileText },
       { name: 'Applications', href: '/applications', icon: Briefcase },
       { name: 'Interviews', href: '/interviews', icon: CalendarDays },
       { name: 'Tasks', href: '/tasks', icon: CheckSquare },
@@ -55,9 +57,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   } else if (user?.role === 'MENTOR') {
     mainLinks = [
       { name: 'Dashboard', href: '/dashboard/mentor', icon: LayoutDashboard },
-      { name: 'Students', href: '/dashboard/mentor/students', icon: Users },
+      { name: 'My Students', href: '/dashboard/mentor/students', icon: Users },
       { name: 'Resumes', href: '/dashboard/mentor/resumes', icon: FileText },
       { name: 'Interviews', href: '/dashboard/mentor/interviews', icon: CalendarDays },
+      { name: 'Tasks', href: '/dashboard/mentor/tasks', icon: CheckSquare },
+      { name: 'Student Progress', href: '/dashboard/mentor/progress', icon: PieChart },
+    ];
+  } else if (user?.role === 'HOD') {
+    mainLinks = [
+      { name: 'Dashboard', href: '/dashboard/hod', icon: LayoutDashboard },
+      { name: 'Students', href: '/dashboard/hod/students', icon: Users },
+      { name: 'Mentors', href: '/dashboard/hod/mentors', icon: Building2 },
+      { name: 'Assign Mentor', href: '/dashboard/hod/assign-mentor', icon: CheckSquare },
+      { name: 'Applications', href: '/dashboard/hod/applications', icon: Briefcase },
+      { name: 'Interviews', href: '/dashboard/hod/interviews', icon: CalendarDays },
+      { name: 'Career Progress', href: '/dashboard/hod/progress', icon: PieChart },
+      { name: 'Reports', href: '/dashboard/hod/reports', icon: FileText },
     ];
   } else {
     // Placement cell / ADMIN

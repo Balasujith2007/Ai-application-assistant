@@ -103,11 +103,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [router],
   );
 
-  const loginWithToken = useCallback((token: string, loggedInUser: User) => {
-    setToken(token);
-    setStoredUser(loggedInUser);
-    setUser(loggedInUser);
-  }, []);
+  const loginWithToken = useCallback(
+    (token: string, loggedInUser: User) => {
+      setToken(token);
+      setStoredUser(loggedInUser);
+      setUser(loggedInUser);
+      router.push(getDashboardRoute(loggedInUser.role));
+    },
+    [router],
+  );
 
   const logout = useCallback(() => {
     removeToken();

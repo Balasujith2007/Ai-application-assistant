@@ -7,7 +7,7 @@ async function getMentor(req: Request) {
   const userId = getUserIdFromRequest(req);
   if (!userId) return null;
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user || user.role !== 'MENTOR') return null;
+  if (!user || (user.role !== 'MENTOR' && user.role !== 'HOD' && user.role !== 'ADMIN')) return null;
   return user;
 }
 
@@ -21,7 +21,7 @@ export async function GET(req: Request) {
     const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
     const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    const whereClause: Prisma.UserWhereInput = { mentorId: mentor.id };
+    const whereClause: Prisma.UserWhereInput = { role: 'STUDENT' };
 
     const students = await prisma.user.findMany({
       where: whereClause,
@@ -35,7 +35,7 @@ export async function GET(req: Request) {
 
     const studentIds = students.map((s) => s.id);
 
-    // Pending resume reviews (use Prisma.ResumeWhereInput for type safety)
+    // Pending resume reviews
     const resumeWhere: Prisma.ResumeWhereInput = {
       userId: { in: studentIds },
       reviewStatus: 'PENDING_REVIEW',

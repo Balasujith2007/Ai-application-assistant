@@ -7,7 +7,7 @@ async function getMentor(req: Request) {
   const userId = getUserIdFromRequest(req);
   if (!userId) return null;
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user || user.role !== 'MENTOR') return null;
+  if (!user || (user.role !== 'MENTOR' && user.role !== 'HOD' && user.role !== 'ADMIN')) return null;
   return user;
 }
 
@@ -20,7 +20,7 @@ export async function GET(
     const mentor = await getMentor(req);
     if (!mentor) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
-    const whereClause: Prisma.UserWhereInput = { id, mentorId: mentor.id };
+    const whereClause: Prisma.UserWhereInput = { id, role: 'STUDENT' };
 
     const student = await prisma.user.findFirst({
       where: whereClause,
@@ -42,7 +42,7 @@ export async function GET(
     });
 
     if (!student) {
-      return NextResponse.json({ message: 'Student not found or not assigned to you' }, { status: 404 });
+      return NextResponse.json({ message: 'Student not found' }, { status: 404 });
     }
 
     return NextResponse.json({ data: student });

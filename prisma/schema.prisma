@@ -93,6 +93,7 @@ model Profile {
   updatedAt        DateTime @updatedAt
   careerPreferences Json?
   employeeId       String?
+  registerNo       String?  @unique
 
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   education   Education[]

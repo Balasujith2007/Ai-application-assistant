@@ -5,23 +5,39 @@ import type { Prisma } from '@prisma/client';
 
 async function getMentor(req: Request) {
   const userId = getUserIdFromRequest(req);
-  if (!userId) return null;
+  if (!userId) return { user: null, status: 401 };
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user || user.role !== 'MENTOR') return null;
-  return user;
+  if (!user) return { user: null, status: 401 };
+  if (user.role !== 'MENTOR' && user.role !== 'HOD' && user.role !== 'ADMIN') {
+    return { user: null, status: 403 };
+  }
+  return { user, status: 200 };
 }
 
 export async function GET(req: Request) {
   try {
-    const mentor = await getMentor(req);
-    if (!mentor) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    const { user: mentor, status } = await getMentor(req);
+    if (!mentor) {
+      return NextResponse.json(
+        { message: status === 403 ? 'Forbidden: Mentor access required' : 'Unauthorized' },
+        { status }
+      );
+    }
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search') || '';
 
     const whereClause: Prisma.UserWhereInput = {
-      mentorId: mentor.id,
-      ...(search ? { name: { contains: search, mode: 'insensitive' } } : {}),
+      role: 'STUDENT',
+      ...(search
+        ? {
+            OR: [
+              { name: { contains: search, mode: 'insensitive' } },
+              { email: { contains: search, mode: 'insensitive' } },
+              { profile: { registerNo: { contains: search, mode: 'insensitive' } } },
+            ],
+          }
+        : {}),
     };
 
     const students = await prisma.user.findMany({
@@ -37,10 +53,13 @@ export async function GET(req: Request) {
 
     const data = students.map((s) => ({
       id: s.id,
+      userId: s.id,
       name: s.name,
       email: s.email,
-      department: s.profile?.department ?? null,
-      year: s.profile?.year ?? null,
+      registerNo: s.profile?.registerNo ?? '—',
+      department: s.profile?.department ?? 'Artificial Intelligence & Data Science',
+      year: s.profile?.year ?? 2,
+      section: s.profile?.section ?? 'A',
       college: s.profile?.college ?? null,
       phone: s.profile?.phone ?? null,
       hasResume: s.resumes.length > 0,
@@ -49,7 +68,7 @@ export async function GET(req: Request) {
       lastActivity: s.activities[0]?.createdAt ?? null,
     }));
 
-    return NextResponse.json({ data });
+    return NextResponse.json({ data, total: data.length });
   } catch (error) {
     console.error('Mentor students list error:', error);
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
