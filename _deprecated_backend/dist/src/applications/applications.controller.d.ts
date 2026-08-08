@@ -1,0 +1,135 @@
+import { ApplicationsService } from './applications.service';
+import { CreateApplicationDto } from './dto/create-application.dto';
+import { UpdateApplicationDto } from './dto/update-application.dto';
+import { ApplicationType, ApplicationStatus } from '@prisma/client';
+interface AuthenticatedRequest extends Express.Request {
+    user: {
+        id: string;
+    };
+}
+export declare class ApplicationsController {
+    private readonly applicationsService;
+    constructor(applicationsService: ApplicationsService);
+    create(req: AuthenticatedRequest, dto: CreateApplicationDto): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        location: string | null;
+        userId: string;
+        description: string | null;
+        applicationUrl: string | null;
+        companyName: string;
+        position: string;
+        applicationType: import("@prisma/client").$Enums.ApplicationType;
+        salary: string | null;
+        nextAction: string | null;
+        resumeVersion: string | null;
+        status: import("@prisma/client").$Enums.ApplicationStatus;
+        appliedDate: Date | null;
+        deadline: Date | null;
+        notes: string | null;
+    }>;
+    findAll(req: AuthenticatedRequest, type?: ApplicationType, status?: ApplicationStatus, search?: string): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        location: string | null;
+        userId: string;
+        description: string | null;
+        applicationUrl: string | null;
+        companyName: string;
+        position: string;
+        applicationType: import("@prisma/client").$Enums.ApplicationType;
+        salary: string | null;
+        nextAction: string | null;
+        resumeVersion: string | null;
+        status: import("@prisma/client").$Enums.ApplicationStatus;
+        appliedDate: Date | null;
+        deadline: Date | null;
+        notes: string | null;
+    }[]>;
+    getStats(req: AuthenticatedRequest): Promise<{
+        total: number;
+        active: number;
+        interviews: number;
+        selected: number;
+        hackathons: number;
+    }>;
+    getDeadlines(req: AuthenticatedRequest): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        location: string | null;
+        userId: string;
+        description: string | null;
+        applicationUrl: string | null;
+        companyName: string;
+        position: string;
+        applicationType: import("@prisma/client").$Enums.ApplicationType;
+        salary: string | null;
+        nextAction: string | null;
+        resumeVersion: string | null;
+        status: import("@prisma/client").$Enums.ApplicationStatus;
+        appliedDate: Date | null;
+        deadline: Date | null;
+        notes: string | null;
+    }[]>;
+    findOne(req: AuthenticatedRequest, id: string): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        location: string | null;
+        userId: string;
+        description: string | null;
+        applicationUrl: string | null;
+        companyName: string;
+        position: string;
+        applicationType: import("@prisma/client").$Enums.ApplicationType;
+        salary: string | null;
+        nextAction: string | null;
+        resumeVersion: string | null;
+        status: import("@prisma/client").$Enums.ApplicationStatus;
+        appliedDate: Date | null;
+        deadline: Date | null;
+        notes: string | null;
+    }>;
+    update(req: AuthenticatedRequest, id: string, dto: UpdateApplicationDto): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        location: string | null;
+        userId: string;
+        description: string | null;
+        applicationUrl: string | null;
+        companyName: string;
+        position: string;
+        applicationType: import("@prisma/client").$Enums.ApplicationType;
+        salary: string | null;
+        nextAction: string | null;
+        resumeVersion: string | null;
+        status: import("@prisma/client").$Enums.ApplicationStatus;
+        appliedDate: Date | null;
+        deadline: Date | null;
+        notes: string | null;
+    }>;
+    remove(req: AuthenticatedRequest, id: string): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        location: string | null;
+        userId: string;
+        description: string | null;
+        applicationUrl: string | null;
+        companyName: string;
+        position: string;
+        applicationType: import("@prisma/client").$Enums.ApplicationType;
+        salary: string | null;
+        nextAction: string | null;
+        resumeVersion: string | null;
+        status: import("@prisma/client").$Enums.ApplicationStatus;
+        appliedDate: Date | null;
+        deadline: Date | null;
+        notes: string | null;
+    }>;
+}
+export {};
