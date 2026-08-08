@@ -32,7 +32,6 @@ const NAV_ITEMS = [
   { label: 'My Profile', href: '/profile', icon: User },
   { label: 'Resume', href: '/resume', icon: FileText },
   { label: 'AI Assistant', href: '/ai-assistant', icon: Bot },
-  { label: 'Notifications', href: '/notifications', icon: Bell },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 

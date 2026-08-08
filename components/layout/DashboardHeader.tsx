@@ -6,6 +6,7 @@ import { Bell, Search, Menu, X } from 'lucide-react';
 import { Avatar } from '@/components/ui/index';
 import { useAuth } from '@/context/AuthContext';
 import { Sidebar } from './Sidebar';
+import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 
 interface DashboardHeaderProps {
   title: string;
@@ -67,13 +68,7 @@ export function DashboardHeader({ title, subtitle }: DashboardHeaderProps) {
           </div>
 
           {/* Notifications */}
-          <Link
-            href="/notifications"
-            className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-indigo-600" />
-          </Link>
+          <NotificationDropdown />
 
           {/* Avatar */}
           {user && (
