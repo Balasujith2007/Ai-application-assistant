@@ -6,7 +6,7 @@ import { signToken } from '@/lib/serverAuth';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, email, password, role = 'STUDENT' } = body;
+    const { name, email, password, role = 'STUDENT', department, employeeId } = body;
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -20,6 +20,12 @@ export async function POST(req: Request) {
         email,
         password: hashedPassword,
         role,
+        profile: {
+          create: {
+            department: department || undefined,
+            employeeId: employeeId || undefined,
+          } as any
+        }
       },
     });
 

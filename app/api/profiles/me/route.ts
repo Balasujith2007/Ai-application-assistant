@@ -33,12 +33,46 @@ export async function PUT(req: Request) {
     const userId = getUserIdFromRequest(req);
     if (!userId) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     const body = await req.json();
+    
+    const { name, ...profileData } = body;
+
+    // Extract valid profile fields to prevent Prisma errors
+    const validProfileData = {
+      phone: profileData.phone,
+      department: profileData.department,
+      year: profileData.year,
+      section: profileData.section,
+      college: profileData.college,
+      location: profileData.location,
+      careerObjective: profileData.careerObjective,
+      linkedinUrl: profileData.linkedinUrl,
+      githubUrl: profileData.githubUrl,
+      portfolioUrl: profileData.portfolioUrl
+    };
+
+    // Remove undefined fields
+    Object.keys(validProfileData).forEach(key => {
+      if ((validProfileData as any)[key] === undefined) {
+        delete (validProfileData as any)[key];
+      }
+    });
+
+    if (name) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { name },
+      });
+    }
+
     const updated = await prisma.profile.upsert({
       where: { userId },
-      create: { userId, ...body },
-      update: body,
+      create: { userId, ...validProfileData },
+      update: validProfileData,
     });
     return NextResponse.json({ data: updated });
-  } catch (error) { return NextResponse.json({ message: 'Error' }, { status: 500 }); }
+  } catch (error) { 
+    console.error('Profile Update Error:', error);
+    return NextResponse.json({ message: 'Error updating profile' }, { status: 500 }); 
+  }
 }
 

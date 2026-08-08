@@ -111,6 +111,7 @@ export default function ProfilePage() {
 // ──────────────────────────────────────────────────
 function PersonalSection({ profile, onUpdate, user }: { profile: Profile | null; onUpdate: () => void; user: { name?: string; email?: string } | null }) {
   const [form, setForm] = useState({
+    name: user?.name ?? '',
     phone: profile?.phone ?? '',
     department: profile?.department ?? '',
     year: profile?.year?.toString() ?? '',
@@ -121,11 +122,22 @@ function PersonalSection({ profile, onUpdate, user }: { profile: Profile | null;
   });
   const [saving, setSaving] = useState(false);
 
+  // Sync form with user name if user prop changes
+  useEffect(() => {
+    if (user?.name && form.name === '') {
+      setForm((prev) => ({ ...prev, name: user.name ?? '' }));
+    }
+  }, [user]);
+
   const handleSave = async () => {
     setSaving(true);
     try {
       await api.put('/profiles/me', { ...form, year: form.year ? parseInt(form.year) : undefined });
+      alert('Personal Information saved successfully!');
       onUpdate();
+    } catch (error: any) {
+      console.error('Failed to save profile:', error);
+      alert(error?.response?.data?.message || 'Failed to save changes. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -135,7 +147,7 @@ function PersonalSection({ profile, onUpdate, user }: { profile: Profile | null;
     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
       <h3 className="mb-6 text-lg font-semibold text-gray-900">Personal Information</h3>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Input label="Full Name" value={user?.name ?? ''} disabled />
+        <Input label="Full Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
         <Input label="Email" value={user?.email ?? ''} disabled />
         <Input label="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+91 98765 43210" />
         <Input label="Department" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} placeholder="Computer Science Engineering" />

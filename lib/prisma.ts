@@ -1,14 +1,13 @@
 import { PrismaClient } from '@prisma/client';
-import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 const prismaClientSingleton = () => {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  const adapter = new PrismaPg(pool);
+  const adapter = new PrismaPg(process.env.DATABASE_URL!);
   return new PrismaClient({ adapter });
 };
 
 declare global {
+  // eslint-disable-next-line no-var
   var prisma: undefined | ReturnType<typeof prismaClientSingleton>;
 }
 

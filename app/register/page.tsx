@@ -13,40 +13,45 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState('STUDENT');
+  const [department, setDepartment] = useState('');
+  const [employeeId, setEmployeeId] = useState('');
+  
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-
-  const validate = () => {
-    const errors: Record<string, string> = {};
-    if (!name.trim()) errors.name = 'Full name is required';
-    if (!email) errors.email = 'Email is required';
-    else if (!/^[^@]+@[^@]+\.[^@]+$/.test(email)) errors.email = 'Invalid email';
-    if (!password) errors.password = 'Password is required';
-    else if (password.length < 8)
-      errors.password = 'Password must be at least 8 characters';
-    if (password !== confirmPassword)
-      errors.confirmPassword = 'Passwords do not match';
-    return errors;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const errs = validate();
-    if (Object.keys(errs).length > 0) {
-      setFieldErrors(errs);
+
+    if (!role) {
+      setError('Please select an account type');
       return;
     }
-    setFieldErrors({});
+
+    if (!name || !email || !password || !confirmPassword) {
+      setError('Please fill in all basic fields');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if ((role === 'MENTOR' || role === 'HOD') && (!department || !employeeId)) {
+      setError('Please fill in Department and Employee ID');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await register(name, email, password);
+      await register(name, email, password, role, department, employeeId);
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Registration failed. Please try again.';
+        'Failed to register';
       setError(msg);
     } finally {
       setIsLoading(false);
@@ -58,6 +63,7 @@ export default function RegisterPage() {
       {/* Left — Form */}
       <div className="flex flex-1 flex-col justify-center px-8 py-12 lg:px-16">
         <div className="mx-auto w-full max-w-sm">
+          {/* Logo */}
           <Link href="/" className="flex items-center gap-2 mb-10">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600">
               <Zap className="h-5 w-5 text-white" />
@@ -65,9 +71,9 @@ export default function RegisterPage() {
             <span className="text-xl font-bold text-gray-900">CareerAI</span>
           </Link>
 
-          <h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Create an account</h1>
           <p className="mt-2 text-sm text-gray-600">
-            Start managing your career journey for free
+            Join thousands of students accelerating their careers
           </p>
 
           <div className="mt-6">
@@ -82,7 +88,7 @@ export default function RegisterPage() {
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
                 <path d="M1 1h22v22H1z" fill="none" />
               </svg>
-              Continue with Google
+              Sign up with Google
             </a>
           </div>
 
@@ -99,6 +105,28 @@ export default function RegisterPage() {
               </div>
             )}
 
+            <div className="space-y-1">
+              <label htmlFor="account-type" className="block text-sm font-medium text-gray-700">Account Type</label>
+              <div className="relative">
+                <select
+                  id="account-type"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="block w-full appearance-none rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                >
+                  <option value="" disabled>Select account type</option>
+                  <option value="STUDENT">Student</option>
+                  <option value="MENTOR">Mentor</option>
+                  <option value="HOD">HOD</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                  <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
             <Input
               label="Full Name"
               type="text"
@@ -106,7 +134,6 @@ export default function RegisterPage() {
               placeholder="Arjun Kumar"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              error={fieldErrors.name}
               autoComplete="name"
               required
             />
@@ -118,10 +145,32 @@ export default function RegisterPage() {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              error={fieldErrors.email}
               autoComplete="email"
               required
             />
+
+            { (role === 'MENTOR' || role === 'HOD') && (
+              <>
+                <Input
+                  label={role === 'MENTOR' ? 'Mentor ID' : 'HOD/Employee ID'}
+                  type="text"
+                  id="employeeId"
+                  placeholder={role === 'MENTOR' ? 'M-12345' : 'HOD-12345'}
+                  value={employeeId}
+                  onChange={(e) => setEmployeeId(e.target.value)}
+                  required
+                />
+                <Input
+                  label="Department"
+                  type="text"
+                  id="department"
+                  placeholder="Computer Science"
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                  required
+                />
+              </>
+            )}
 
             <div className="relative">
               <Input
@@ -131,7 +180,6 @@ export default function RegisterPage() {
                 placeholder="Min. 8 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                error={fieldErrors.password}
                 hint="Must be at least 8 characters"
                 autoComplete="new-password"
               />
@@ -151,7 +199,6 @@ export default function RegisterPage() {
               placeholder="Re-enter password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              error={fieldErrors.confirmPassword}
               autoComplete="new-password"
             />
 

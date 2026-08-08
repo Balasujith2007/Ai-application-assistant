@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { LoadingSpinner } from '@/components/ui';
 
-export default function OAuthCallbackPage() {
+function OAuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { loginWithToken } = useAuth();
@@ -40,8 +40,22 @@ export default function OAuthCallbackPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="text-center">
         <LoadingSpinner size="lg" />
-        <p className="mt-4 text-sm text-gray-500 font-medium">Completing authentication...</p>
+        <p className="mt-4 text-sm font-medium text-gray-500">Completing authentication...</p>
       </div>
     </div>
+  );
+}
+
+export default function OAuthCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-gray-50">
+          <LoadingSpinner size="lg" />
+        </div>
+      }
+    >
+      <OAuthCallbackContent />
+    </Suspense>
   );
 }

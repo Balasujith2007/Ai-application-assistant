@@ -1,0 +1,53 @@
+import { NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
+import { getUserIdFromRequest } from '@/lib/serverAuth';
+import type { Prisma } from '@prisma/client';
+
+async function getMentor(req: Request) {
+  const userId = getUserIdFromRequest(req);
+  if (!userId) return null;
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user || user.role !== 'MENTOR') return null;
+  return user;
+}
+
+export async function GET(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
+  try {
+    const mentor = await getMentor(req);
+    if (!mentor) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+
+    const whereClause: Prisma.UserWhereInput = { id, mentorId: mentor.id };
+
+    const student = await prisma.user.findFirst({
+      where: whereClause,
+      include: {
+        profile: {
+          include: {
+            education: true,
+            experiences: true,
+            projects: true,
+            skills: { include: { skill: true } },
+          },
+        },
+        resumes: { where: { isActive: true }, orderBy: { uploadedAt: 'desc' } },
+        applications: { orderBy: { createdAt: 'desc' } },
+        interviews: { orderBy: { date: 'desc' } },
+        activities: { orderBy: { createdAt: 'desc' }, take: 10 },
+        notifications: { orderBy: { createdAt: 'desc' }, take: 5 },
+      },
+    });
+
+    if (!student) {
+      return NextResponse.json({ message: 'Student not found or not assigned to you' }, { status: 404 });
+    }
+
+    return NextResponse.json({ data: student });
+  } catch (error) {
+    console.error('Mentor student detail error:', error);
+    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+  }
+}

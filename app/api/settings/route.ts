@@ -29,22 +29,30 @@ export async function PUT(req: Request) {
     if (body.aiPreferences !== undefined) updateData.aiPreferences = body.aiPreferences;
     if (body.name !== undefined) updateData.name = body.name;
 
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: updateData
-    });
+    let user = null;
+    if (Object.keys(updateData).length > 0) {
+      user = await prisma.user.update({
+        where: { id: userId },
+        data: updateData
+      });
+    } else {
+      user = await prisma.user.findUnique({ where: { id: userId } });
+    }
 
     if (body.careerPreferences !== undefined) {
       let profile = await prisma.profile.findUnique({ where: { userId } });
       if (profile) {
         await prisma.profile.update({
           where: { userId },
-          data: { careerPreferences: body.careerPreferences }
+          data: { careerPreferences: body.careerPreferences } as any
         });
       }
     }
 
     return NextResponse.json({ data: user });
-  } catch (error) { return NextResponse.json({ message: 'Error' }, { status: 500 }); }
+  } catch (error) { 
+    console.error('Settings API Error:', error);
+    return NextResponse.json({ message: 'Error' }, { status: 500 }); 
+  }
 }
 

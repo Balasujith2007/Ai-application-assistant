@@ -3,7 +3,6 @@ import prisma from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
 import fs from 'fs';
 import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req: Request) {
   try {
@@ -16,7 +15,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'File is required' }, { status: 400 });
     }
 
-    const uniqueId = uuidv4();
+    const uniqueId = crypto.randomUUID();
     const ext = path.extname(file.name) || '';
     const fileName = `${uniqueId}${ext}`;
     const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'resumes');

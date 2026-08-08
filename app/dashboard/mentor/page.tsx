@@ -1,96 +1,113 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
+import Link from 'next/link';
+import axios from 'axios';
 import {
-  Users,
-  FileText,
-  Calendar,
-  Clock,
-  AlertCircle,
-  CheckCircle2,
-  BellRing,
-  Send,
-  Eye,
-  Video,
-  ClipboardList,
-  Megaphone,
-  FileSpreadsheet,
+  Users, FileText, Calendar, Clock, AlertCircle, CheckCircle2,
+  BellRing, Send, Eye, Loader2, RefreshCw,
 } from 'lucide-react';
+
+interface DashboardData {
+  stats: { assignedStudents: number; pendingResumes: number; todayInterviews: number; upcomingDeadlines: number };
+  attentionStudents: { id: string; name: string; email: string; issue: string; priority: string }[];
+  upcomingInterviews: { id: string; student: string; company: string; role: string; date: string; time?: string; type: string }[];
+  notifications: { id: string; title: string; message: string; isRead: boolean; createdAt: string }[];
+  recentActivities: { id: string; title: string; student: string; type: string; createdAt: string }[];
+}
 
 export default function MentorDashboard() {
   const { user } = useAuth();
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [remindingId, setRemindingId] = useState<string | null>(null);
+  const [reminderSuccess, setReminderSuccess] = useState('');
 
-  const stats = [
-    { label: 'Assigned Students', value: '120', icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-    { label: 'Pending Reviews', value: '14', icon: FileText, color: 'text-orange-600', bg: 'bg-orange-50' },
-    { label: 'Today\'s Interviews', value: '6', icon: Calendar, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Upcoming Deadlines', value: '9', icon: Clock, color: 'text-rose-600', bg: 'bg-rose-50' },
-  ];
+  const fetchDashboard = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('/api/mentor/dashboard', { headers: { Authorization: `Bearer ${token}` } });
+      setData(res.data.data);
+    } catch {
+      setError('Failed to load dashboard. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const attentionStudents = [
-    { name: 'Arjun', issue: 'Resume Missing', priority: 'High' },
-    { name: 'Rahul', issue: 'Internship Deadline Tomorrow', priority: 'Medium' },
-    { name: 'Priya', issue: 'Interview Scheduled Today', priority: 'High' },
-  ];
+  useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
 
-  const upcomingInterviews = [
-    { student: 'Sneha', company: 'Zoho', time: '10:00 AM', status: 'Scheduled' },
-    { student: 'Karthik', company: 'TCS', time: '11:30 AM', status: 'Pending Review' },
-    { student: 'Priya', company: 'Freshworks', time: '02:00 PM', status: 'Scheduled' },
-  ];
+  const handleRemind = async (studentId: string, studentName: string) => {
+    setRemindingId(studentId);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`/api/mentor/students/${studentId}/remind`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      setReminderSuccess(`Reminder sent to ${studentName}!`);
+      setTimeout(() => setReminderSuccess(''), 3000);
+    } catch {
+      setReminderSuccess('Failed to send reminder.');
+    } finally {
+      setRemindingId(null);
+    }
+  };
 
-  const recentActivity = [
-    { title: 'Resume Uploaded', desc: 'Arjun updated his resume', time: '1 hr ago' },
-    { title: 'Internship Applied', desc: 'Rahul applied for Zoho', time: '3 hrs ago' },
-    { title: 'Interview Scheduled', desc: 'Sneha confirmed slot', time: '5 hrs ago' },
-    { title: 'Hackathon Registered', desc: 'Team Alpha registered', time: 'Yesterday' },
-    { title: 'Profile Updated', desc: 'Karthik added skills', time: 'Yesterday' },
-  ];
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good Morning';
+    if (h < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
 
-  const notifications = [
-    'New resume submitted by Arjun',
-    'Interview feedback pending for Karthik',
-    'Sneha requested guidance',
-    'TCS drive announced for next week',
-  ];
+  const stats = data ? [
+    { label: 'Assigned Students', value: data.stats.assignedStudents, icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+    { label: 'Pending Reviews', value: data.stats.pendingResumes, icon: FileText, color: 'text-orange-600', bg: 'bg-orange-50' },
+    { label: "Today's Interviews", value: data.stats.todayInterviews, icon: Calendar, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: 'Upcoming Deadlines', value: data.stats.upcomingDeadlines, icon: Clock, color: 'text-rose-600', bg: 'bg-rose-50' },
+  ] : [];
 
-  const quickActions = [
-    { title: 'Review Resume', icon: FileText },
-    { title: 'Schedule Interview', icon: Video },
-    { title: 'Assign Task', icon: ClipboardList },
-    { title: 'Send Announcement', icon: Megaphone },
-    { title: 'Generate Report', icon: FileSpreadsheet },
-    { title: 'View Student List', icon: Users },
-  ];
+  if (loading) {
+    return (
+      <div className="flex min-h-96 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 pb-12">
-      {/* Hero Section */}
-      <motion.div 
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col gap-2"
-      >
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-          Good Morning, {user?.name?.split(' ')[0] || 'Prof. Kumar'} 👋
-        </h1>
-        <p className="text-lg text-gray-500">
-          Manage students, review resumes, conduct interviews and guide students efficiently.
-        </p>
+      {reminderSuccess && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+          {reminderSuccess}
+        </div>
+      )}
+
+      {/* Hero */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            {greeting()}, {user?.name?.split(' ')[0] || 'Mentor'} 👋
+          </h1>
+          <p className="mt-1 text-gray-500">Manage students, review resumes, and guide them efficiently.</p>
+        </div>
+        <button onClick={fetchDashboard} className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm hover:bg-gray-50">
+          <RefreshCw className="h-4 w-4" /> Refresh
+        </button>
       </motion.div>
 
-      {/* Stats Cards */}
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+      )}
+
+      {/* Stats */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat, idx) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.1 }}
-            className="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
-          >
+          <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.1 }}
+            className="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center gap-4">
               <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${stat.bg} ${stat.color}`}>
                 <stat.icon className="h-6 w-6" />
@@ -105,183 +122,154 @@ export default function MentorDashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        {/* Left Column (Wider) */}
+        {/* Left Column */}
         <div className="space-y-8 lg:col-span-2">
-          
           {/* Students Needing Attention */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm overflow-hidden"
-          >
-            <h2 className="mb-6 text-lg font-bold text-gray-900 flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+            className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-6 flex items-center gap-2 text-lg font-bold text-gray-900">
               <AlertCircle className="h-5 w-5 text-rose-500" /> Students Needing Attention
             </h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100 text-gray-500">
-                    <th className="pb-3 font-medium">Student Name</th>
-                    <th className="pb-3 font-medium">Issue</th>
-                    <th className="pb-3 font-medium">Priority</th>
-                    <th className="pb-3 font-medium text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {attentionStudents.map((student, idx) => (
-                    <tr key={idx} className="group hover:bg-gray-50/50 transition-colors">
-                      <td className="py-4 font-semibold text-gray-900">{student.name}</td>
-                      <td className="py-4 text-gray-600">{student.issue}</td>
-                      <td className="py-4">
-                        <span className={`inline-flex rounded-md px-2 py-1 text-xs font-semibold ${
-                          student.priority === 'High' ? 'bg-rose-50 text-rose-700' : 'bg-orange-50 text-orange-700'
-                        }`}>
-                          {student.priority}
-                        </span>
-                      </td>
-                      <td className="py-4 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="flex items-center gap-1 rounded bg-indigo-50 px-2 py-1 text-xs font-bold text-indigo-700 hover:bg-indigo-100">
-                          <Eye className="h-3 w-3" /> View Profile
-                        </button>
-                        <button className="flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs font-bold text-gray-700 hover:bg-gray-200">
-                          <Send className="h-3 w-3" /> Remind
-                        </button>
-                      </td>
+            {data?.attentionStudents?.length === 0 ? (
+              <p className="text-sm text-gray-500">All students are on track. No immediate attention needed.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 text-gray-500">
+                      <th className="pb-3 font-medium">Student</th>
+                      <th className="pb-3 font-medium">Issue</th>
+                      <th className="pb-3 font-medium">Priority</th>
+                      <th className="pb-3 text-right font-medium">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {data?.attentionStudents?.map((s) => (
+                      <tr key={s.id} className="group transition-colors hover:bg-gray-50/50">
+                        <td className="py-4 font-semibold text-gray-900">{s.name}</td>
+                        <td className="py-4 text-gray-600">{s.issue}</td>
+                        <td className="py-4">
+                          <span className={`inline-flex rounded-md px-2 py-1 text-xs font-semibold ${s.priority === 'High' ? 'bg-rose-50 text-rose-700' : 'bg-orange-50 text-orange-700'}`}>
+                            {s.priority}
+                          </span>
+                        </td>
+                        <td className="py-4">
+                          <div className="flex justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                            <Link href={`/dashboard/mentor/students`}
+                              className="flex items-center gap-1 rounded bg-indigo-50 px-2 py-1 text-xs font-bold text-indigo-700 hover:bg-indigo-100">
+                              <Eye className="h-3 w-3" /> View
+                            </Link>
+                            <button
+                              onClick={() => handleRemind(s.id, s.name)}
+                              disabled={remindingId === s.id}
+                              className="flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs font-bold text-gray-700 hover:bg-gray-200 disabled:opacity-60">
+                              {remindingId === s.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />} Remind
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </motion.div>
 
-          {/* Upcoming Interviews Table */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm overflow-hidden"
-          >
+          {/* Upcoming Interviews */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+            className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">Upcoming Interviews</h2>
-              <button className="text-sm font-medium text-indigo-600 hover:text-indigo-700">View Calendar →</button>
+              <Link href="/dashboard/mentor/interviews" className="text-sm font-medium text-indigo-600 hover:text-indigo-700">View All →</Link>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100 text-gray-500">
-                    <th className="pb-3 font-medium">Student</th>
-                    <th className="pb-3 font-medium">Company</th>
-                    <th className="pb-3 font-medium">Time</th>
-                    <th className="pb-3 font-medium">Status</th>
-                    <th className="pb-3 font-medium text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {upcomingInterviews.map((interview, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="py-4 font-semibold text-gray-900">{interview.student}</td>
-                      <td className="py-4 text-gray-600">{interview.company}</td>
-                      <td className="py-4 font-medium text-indigo-600">{interview.time}</td>
-                      <td className="py-4">
-                        <span className={`inline-flex rounded-md px-2 py-1 text-xs font-semibold ${
-                          interview.status === 'Scheduled' ? 'bg-emerald-50 text-emerald-700' : 'bg-yellow-50 text-yellow-700'
-                        }`}>
-                          {interview.status}
-                        </span>
-                      </td>
-                      <td className="py-4 text-right">
-                        <button className="rounded-lg bg-white border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 shadow-sm hover:bg-gray-50 hover:text-indigo-600">
-                          Join
-                        </button>
-                      </td>
+            {data?.upcomingInterviews?.length === 0 ? (
+              <p className="text-sm text-gray-500">No upcoming interviews scheduled.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 text-gray-500">
+                      <th className="pb-3 font-medium">Student</th>
+                      <th className="pb-3 font-medium">Company</th>
+                      <th className="pb-3 font-medium">Date</th>
+                      <th className="pb-3 font-medium">Time</th>
+                      <th className="pb-3 font-medium">Type</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {data?.upcomingInterviews?.map((i) => (
+                      <tr key={i.id} className="hover:bg-gray-50/50">
+                        <td className="py-4 font-semibold text-gray-900">{i.student}</td>
+                        <td className="py-4 text-gray-600">{i.company}</td>
+                        <td className="py-4 font-medium text-indigo-600">{new Date(i.date).toLocaleDateString()}</td>
+                        <td className="py-4 text-gray-600">{i.time || '—'}</td>
+                        <td className="py-4">
+                          <span className="inline-flex rounded-md bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700">
+                            {i.type.replace('_', ' ')}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </motion.div>
-
-          {/* Quick Actions */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm"
-          >
-            <h2 className="mb-6 text-lg font-bold text-gray-900">Quick Actions</h2>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-              {quickActions.map((action, idx) => (
-                <button
-                  key={idx}
-                  className="flex flex-col items-center justify-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-6 text-center transition-all hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 group"
-                >
-                  <action.icon className="h-6 w-6 text-gray-500 transition-colors group-hover:text-indigo-600" />
-                  <span className="text-sm font-semibold text-gray-700">{action.title}</span>
-                </button>
-              ))}
-            </div>
-          </motion.div>
-
         </div>
 
-        {/* Right Column (Narrower) */}
+        {/* Right Column */}
         <div className="space-y-8">
-          
           {/* Recent Notifications */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-            className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
-          >
-            <h2 className="mb-6 text-lg font-bold text-gray-900 flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}
+            className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-6 flex items-center gap-2 text-lg font-bold text-gray-900">
               <BellRing className="h-5 w-5 text-indigo-500" /> Recent Notifications
             </h2>
-            <div className="space-y-4">
-              {notifications.map((note, idx) => (
-                <div key={idx} className="flex items-start gap-3 rounded-lg border border-transparent p-2 transition-colors hover:bg-gray-50">
-                  <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-indigo-500" />
-                  <span className="text-sm font-medium text-gray-700 leading-snug">
-                    {note}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <button className="mt-4 w-full text-center text-sm font-semibold text-indigo-600 hover:text-indigo-700">
-              View All Notifications
-            </button>
-          </motion.div>
-
-          {/* Recent Activity Timeline */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
-            className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
-          >
-            <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900">Recent Activities</h2>
-            </div>
-            <div className="relative pl-2">
-              <div className="absolute left-[11px] top-4 bottom-4 w-px bg-gray-100" />
-              <div className="space-y-6">
-                {recentActivity.map((activity, idx) => (
-                  <div key={idx} className="relative flex gap-4">
-                    <div className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-500 ring-4 ring-white">
-                      <CheckCircle2 className="h-4 w-4" />
-                    </div>
-                    <div className="flex flex-col pt-0.5">
-                      <span className="text-sm font-bold text-gray-900">{activity.title}</span>
-                      <span className="text-xs text-gray-500">{activity.desc}</span>
-                      <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">{activity.time}</span>
+            {data?.notifications?.length === 0 ? (
+              <p className="text-sm text-gray-500">No new notifications.</p>
+            ) : (
+              <div className="space-y-3">
+                {data?.notifications?.map((n) => (
+                  <div key={n.id} className="flex items-start gap-3 rounded-lg p-2 transition-colors hover:bg-gray-50">
+                    <div className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.isRead ? 'bg-gray-300' : 'bg-indigo-500'}`} />
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">{n.title}</p>
+                      <p className="text-xs text-gray-500">{n.message}</p>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
+            )}
           </motion.div>
 
+          {/* Recent Activity */}
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}
+            className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-6 text-lg font-bold text-gray-900">Recent Activities</h2>
+            {data?.recentActivities?.length === 0 ? (
+              <p className="text-sm text-gray-500">No recent student activity.</p>
+            ) : (
+              <div className="relative pl-2">
+                <div className="absolute bottom-4 left-[11px] top-4 w-px bg-gray-100" />
+                <div className="space-y-5">
+                  {data?.recentActivities?.map((a) => (
+                    <div key={a.id} className="relative flex gap-4">
+                      <div className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-500 ring-4 ring-white">
+                        <CheckCircle2 className="h-4 w-4" />
+                      </div>
+                      <div className="flex flex-col pt-0.5">
+                        <span className="text-sm font-bold text-gray-900">{a.title}</span>
+                        <span className="text-xs text-gray-500">by {a.student}</span>
+                        <span className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                          {new Date(a.createdAt).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.div>
         </div>
       </div>
     </div>
