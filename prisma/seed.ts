@@ -46,13 +46,14 @@ async function main() {
   console.log('🌱 Starting database seed...');
 
   const defaultPassword = await bcrypt.hash('Student@123', 10);
+  const demoPassword = await bcrypt.hash('Demo@1234', 10);
   const mentorPassword = await bcrypt.hash('Mentor@123', 10);
   const hodPassword = await bcrypt.hash('Hod@123', 10);
 
   // 1. Seed Primary Mentor: Kavitha
   const kavithaMentor = await prisma.user.upsert({
     where: { email: 'kavitha@careerai.edu' },
-    update: { name: 'Kavitha', role: Role.MENTOR },
+    update: { name: 'Kavitha', role: Role.MENTOR, password: mentorPassword },
     create: {
       email: 'kavitha@careerai.edu',
       name: 'Kavitha',
@@ -70,7 +71,7 @@ async function main() {
   // Additional mentor
   await prisma.user.upsert({
     where: { email: 'mentor2@careerai.edu' },
-    update: { name: 'Prof. Priya Sundaram', role: Role.MENTOR },
+    update: { name: 'Prof. Priya Sundaram', role: Role.MENTOR, password: mentorPassword },
     create: {
       email: 'mentor2@careerai.edu',
       name: 'Prof. Priya Sundaram',
@@ -90,7 +91,7 @@ async function main() {
   // 2. Seed HOD
   const hod = await prisma.user.upsert({
     where: { email: 'hod@careerai.edu' },
-    update: { name: 'Dr. S. Kanthaswamy (HOD)', role: Role.HOD },
+    update: { name: 'Dr. S. Kanthaswamy (HOD)', role: Role.HOD, password: hodPassword },
     create: {
       email: 'hod@careerai.edu',
       name: 'Dr. S. Kanthaswamy (HOD)',
@@ -107,7 +108,29 @@ async function main() {
 
   console.log(`✅ HOD created: ${hod.name}`);
 
-  // 3. Seed Students & assign all 33 to Kavitha
+  // 3. Seed Demo Student
+  const demoStudent = await prisma.user.upsert({
+    where: { email: 'student@demo.com' },
+    update: { name: 'Demo Student', role: Role.STUDENT, mentorId: kavithaMentor.id, password: demoPassword },
+    create: {
+      email: 'student@demo.com',
+      name: 'Demo Student',
+      password: demoPassword,
+      role: Role.STUDENT,
+      mentorId: kavithaMentor.id,
+      profile: {
+        create: {
+          registerNo: '711524DEMO001',
+          department: 'Artificial Intelligence & Data Science',
+          year: 2,
+          section: 'A',
+        },
+      },
+    },
+  });
+  console.log(`✅ Demo Student created: ${demoStudent.email}`);
+
+  // 4. Seed Class Students & assign all 33 to Kavitha
   let count = 0;
   for (const s of RAW_STUDENTS) {
     const email = `${s.registerNo.toLowerCase()}@student.careerai.edu`;
@@ -118,6 +141,7 @@ async function main() {
         name: s.name,
         role: Role.STUDENT,
         mentorId: kavithaMentor.id,
+        password: defaultPassword,
       },
       create: {
         email,
@@ -149,7 +173,7 @@ async function main() {
     count++;
   }
 
-  console.log(`🎉 Successfully seeded ${count} students assigned to Kavitha!`);
+  console.log(`🎉 Successfully seeded ${count} class students assigned to Kavitha!`);
 }
 
 main()

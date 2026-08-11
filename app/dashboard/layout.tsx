@@ -23,6 +23,8 @@ import {
   Zap,
 } from 'lucide-react';
 
+import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading, isAuthenticated, logout } = useAuth();
   const router = useRouter();
@@ -68,10 +70,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { name: 'Dashboard', href: '/dashboard/hod', icon: LayoutDashboard },
       { name: 'Students', href: '/dashboard/hod/students', icon: Users },
       { name: 'Mentors', href: '/dashboard/hod/mentors', icon: Building2 },
-      { name: 'Assign Mentor', href: '/dashboard/hod/assign-mentor', icon: CheckSquare },
-      { name: 'Applications', href: '/dashboard/hod/applications', icon: Briefcase },
+      { name: 'Student Assignment', href: '/dashboard/hod/assign-mentor', icon: CheckSquare },
+      { name: 'Student Progress', href: '/dashboard/hod/progress', icon: PieChart },
+      { name: 'Placements', href: '/dashboard/hod/placements', icon: Briefcase },
+      { name: 'Resumes', href: '/dashboard/hod/resumes', icon: FileText },
       { name: 'Interviews', href: '/dashboard/hod/interviews', icon: CalendarDays },
-      { name: 'Career Progress', href: '/dashboard/hod/progress', icon: PieChart },
+      { name: 'Tasks', href: '/dashboard/hod/tasks', icon: CheckSquare },
+      { name: 'Announcements', href: '/dashboard/hod/announcements', icon: Bell },
       { name: 'Reports', href: '/dashboard/hod/reports', icon: FileText },
     ];
   } else {
@@ -207,11 +212,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </form>
             
             <div className="flex items-center gap-x-4 lg:gap-x-6">
-              <button type="button" className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500 relative">
-                <span className="sr-only">View notifications</span>
-                <Bell className="h-6 w-6" aria-hidden="true" />
-                <span className="absolute top-2 right-2.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
-              </button>
+              <NotificationDropdown />
 
               {/* Separator */}
               <div className="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200" aria-hidden="true" />

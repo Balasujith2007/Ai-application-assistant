@@ -7,7 +7,7 @@ async function getMentor(req: Request) {
   const userId = getUserIdFromRequest(req);
   if (!userId) return null;
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user || user.role !== 'MENTOR') return null;
+  if (!user || (user.role !== 'MENTOR' && user.role !== 'HOD' && user.role !== 'ADMIN')) return null;
   return user;
 }
 
@@ -17,7 +17,13 @@ export async function GET(req: Request) {
     const mentor = await getMentor(req);
     if (!mentor) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
-    const mentorStudentsWhere: Prisma.UserWhereInput = { mentorId: mentor.id };
+    const mentorStudentsWhere: Prisma.UserWhereInput = {
+      role: 'STUDENT',
+      OR: [
+        { mentorId: mentor.id },
+        { mentorId: null },
+      ],
+    };
     const students = await prisma.user.findMany({
       where: mentorStudentsWhere,
       select: { id: true },
@@ -30,7 +36,7 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({ data: tasks });
+    return NextResponse.json({ success: true, data: tasks });
   } catch (error) {
     console.error('Mentor tasks GET error:', error);
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
@@ -50,13 +56,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'studentId and title are required' }, { status: 400 });
     }
 
-    // Verify student is assigned to mentor
     const student = await prisma.user.findFirst({
-      where: { id: studentId, mentorId: mentor.id } as Prisma.UserWhereInput,
+      where: { id: studentId, role: 'STUDENT' },
     });
 
     if (!student) {
-      return NextResponse.json({ message: 'Student not assigned to you' }, { status: 404 });
+      return NextResponse.json({ message: 'Student not found' }, { status: 404 });
+    }
+
+    // Link student to mentor if null
+    if (!student.mentorId && mentor.role === 'MENTOR') {
+      await prisma.user.update({
+        where: { id: student.id },
+        data: { mentorId: mentor.id },
+      });
     }
 
     const task = await prisma.task.create({
@@ -79,7 +92,7 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({ data: task, message: 'Task assigned successfully' });
+    return NextResponse.json({ success: true, data: task, message: 'Task assigned successfully' });
   } catch (error) {
     console.error('Mentor tasks POST error:', error);
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });

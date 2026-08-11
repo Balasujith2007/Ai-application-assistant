@@ -25,8 +25,10 @@ export function getUserIdFromRequest(req: Request): string | null {
   const token = authHeader.substring(7);
   const payload = verifyToken(token);
 
-  if (payload && typeof payload === 'object' && 'sub' in payload) {
-    return payload.sub as string;
+  if (payload && typeof payload === 'object') {
+    if ('sub' in payload && payload.sub) return payload.sub as string;
+    if ('id' in payload && payload.id) return payload.id as string;
+    if ('userId' in payload && payload.userId) return payload.userId as string;
   }
 
   return null;

@@ -5,10 +5,17 @@ export async function GET() {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const redirectUri = `${baseUrl}/api/auth/google/callback`;
 
-  if (!clientId || clientId === 'YOUR_GOOGLE_CLIENT_ID_HERE') {
+  // Require actual Google OAuth Client ID in environment
+  if (
+    !clientId ||
+    clientId === 'YOUR_GOOGLE_CLIENT_ID_HERE' ||
+    clientId.includes('mock')
+  ) {
     return NextResponse.json(
-      { message: 'Google Client ID is not configured in .env' },
-      { status: 500 }
+      {
+        message: 'Google Client ID is missing or set to mock placeholder. Please add your real Google Cloud OAuth Client ID to GOOGLE_CLIENT_ID in your .env file.',
+      },
+      { status: 400 }
     );
   }
 

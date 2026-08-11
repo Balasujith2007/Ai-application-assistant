@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Briefcase, Calendar, CheckSquare, User, Bot, AlertCircle, Sparkles } from 'lucide-react';
+import { Bell, Briefcase, Calendar, CheckSquare, User, AlertCircle, Sparkles, Megaphone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
@@ -23,17 +23,23 @@ export function NotificationDropdown() {
   const router = useRouter();
 
   const fetchNotifications = async () => {
+    if (typeof window === 'undefined') return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
     try {
       const res = await api.get('/notifications');
       setNotifications(res.data.data || []);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
+    } catch (error: any) {
+      if (error.response?.status !== 401) {
+        console.error('Error fetching notifications:', error);
+      }
     }
   };
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 60000); // Polling every minute
+    const interval = setInterval(fetchNotifications, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -61,7 +67,7 @@ export function NotificationDropdown() {
     e.stopPropagation();
     try {
       await api.put('/notifications', {});
-      setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     } catch (error) {
       console.error('Error marking all as read:', error);
     }
@@ -71,19 +77,19 @@ export function NotificationDropdown() {
     try {
       if (!notification.isRead) {
         await api.patch(`/notifications/${notification.id}`, {});
-        setNotifications(notifications.map(n => n.id === notification.id ? { ...n, isRead: true } : n));
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n))
+        );
       }
       setIsOpen(false);
-      
+
       let targetRoute = notification.link;
-      // Infer route from type or title if link is missing
       if (!targetRoute) {
         const titleLower = notification.title.toLowerCase();
         if (titleLower.includes('application')) targetRoute = '/applications';
         else if (titleLower.includes('interview')) targetRoute = '/interviews';
         else if (titleLower.includes('task')) targetRoute = '/tasks';
         else if (titleLower.includes('profile')) targetRoute = '/profile';
-        else if (titleLower.includes('opportunity') || titleLower.includes('job') || titleLower.includes('hackathon')) targetRoute = '/dashboard/student';
         else targetRoute = '/dashboard/student';
       }
       router.push(targetRoute);
@@ -94,6 +100,7 @@ export function NotificationDropdown() {
 
   const getIcon = (title: string) => {
     const titleLower = title.toLowerCase();
+    if (titleLower.includes('📢') || titleLower.includes('announcement')) return <Megaphone className="h-5 w-5 text-indigo-600" />;
     if (titleLower.includes('application')) return <Briefcase className="h-5 w-5 text-blue-500" />;
     if (titleLower.includes('interview')) return <Calendar className="h-5 w-5 text-purple-500" />;
     if (titleLower.includes('task')) return <CheckSquare className="h-5 w-5 text-orange-500" />;
@@ -102,13 +109,14 @@ export function NotificationDropdown() {
     return <Sparkles className="h-5 w-5 text-indigo-500" />;
   };
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors focus:outline-none"
+        className="relative rounded-xl p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors focus:outline-none"
+        title="View Notifications"
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
@@ -119,9 +127,16 @@ export function NotificationDropdown() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 origin-top-right rounded-xl bg-white shadow-lg ring-1 ring-black ring-opacity-5 z-50 overflow-hidden flex flex-col max-h-[500px]">
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 origin-top-right rounded-2xl bg-white shadow-xl ring-1 ring-black/5 z-50 overflow-hidden flex flex-col max-h-[500px]">
           <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 bg-gray-50/50">
-            <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold text-gray-900">Notifications</h3>
+              {unreadCount > 0 && (
+                <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+                  {unreadCount} new
+                </span>
+              )}
+            </div>
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
@@ -148,8 +163,8 @@ export function NotificationDropdown() {
                     key={notification.id}
                     onClick={() => markAsReadAndNavigate(notification)}
                     className={cn(
-                      "w-full text-left flex items-start gap-4 p-4 transition-colors hover:bg-gray-50",
-                      !notification.isRead ? "bg-indigo-50/30" : "bg-white"
+                      "w-full text-left flex items-start gap-3.5 p-4 transition-colors hover:bg-gray-50",
+                      !notification.isRead ? "bg-indigo-50/40" : "bg-white"
                     )}
                   >
                     <div className={cn(
@@ -161,7 +176,7 @@ export function NotificationDropdown() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <p className={cn(
-                          "text-sm font-medium truncate",
+                          "text-sm font-bold truncate",
                           !notification.isRead ? "text-gray-900" : "text-gray-700"
                         )}>
                           {notification.title}
@@ -170,12 +185,12 @@ export function NotificationDropdown() {
                           <span className="flex-shrink-0 h-2 w-2 rounded-full bg-indigo-600" />
                         )}
                       </div>
-                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                      <p className="text-xs text-gray-600 mt-1 line-clamp-2 leading-relaxed">
                         {notification.message}
                       </p>
                       <p className="text-[11px] text-gray-400 mt-2 font-medium">
-                        {new Date(notification.createdAt).toLocaleDateString(undefined, {
-                          day: '2-digit', month: 'short', year: 'numeric'
+                        {new Date(notification.createdAt).toLocaleString(undefined, {
+                          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
                         })}
                       </p>
                     </div>
@@ -183,6 +198,18 @@ export function NotificationDropdown() {
                 ))}
               </div>
             )}
+          </div>
+
+          <div className="border-t border-gray-100 p-3 bg-gray-50/50 text-center">
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                router.push('/dashboard/notifications');
+              }}
+              className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+            >
+              View all notifications →
+            </button>
           </div>
         </div>
       )}

@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
-import type { Prisma } from '@prisma/client';
 
 async function getMentor(req: Request) {
   const userId = getUserIdFromRequest(req);
   if (!userId) return null;
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user || user.role !== 'MENTOR') return null;
+  if (!user || (user.role !== 'MENTOR' && user.role !== 'HOD' && user.role !== 'ADMIN')) return null;
   return user;
 }
 
@@ -20,28 +19,38 @@ export async function PUT(
     const mentor = await getMentor(req);
     if (!mentor) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
-    const userSelect: Prisma.UserSelect = { id: true, mentorId: true };
     const resume = await prisma.resume.findUnique({
       where: { id },
-      include: { user: { select: userSelect } },
+      include: { user: true },
     });
 
-    if (!resume || resume.user.mentorId !== mentor.id) {
-      return NextResponse.json({ message: 'Resume not found or access denied' }, { status: 404 });
+    if (!resume) {
+      return NextResponse.json({ message: 'Resume not found' }, { status: 404 });
+    }
+
+    // Verify security: prevent reviewing student assigned to another mentor
+    if (resume.user.mentorId && resume.user.mentorId !== mentor.id && mentor.role !== 'HOD' && mentor.role !== 'ADMIN') {
+      return NextResponse.json({ message: 'Access denied: student is assigned to another mentor' }, { status: 403 });
+    }
+
+    // If student has no mentor assigned, assign to current mentor
+    if (!resume.user.mentorId && mentor.role === 'MENTOR') {
+      await prisma.user.update({
+        where: { id: resume.userId },
+        data: { mentorId: mentor.id },
+      });
     }
 
     const body = await req.json();
     const { reviewStatus, reviewFeedback } = body;
 
-    const resumeUpdateData: Prisma.ResumeUpdateInput = {
-      reviewStatus,
-      reviewFeedback,
-      reviewedAt: new Date(),
-    };
-
     const updated = await prisma.resume.update({
       where: { id },
-      data: resumeUpdateData,
+      data: {
+        reviewStatus,
+        reviewFeedback,
+        reviewedAt: new Date(),
+      },
     });
 
     const statusLabel =
@@ -55,12 +64,12 @@ export async function PUT(
       data: {
         userId: resume.userId,
         title: 'Resume Review Update',
-        message: `Your resume has been ${statusLabel} by ${mentor.name}. ${reviewFeedback ? `Feedback: "${reviewFeedback.substring(0, 80)}..."` : ''}`,
-        link: '/dashboard/student',
+        message: `Your resume "${resume.originalName || resume.fileName}" has been ${statusLabel} by ${mentor.name}.${reviewFeedback ? ` Feedback: "${reviewFeedback}"` : ''}`,
+        link: '/resume',
       },
     });
 
-    return NextResponse.json({ data: updated });
+    return NextResponse.json({ success: true, data: updated });
   } catch (error) {
     console.error('Mentor resume review error:', error);
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });

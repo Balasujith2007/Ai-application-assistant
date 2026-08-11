@@ -18,12 +18,9 @@ export async function GET(req: Request) {
     const interviews = await prisma.interview.findMany({
       include: {
         user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            profile: { select: { registerNo: true, department: true } },
-            mentor: { select: { id: true, name: true } },
+          include: {
+            profile: true,
+            mentor: true,
           },
         },
       },
@@ -31,12 +28,16 @@ export async function GET(req: Request) {
     });
 
     const now = new Date();
-    const upcoming = interviews.filter((i) => new Date(i.date) >= now);
-    const completed = interviews.filter((i) => new Date(i.date) < now);
+    const upcoming = interviews.filter((i) => i.date && new Date(i.date) >= now);
+    const completed = interviews.filter((i) => i.date && new Date(i.date) < now);
 
-    return NextResponse.json({ data: interviews, upcomingCount: upcoming.length, completedCount: completed.length });
+    return NextResponse.json({
+      data: interviews,
+      upcomingCount: upcoming.length,
+      completedCount: completed.length,
+    });
   } catch (error) {
-    console.error('HOD interviews error:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    console.error('HOD interviews API 500 error:', error);
+    return NextResponse.json({ message: 'Internal server error', error: String(error) }, { status: 500 });
   }
 }
