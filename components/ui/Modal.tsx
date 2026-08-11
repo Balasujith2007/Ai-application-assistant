@@ -19,13 +19,19 @@ export function Modal({
   children,
   size = 'md',
 }: ModalProps) {
-  // Close on Escape key
+  // Lock body scroll and close on Escape key
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
-    if (isOpen) document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.addEventListener('keydown', handleKey);
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+      document.removeEventListener('keydown', handleKey);
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -38,32 +44,35 @@ export function Modal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-hidden">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
-      {/* Modal */}
+      {/* Modal Card Container */}
       <div
         className={cn(
-          'relative w-full rounded-2xl bg-white shadow-xl',
+          'relative flex flex-col w-full max-h-[90vh] rounded-2xl bg-white shadow-xl border border-gray-100 overflow-hidden',
           sizes[size],
           'animate-in fade-in zoom-in-95 duration-200',
         )}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+        {/* Sticky Header */}
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-6 py-4 bg-white z-10">
           <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
           <button
+            type="button"
             onClick={onClose}
             className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
-        {/* Body */}
-        <div className="p-6">{children}</div>
+        {/* Scrollable Body Content */}
+        <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-gray-300">
+          {children}
+        </div>
       </div>
     </div>
   );

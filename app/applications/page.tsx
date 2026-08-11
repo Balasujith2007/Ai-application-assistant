@@ -90,11 +90,11 @@ export default function ApplicationsPage() {
     setIsAddOpen(true);
   };
 
-  const handleSaveApp = (data: any) => {
+  const handleSaveApp = async (data: any) => {
     if (editingApp) {
-      updateApplication(editingApp.id, data);
+      await updateApplication(editingApp.id, data);
     } else {
-      addApplication(data);
+      await addApplication(data);
     }
   };
 

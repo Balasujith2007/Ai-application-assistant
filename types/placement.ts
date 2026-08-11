@@ -24,6 +24,8 @@ export interface ExtendedApplication {
   applicationUrl?: string;
   resumeVersion?: string;
   notes?: string;
+  githubUrl?: string;
+  codolioUrl?: string;
   description?: string;
   timeline: ApplicationTimelineItem[];
   createdAt: string;

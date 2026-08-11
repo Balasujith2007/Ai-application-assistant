@@ -103,3 +103,14 @@ export const markNotificationRead = async (id: string) => {
   const res = await api.patch(`/notifications/${id}/read`);
   return res.data;
 };
+
+// Profile link verification
+export const verifyGithubProfile = async (githubUrl: string) => {
+  const res = await api.post('/profile/verify-github', { githubUrl });
+  return res.data;
+};
+
+export const verifyCodolioProfile = async (codolioUrl: string) => {
+  const res = await api.post('/profile/verify-codolio', { codolioUrl });
+  return res.data;
+};

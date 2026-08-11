@@ -24,9 +24,34 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
     if (!userId) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
+    const updateData: any = { ...body };
+
+    if (body.githubUrl) {
+      try {
+        const gUrl = new URL(body.githubUrl.trim());
+        const gHost = gUrl.hostname.toLowerCase();
+        if (gHost === 'github.com' || gHost === 'www.github.com') {
+          const parts = gUrl.pathname.split('/').filter(Boolean);
+          if (parts[0]) updateData.githubUrl = `https://github.com/${parts[0]}`;
+        }
+      } catch {}
+    }
+
+    if (body.codolioUrl) {
+      try {
+        const cUrl = new URL(body.codolioUrl.trim());
+        const cHost = cUrl.hostname.toLowerCase();
+        if (cHost === 'codolio.com' || cHost === 'www.codolio.com') {
+          const parts = cUrl.pathname.split('/').filter(Boolean);
+          let user = parts[0] === 'profile' ? parts[1] : parts[0];
+          if (user) updateData.codolioUrl = `https://codolio.com/profile/${user}`;
+        }
+      } catch {}
+    }
+
     const application = await prisma.application.update({
       where: { id: (await props.params).id, userId },
-      data: body
+      data: updateData
     });
 
     return NextResponse.json(application);

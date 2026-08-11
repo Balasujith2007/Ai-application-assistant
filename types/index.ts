@@ -135,6 +135,8 @@ export interface Application {
   appliedDate?: string | null;
   deadline?: string | null;
   notes?: string | null;
+  githubUrl?: string | null;
+  codolioUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -204,16 +204,38 @@ export function ApplicationDetailModal({
 
         {/* Modal Actions Footer */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-gray-200">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {application.applicationUrl && (
               <a
                 href={application.applicationUrl}
                 target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg bg-indigo-50 px-3.5 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors"
               >
                 <ExternalLink className="h-4 w-4" />
-                View Job Link
+                Job Link
+              </a>
+            )}
+            {application.githubUrl && (
+              <a
+                href={application.githubUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-3.5 py-2 text-xs font-semibold text-white hover:bg-gray-800 transition-colors"
+              >
+                <ExternalLink className="h-4 w-4" />
+                GitHub Profile
+              </a>
+            )}
+            {application.codolioUrl && (
+              <a
+                href={application.codolioUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg bg-purple-50 px-3.5 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-100 transition-colors"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Codolio Profile
               </a>
             )}
           </div>
