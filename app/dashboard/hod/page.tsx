@@ -8,6 +8,15 @@ import {
   UserX, FileText, RefreshCw, Loader2, Award, Trophy, CheckCircle2
 } from 'lucide-react';
 
+interface RegistrationDetails {
+  id: string;
+  studentName: string;
+  opportunityTitle: string;
+  opportunityType: string;
+  status: string;
+  registeredAt: string;
+}
+
 interface DashboardData {
   totalStudents: number;
   totalMentors: number;
@@ -18,6 +27,7 @@ interface DashboardData {
   hackathonRegistrations?: number;
   internshipRegistrations?: number;
   totalRegisteredStudents?: number;
+  recentRegistrations?: RegistrationDetails[];
   yearDistribution: { year: string; total: number }[];
   sectionDistribution: { section: string; total: number }[];
 }
@@ -119,6 +129,52 @@ export default function HODDashboardPage() {
           </motion.div>
         ))}
       </div>
+
+      {/* Registered Student Details Table */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.25 }}
+        className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
+      >
+        <h2 className="mb-6 flex items-center gap-2 text-lg font-bold text-gray-900">
+          <CheckCircle2 className="h-5 w-5 text-emerald-600" /> Department Student Registrations
+        </h2>
+        {!data?.recentRegistrations || data.recentRegistrations.length === 0 ? (
+          <p className="text-sm text-gray-500">No student registrations recorded in department yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 text-gray-500">
+                  <th className="pb-3 font-medium">Student Name</th>
+                  <th className="pb-3 font-medium">Opportunity Name</th>
+                  <th className="pb-3 font-medium">Opportunity Type</th>
+                  <th className="pb-3 font-medium">Status</th>
+                  <th className="pb-3 font-medium">Registration Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {data.recentRegistrations.map((r) => (
+                  <tr key={r.id} className="hover:bg-gray-50/50">
+                    <td className="py-4 font-semibold text-gray-900">{r.studentName}</td>
+                    <td className="py-4 text-gray-700">{r.opportunityTitle}</td>
+                    <td className="py-4 text-gray-600 font-medium">{r.opportunityType}</td>
+                    <td className="py-4">
+                      <span className="inline-flex rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
+                        {r.status}
+                      </span>
+                    </td>
+                    <td className="py-4 text-gray-600 font-medium">
+                      {new Date(r.registeredAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </motion.div>
 
       {/* Analytics Distributions */}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">

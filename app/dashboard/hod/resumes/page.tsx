@@ -152,7 +152,7 @@ export default function HODResumesPage() {
                     <td className="px-6 py-4 text-right">
                       {r.fileUrl ? (
                         <a
-                          href={r.fileUrl}
+                          href={r.fileUrl.startsWith('/api/resumes/') ? r.fileUrl : `/api/resumes/${r.id}`}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 shadow-sm transition-colors"

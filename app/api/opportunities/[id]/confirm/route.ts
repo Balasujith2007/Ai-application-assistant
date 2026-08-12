@@ -52,28 +52,42 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     // Execute in a transaction to guarantee data integrity
     const [registration, application] = await prisma.$transaction(async (tx) => {
-      // 1. Upsert OpportunityRegistration to REGISTERED
-      const reg = await tx.opportunityRegistration.upsert({
+      // 1. Check existing OpportunityRegistration and its status before updating
+      const existingReg = await tx.opportunityRegistration.findUnique({
         where: {
           opportunityId_studentId: {
             opportunityId,
             studentId: userId
           }
-        },
-        update: {
-          status: 'REGISTERED',
-          registeredAt: now,
-          appliedAt: now
-        },
-        create: {
-          opportunityId,
-          studentId: userId,
-          status: 'REGISTERED',
-          initiatedAt: now,
-          appliedAt: now,
-          registeredAt: now
         }
       });
+
+      const isAlreadyRegistered = existingReg?.status === 'REGISTERED';
+
+      let reg;
+      if (!existingReg) {
+        reg = await tx.opportunityRegistration.create({
+          data: {
+            opportunityId,
+            studentId: userId,
+            status: 'REGISTERED',
+            initiatedAt: now,
+            appliedAt: now,
+            registeredAt: now
+          }
+        });
+      } else if (!isAlreadyRegistered) {
+        reg = await tx.opportunityRegistration.update({
+          where: { id: existingReg.id },
+          data: {
+            status: 'REGISTERED',
+            registeredAt: now,
+            appliedAt: now
+          }
+        });
+      } else {
+        reg = existingReg;
+      }
 
       // 2. Upsert Application record to APPLIED
       let existingApp = await tx.application.findFirst({
@@ -110,55 +124,36 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         });
       }
 
-      // 3. Create Notification for Poster (Mentor / HOD)
-      if (opportunity.postedById && opportunity.postedById !== userId) {
-        await tx.notification.create({
-          data: {
-            userId: opportunity.postedById,
-            senderId: userId,
-            type: 'OPPORTUNITY_REGISTERED',
-            title: `🔔 New Registration`,
-            message: `New Registration: ${student.name} registered for ${opportunity.title}`,
-            relatedEntityId: opportunity.id,
-            relatedEntityType: 'OPPORTUNITY',
-            link: `/dashboard/mentor/opportunities`
-          }
-        });
-      }
-
-      // 4. Create Notification for Student
-      await tx.notification.create({
-        data: {
-          userId: userId,
-          type: 'REGISTRATION_CONFIRMED',
-          title: `✓ Registration Confirmed`,
-          message: `You successfully registered for: ${opportunity.title} on ${formattedNow}`,
-          relatedEntityId: opportunity.id,
-          relatedEntityType: 'OPPORTUNITY',
-          link: `/dashboard/student/opportunity-history`
-        }
-      });
-
-      // 5. Create Notification for HOD if student has a mentor or poster is a mentor
-      if (student.mentorId) {
-        const mentorUser = await tx.user.findUnique({
-          where: { id: student.mentorId },
-          select: { id: true, name: true }
-        });
-        if (mentorUser && mentorUser.id !== opportunity.postedById) {
+      // 3. Create Notifications ONLY IF not already registered
+      if (!isAlreadyRegistered) {
+        // Send notification ONLY to assigned mentor if present
+        if (student.mentorId) {
           await tx.notification.create({
             data: {
-              userId: mentorUser.id,
+              userId: student.mentorId,
               senderId: userId,
               type: 'OPPORTUNITY_REGISTERED',
-              title: `🔔 Student Registration`,
-              message: `${student.name} registered for ${opportunity.title}`,
+              title: 'New Registration',
+              message: `${student.name} registered for ${opportunity.title} (${opportunity.type}).`,
               relatedEntityId: opportunity.id,
               relatedEntityType: 'OPPORTUNITY',
-              link: `/dashboard/mentor/opportunities`
+              link: '/dashboard/mentor/opportunities'
             }
           });
         }
+
+        // Notification for Student
+        await tx.notification.create({
+          data: {
+            userId: userId,
+            type: 'REGISTRATION_CONFIRMED',
+            title: '✓ Registration Confirmed',
+            message: `You successfully registered for: ${opportunity.title} on ${formattedNow}`,
+            relatedEntityId: opportunity.id,
+            relatedEntityType: 'OPPORTUNITY',
+            link: '/dashboard/student/opportunity-history'
+          }
+        });
       }
 
       return [reg, app];

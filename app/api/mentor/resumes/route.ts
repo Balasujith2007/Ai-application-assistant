@@ -100,11 +100,15 @@ export async function GET(req: Request) {
       (r) => r.reviewStatus === 'CHANGES_REQUESTED'
     ).length;
 
+    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
+    const token = authHeader?.replace('Bearer ', '') || '';
+    const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : '';
+
     const formattedData = resumes.map((r) => ({
       id: r.id,
       fileName: r.fileName,
       originalName: r.originalName || r.fileName,
-      fileUrl: r.fileUrl,
+      fileUrl: `/api/resumes/${r.id}${tokenQuery}`,
       uploadedAt: r.uploadedAt,
       reviewStatus: r.reviewStatus || 'PENDING_REVIEW',
       reviewFeedback: r.reviewFeedback,

@@ -25,6 +25,10 @@ export async function GET(req: Request) {
       orderBy: { name: 'asc' },
     });
 
+    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
+    const token = authHeader?.replace('Bearer ', '') || '';
+    const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : '';
+
     const data = students.map((s) => {
       const activeResume = s.resumes.find((r) => r.isActive) || s.resumes[0];
       let status = 'Missing';
@@ -42,7 +46,7 @@ export async function GET(req: Request) {
         mentorName: s.mentor?.name ?? 'Unassigned',
         resumeStatus: status,
         fileName: activeResume?.originalName ?? null,
-        fileUrl: activeResume?.fileUrl ?? null,
+        fileUrl: activeResume ? `/api/resumes/${activeResume.id}${tokenQuery}` : null,
         uploadedAt: activeResume?.uploadedAt ?? null,
         reviewFeedback: activeResume?.reviewFeedback ?? null,
       };

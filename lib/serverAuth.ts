@@ -36,6 +36,16 @@ export function getUserIdFromRequest(req: Request): string | null {
     }
   }
 
+  // 3. Fallback to URL search parameter if header & cookie are absent
+  if (!token && req.url) {
+    try {
+      const url = new URL(req.url);
+      token = url.searchParams.get('token') || url.searchParams.get('auth_token');
+    } catch {
+      // Ignore URL parsing errors
+    }
+  }
+
   if (!token) return null;
 
   const payload = verifyToken(token);

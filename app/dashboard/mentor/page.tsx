@@ -10,6 +10,15 @@ import {
   BellRing, Send, Eye, Loader2, RefreshCw, Briefcase, Trophy
 } from 'lucide-react';
 
+interface RegistrationDetails {
+  id: string;
+  studentName: string;
+  opportunityTitle: string;
+  opportunityType: string;
+  status: string;
+  registeredAt: string;
+}
+
 interface DashboardData {
   stats: {
     assignedStudents: number;
@@ -20,6 +29,7 @@ interface DashboardData {
     internshipRegistrations?: number;
     totalRegisteredStudents?: number;
   };
+  recentRegistrations?: RegistrationDetails[];
   attentionStudents: { id: string; name: string; email: string; issue: string; priority: string }[];
   upcomingInterviews: { id: string; student: string; company: string; role: string; date: string; time?: string; type: string }[];
   notifications: { id: string; title: string; message: string; isRead: boolean; createdAt: string }[];
@@ -184,6 +194,48 @@ export default function MentorDashboard() {
                               {remindingId === s.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />} Remind
                             </button>
                           </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </motion.div>
+
+          {/* Registered Student Activity / Details */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+            className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-6 flex items-center gap-2 text-lg font-bold text-gray-900">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" /> Registered Student Activity
+            </h2>
+            {!data?.recentRegistrations || data.recentRegistrations.length === 0 ? (
+              <p className="text-sm text-gray-500">No registered student activity yet.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 text-gray-500">
+                      <th className="pb-3 font-medium">Student Name</th>
+                      <th className="pb-3 font-medium">Opportunity Name</th>
+                      <th className="pb-3 font-medium">Opportunity Type</th>
+                      <th className="pb-3 font-medium">Status</th>
+                      <th className="pb-3 font-medium">Registration Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {data.recentRegistrations.map((r) => (
+                      <tr key={r.id} className="hover:bg-gray-50/50">
+                        <td className="py-4 font-semibold text-gray-900">{r.studentName}</td>
+                        <td className="py-4 text-gray-700">{r.opportunityTitle}</td>
+                        <td className="py-4 text-gray-600 font-medium">{r.opportunityType}</td>
+                        <td className="py-4">
+                          <span className="inline-flex rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
+                            {r.status}
+                          </span>
+                        </td>
+                        <td className="py-4 text-gray-600 font-medium">
+                          {new Date(r.registeredAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </td>
                       </tr>
                     ))}

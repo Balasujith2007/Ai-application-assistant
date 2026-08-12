@@ -37,25 +37,17 @@ export async function GET(req: Request) {
 
     const studentIds = students.map((s) => s.id);
 
-    // Registration Analytics - Unique student counts for assigned students
+    // Registration Analytics - Unique student counts using OpportunityRegistration with status === 'REGISTERED' ONLY
     const registrations = await prisma.opportunityRegistration.findMany({
       where: {
         studentId: { in: studentIds },
-        status: { in: ['REGISTERED', 'SHORTLISTED', 'SELECTED', 'COMPLETED', 'INITIATED', 'ONGOING'] }
+        status: 'REGISTERED'
       },
       include: {
-        opportunity: { select: { type: true } }
-      }
-    });
-
-    const applications = await prisma.application.findMany({
-      where: {
-        userId: { in: studentIds },
-        status: { in: ['APPLIED', 'SHORTLISTED', 'INTERVIEW', 'SELECTED', 'INITIATED'] }
+        student: { select: { name: true } },
+        opportunity: { select: { title: true, type: true } }
       },
-      include: {
-        opportunity: { select: { type: true } }
-      }
+      orderBy: { registeredAt: 'desc' }
     });
 
     const hackathonStudentSet = new Set<string>();
@@ -72,15 +64,14 @@ export async function GET(req: Request) {
       }
     }
 
-    for (const app of applications) {
-      totalRegisteredStudentSet.add(app.userId);
-      const type = app.opportunity?.type || app.applicationType;
-      if (type === 'HACKATHON') {
-        hackathonStudentSet.add(app.userId);
-      } else if (type === 'INTERNSHIP') {
-        internshipStudentSet.add(app.userId);
-      }
-    }
+    const recentRegistrations = registrations.map((r) => ({
+      id: r.id,
+      studentName: r.student.name,
+      opportunityTitle: r.opportunity.title,
+      opportunityType: r.opportunity.type,
+      status: 'Registered',
+      registeredAt: r.registeredAt || r.updatedAt,
+    }));
 
     // Pending resume reviews
     const resumeWhere: Prisma.ResumeWhereInput = {
@@ -143,6 +134,7 @@ export async function GET(req: Request) {
           internshipRegistrations: internshipStudentSet.size,
           totalRegisteredStudents: totalRegisteredStudentSet.size,
         },
+        recentRegistrations,
         attentionStudents,
         upcomingInterviews: upcomingInterviewsList.map((i) => ({
           id: i.id,

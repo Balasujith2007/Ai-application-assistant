@@ -42,6 +42,17 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
   CHANGES_REQUESTED: { label: 'Changes Requested', color: 'bg-rose-50 text-rose-700 border-rose-200', icon: AlertCircle },
 };
 
+const getResumeViewUrl = (url: string, id: string) => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const tokenQuery = token ? `token=${encodeURIComponent(token)}` : '';
+
+  if (url && url.startsWith('/api/resumes/')) {
+    if (url.includes('token=')) return url;
+    return `${url}${url.includes('?') ? '&' : '?'}${tokenQuery}`;
+  }
+  return `/api/resumes/${id}${tokenQuery ? `?${tokenQuery}` : ''}`;
+};
+
 interface ReviewModalProps {
   resume: Resume;
   onClose: () => void;
@@ -97,7 +108,7 @@ function ReviewModal({ resume, onClose, onSaved }: ReviewModalProps) {
               <p className="text-sm font-semibold text-gray-900 truncate">{resume.originalName}</p>
               <p className="text-xs text-gray-400">Uploaded {new Date(resume.uploadedAt).toLocaleDateString()}</p>
             </div>
-            <a href={resume.fileUrl} target="_blank" rel="noreferrer"
+            <a href={getResumeViewUrl(resume.fileUrl, resume.id)} target="_blank" rel="noreferrer"
               className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 shadow-sm">
               <Download className="h-3.5 w-3.5" /> View
             </a>
@@ -322,7 +333,7 @@ export default function MentorResumesPage() {
 
                 <div className="flex gap-2 pt-2 border-t border-gray-100">
                   <a
-                    href={r.fileUrl}
+                    href={getResumeViewUrl(r.fileUrl, r.id)}
                     target="_blank"
                     rel="noreferrer"
                     className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"

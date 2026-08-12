@@ -66,25 +66,17 @@ export async function GET(req: Request) {
       },
     });
 
-    // HOD Registration Analytics
+    // HOD Registration Analytics - Source of truth: OpportunityRegistration with status === 'REGISTERED' ONLY
     const registrations = await prisma.opportunityRegistration.findMany({
       where: {
         studentId: { in: scopedStudentIds },
-        status: { in: ['REGISTERED', 'SHORTLISTED', 'SELECTED', 'COMPLETED', 'INITIATED', 'ONGOING'] }
+        status: 'REGISTERED'
       },
       include: {
-        opportunity: { select: { type: true } }
-      }
-    });
-
-    const applications = await prisma.application.findMany({
-      where: {
-        userId: { in: scopedStudentIds },
-        status: { in: ['APPLIED', 'SHORTLISTED', 'INTERVIEW', 'SELECTED', 'INITIATED'] }
+        student: { select: { name: true } },
+        opportunity: { select: { title: true, type: true } }
       },
-      include: {
-        opportunity: { select: { type: true } }
-      }
+      orderBy: { registeredAt: 'desc' }
     });
 
     const hackathonStudentSet = new Set<string>();
@@ -101,15 +93,14 @@ export async function GET(req: Request) {
       }
     }
 
-    for (const app of applications) {
-      totalRegisteredStudentSet.add(app.userId);
-      const type = app.opportunity?.type || app.applicationType;
-      if (type === 'HACKATHON') {
-        hackathonStudentSet.add(app.userId);
-      } else if (type === 'INTERNSHIP') {
-        internshipStudentSet.add(app.userId);
-      }
-    }
+    const recentRegistrations = registrations.map((r) => ({
+      id: r.id,
+      studentName: r.student.name,
+      opportunityTitle: r.opportunity.title,
+      opportunityType: r.opportunity.type,
+      status: 'Registered',
+      registeredAt: r.registeredAt || r.updatedAt,
+    }));
 
     // Year-wise student counts
     const secondYear = await prisma.profile.count({
@@ -141,6 +132,7 @@ export async function GET(req: Request) {
         hackathonRegistrations: hackathonStudentSet.size,
         internshipRegistrations: internshipStudentSet.size,
         totalRegisteredStudents: totalRegisteredStudentSet.size,
+        recentRegistrations,
         yearDistribution: [
           { year: '2nd Year', total: secondYear },
           { year: '3rd Year', total: thirdYear },
