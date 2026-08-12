@@ -26,14 +26,52 @@ enum ApplicationType {
   INTERNSHIP
   JOB
   HACKATHON
+  COMPETITION
+  WORKSHOP
+  SCHOLARSHIP
   OTHER
 }
 
 enum ApplicationStatus {
   SAVED
+  INITIATED
   APPLIED
   SHORTLISTED
   INTERVIEW
+  SELECTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum OpportunityType {
+  JOB
+  FULL_TIME
+  INTERNSHIP
+  HACKATHON
+  COMPETITION
+  SCHOLARSHIP
+  WORKSHOP
+  OTHER
+}
+
+enum OpportunityMode {
+  ONLINE
+  OFFLINE
+  HYBRID
+}
+
+enum OpportunityStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum OpportunityRegistrationStatus {
+  INITIATED
+  REGISTERED
+  ONGOING
+  COMPLETED
+  SHORTLISTED
   SELECTED
   REJECTED
   WITHDRAWN
@@ -56,13 +94,17 @@ model User {
   privacySettings Json?
   aiPreferences Json?
 
-  profile       Profile?
-  resumes       Resume[]
-  applications  Application[]
-  tasks         Task[]
-  interviews    Interview[]
-  activities    Activity[]
-  notifications Notification[]
+  profile              Profile?
+  verifiedProfiles     VerifiedProfile[]
+  resumes              Resume[]
+  applications         Application[]
+  tasks                Task[]
+  interviews           Interview[]
+  activities           Activity[]
+  notifications        Notification[] @relation("UserNotifications")
+  sentNotifications    Notification[] @relation("SentNotifications")
+  postedOpportunities  Opportunity[]  @relation("PostedOpportunities")
+  registrations        OpportunityRegistration[]
 
   // Mentor-Student relationship
   mentorId      String?
@@ -70,6 +112,26 @@ model User {
   students      User[]  @relation("StudentMentor")
 
   @@map("users")
+}
+
+// ============================================================
+// VERIFIED PROFILE
+// ============================================================
+
+model VerifiedProfile {
+  id                 String   @id @default(cuid())
+  studentId          String
+  platform           String   // GITHUB, LINKEDIN, CODOLIO
+  profileUrl         String
+  username           String?
+  verificationStatus String   @default("UNVERIFIED") // VERIFIED, FORMAT_VERIFIED, UNVERIFIED, FAILED
+  verifiedAt         DateTime @default(now())
+  publicMetadata     Json?
+
+  student User @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, platform])
+  @@map("verified_profiles")
 }
 
 // ============================================================
@@ -89,6 +151,7 @@ model Profile {
   linkedinUrl      String?
   githubUrl        String?
   portfolioUrl     String?
+  codolioUrl       String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   careerPreferences Json?
@@ -201,9 +264,9 @@ model Resume {
   uploadedAt   DateTime @default(now())
 
   // Mentor review fields
-  reviewStatus  String?  @default("PENDING_REVIEW") // PENDING_REVIEW, REVIEWED, CHANGES_REQUESTED
+  reviewStatus   String?   @default("PENDING_REVIEW") // PENDING_REVIEW, REVIEWED, CHANGES_REQUESTED
   reviewFeedback String?
-  reviewedAt    DateTime?
+  reviewedAt     DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -217,6 +280,7 @@ model Resume {
 model Application {
   id              String            @id @default(cuid())
   userId          String
+  opportunityId   String?
   companyName     String
   position        String
   applicationType ApplicationType   @default(INTERNSHIP)
@@ -236,6 +300,7 @@ model Application {
   updatedAt       DateTime          @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  opportunity Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
 
   @@map("applications")
 }
@@ -308,30 +373,79 @@ model Interview {
 // OPPORTUNITY
 // ============================================================
 
-enum OpportunityType {
-  INTERNSHIP
-  FULL_TIME
-  HACKATHON
-}
-
 model Opportunity {
-  id             String          @id @default(cuid())
-  companyName    String
-  role           String
-  type           OpportunityType @default(FULL_TIME)
-  location       String?
-  salary         String?
-  description    String
-  applyUrl       String
-  deadline       DateTime
-  minCgpa        Float?
-  requiredSkills String[]
-  allowedDegrees String[]
-  allowedYears   Int[]
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id                  String            @id @default(cuid())
+  title               String
+  organization        String
+  companyName         String?
+  role                String?
+  type                OpportunityType   @default(JOB)
+  description         String
+  opportunityUrl      String?
+  registrationUrl     String?
+  applyUrl            String?
+  location            String?
+  mode                OpportunityMode   @default(ONLINE)
+  salary              String?
+  stipend             String?
+  prize               String?
+  openings            Int?
+  eligibility         String?
+  additionalInfo      String?
+  applicationDeadline DateTime
+  deadline            DateTime?
+  startDate           DateTime?
+  endDate             DateTime?
+  minCgpa             Float?
+  requiredSkills      String[]
+  allowedDegrees      String[]
+  allowedYears        Int[]
+  postedById          String?
+  postedByRole        Role?             @default(MENTOR)
+  status              OpportunityStatus @default(PUBLISHED)
+
+  // Targeting fields for HOD / Placement
+  targetAudience      String?           // ALL_STUDENTS, SELECTED_STUDENTS, ALL_MENTORS, SELECTED_MENTORS, BOTH
+  targetDepartment    String?
+  targetYear          Int?
+  targetSection       String?
+
+  viewsCount          Int               @default(0)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  postedBy      User?                     @relation("PostedOpportunities", fields: [postedById], references: [id], onDelete: SetNull)
+  registrations OpportunityRegistration[]
+  applications  Application[]
 
   @@map("opportunities")
+}
+
+// ============================================================
+// OPPORTUNITY REGISTRATION
+// ============================================================
+
+model OpportunityRegistration {
+  id            String                        @id @default(cuid())
+  opportunityId String
+  studentId     String
+  status        OpportunityRegistrationStatus @default(INITIATED)
+  notes         String?
+  outcome       String?                       // Participated, Finalist, Winner, Runner-up, Selected, Completed, Other
+  role          String?                       // Role or Position
+  certificateUrl String?
+  initiatedAt   DateTime                      @default(now())
+  appliedAt     DateTime?
+  registeredAt  DateTime?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  updatedAt     DateTime                      @updatedAt
+
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  student     User        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([opportunityId, studentId])
+  @@map("opportunity_registrations")
 }
 
 // ============================================================
@@ -356,15 +470,20 @@ model Activity {
 // ============================================================
 
 model Notification {
-  id        String   @id @default(cuid())
-  userId    String
-  title     String
-  message   String
-  isRead    Boolean  @default(false)
-  link      String?
-  createdAt DateTime @default(now())
+  id                String   @id @default(cuid())
+  userId            String
+  senderId          String?
+  type              String?  // OPPORTUNITY_POSTED, OPPORTUNITY_REGISTERED, REGISTRATION_STATUS_CHANGED, etc.
+  title             String
+  message           String
+  relatedEntityId   String?
+  relatedEntityType String?
+  isRead            Boolean  @default(false)
+  link              String?
+  createdAt         DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User  @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  sender User? @relation("SentNotifications", fields: [senderId], references: [id], onDelete: SetNull)
 
   @@map("notifications")
 }

@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import {
   Users, UserCheck, Briefcase, Calendar, PieChart,
-  UserX, FileText, RefreshCw, Loader2, Award,
+  UserX, FileText, RefreshCw, Loader2, Award, Trophy, CheckCircle2
 } from 'lucide-react';
 
 interface DashboardData {
@@ -15,6 +15,9 @@ interface DashboardData {
   upcomingInterviews: number;
   unassignedStudents: number;
   studentsWithResumesCount: number;
+  hackathonRegistrations?: number;
+  internshipRegistrations?: number;
+  totalRegisteredStudents?: number;
   yearDistribution: { year: string; total: number }[];
   sectionDistribution: { section: string; total: number }[];
 }
@@ -56,6 +59,9 @@ export default function HODDashboardPage() {
     { label: 'Total Dept. Students', value: data.totalStudents, icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
     { label: 'Active Mentors', value: data.totalMentors, icon: UserCheck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Active Applications', value: data.activeApplications, icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Hackathon Registrations', value: data.hackathonRegistrations || 0, icon: Trophy, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { label: 'Internship Registrations', value: data.internshipRegistrations || 0, icon: Briefcase, color: 'text-teal-600', bg: 'bg-teal-50' },
+    { label: 'Total Registered Students', value: data.totalRegisteredStudents || 0, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Upcoming Interviews', value: data.upcomingInterviews, icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-50' },
     { label: 'Unassigned Students', value: data.unassignedStudents, icon: UserX, color: 'text-amber-600', bg: 'bg-amber-50' },
     { label: 'Resumes Uploaded', value: data.studentsWithResumesCount, icon: FileText, color: 'text-rose-600', bg: 'bg-rose-50' },
@@ -73,12 +79,20 @@ export default function HODDashboardPage() {
             Department of Artificial Intelligence & Data Science overview
           </p>
         </div>
-        <button
-          onClick={fetchDashboard}
-          className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm hover:bg-gray-50 transition-colors"
-        >
-          <RefreshCw className="h-4 w-4" /> Refresh
-        </button>
+        <div className="flex items-center gap-3">
+          <a
+            href="/dashboard/hod/opportunities"
+            className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors"
+          >
+            <Briefcase className="h-4 w-4" /> Broadcast Opportunities
+          </a>
+          <button
+            onClick={fetchDashboard}
+            className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm hover:bg-gray-50 transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" /> Refresh
+          </button>
+        </div>
       </motion.div>
 
       {error && (

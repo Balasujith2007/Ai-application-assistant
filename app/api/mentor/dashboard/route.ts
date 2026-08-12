@@ -21,7 +21,9 @@ export async function GET(req: Request) {
     const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
     const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    const whereClause: Prisma.UserWhereInput = { role: 'STUDENT' };
+    const whereClause: Prisma.UserWhereInput = mentor.role === 'MENTOR'
+      ? { role: 'STUDENT', mentorId: mentor.id }
+      : { role: 'STUDENT' };
 
     const students = await prisma.user.findMany({
       where: whereClause,
@@ -34,6 +36,30 @@ export async function GET(req: Request) {
     });
 
     const studentIds = students.map((s) => s.id);
+
+    // Registration Analytics - Unique student counts for assigned students
+    const registrations = await prisma.opportunityRegistration.findMany({
+      where: {
+        studentId: { in: studentIds },
+        status: 'REGISTERED'
+      },
+      include: {
+        opportunity: { select: { type: true } }
+      }
+    });
+
+    const hackathonStudentSet = new Set<string>();
+    const internshipStudentSet = new Set<string>();
+    const totalRegisteredStudentSet = new Set<string>();
+
+    for (const reg of registrations) {
+      totalRegisteredStudentSet.add(reg.studentId);
+      if (reg.opportunity?.type === 'HACKATHON') {
+        hackathonStudentSet.add(reg.studentId);
+      } else if (reg.opportunity?.type === 'INTERNSHIP') {
+        internshipStudentSet.add(reg.studentId);
+      }
+    }
 
     // Pending resume reviews
     const resumeWhere: Prisma.ResumeWhereInput = {
@@ -92,6 +118,9 @@ export async function GET(req: Request) {
           pendingResumes,
           todayInterviews,
           upcomingDeadlines,
+          hackathonRegistrations: hackathonStudentSet.size,
+          internshipRegistrations: internshipStudentSet.size,
+          totalRegisteredStudents: totalRegisteredStudentSet.size,
         },
         attentionStudents,
         upcomingInterviews: upcomingInterviewsList.map((i) => ({

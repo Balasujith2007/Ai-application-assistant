@@ -30,8 +30,10 @@ export default function NotificationsPage() {
     try {
       const res = await api.get('/notifications');
       setNotifications(res.data.data || []);
-    } catch (err) {
-      console.error('Failed to load notifications:', err);
+    } catch (err: any) {
+      if (err.response) {
+        console.error('Failed to load notifications:', err);
+      }
     } finally {
       setLoading(false);
     }

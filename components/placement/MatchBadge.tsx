@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Check, X, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { Opportunity } from '@/types/placement';
 import { cn } from '@/lib/utils';
+import { getOpportunityRegistrationState } from '@/lib/opportunityUtils';
 
 interface MatchBadgeProps {
   opportunity: Opportunity;
@@ -19,8 +20,18 @@ export function MatchBadge({
   detailed = false,
 }: MatchBadgeProps) {
   const [expanded, setExpanded] = useState(detailed);
-  const isHighMatch = opportunity.matchScore >= 80;
-  const isMediumMatch = opportunity.matchScore >= 60 && opportunity.matchScore < 80;
+  const matchScore = opportunity?.matchScore ?? 0;
+  const isHighMatch = matchScore >= 80;
+  const isMediumMatch = matchScore >= 60 && matchScore < 80;
+
+  const missingSkills = opportunity?.missingSkills || [];
+  const requiredSkills = opportunity?.requiredSkills || [];
+
+  const stateInfo = getOpportunityRegistrationState(
+    opportunity,
+    (opportunity as any)?.studentRegistration,
+    (opportunity as any)?.userRegistrationStatus
+  );
 
   const badgeColor = isHighMatch
     ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
@@ -40,11 +51,11 @@ export function MatchBadge({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 font-bold text-sm">
-            {opportunity.companyName.charAt(0)}
+            {opportunity?.companyName?.charAt(0) || 'C'}
           </div>
           <div>
-            <h4 className="font-bold text-gray-900 leading-tight">{opportunity.role}</h4>
-            <p className="text-xs text-gray-500">{opportunity.companyName} • {opportunity.location}</p>
+            <h4 className="font-bold text-gray-900 leading-tight">{opportunity?.role || 'Opportunity'}</h4>
+            <p className="text-xs text-gray-500">{opportunity?.companyName || 'Company'} • {opportunity?.location || 'Remote'}</p>
           </div>
         </div>
 
@@ -57,7 +68,7 @@ export function MatchBadge({
             )}
           >
             <Sparkles className="h-3.5 w-3.5" />
-            {opportunity.matchScore}% Match
+            {matchScore}% Match
           </span>
           <button
             onClick={() => setExpanded(!expanded)}
@@ -72,7 +83,7 @@ export function MatchBadge({
       <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
         <div
           className={cn('h-full rounded-full transition-all duration-500', progressBg)}
-          style={{ width: `${opportunity.matchScore}%` }}
+          style={{ width: `${matchScore}%` }}
         />
       </div>
 
@@ -82,11 +93,11 @@ export function MatchBadge({
           <div className="space-y-1.5">
             <div className="flex items-center gap-2 font-medium text-emerald-700">
               <Check className="h-3.5 w-3.5 shrink-0 stroke-[3]" />
-              <span>CGPA requirement met ({opportunity.minCgpa}+ CGPA)</span>
+              <span>CGPA requirement met ({opportunity?.minCgpa ?? 0}+ CGPA)</span>
             </div>
 
-            {opportunity.requiredSkills.map((skill) => {
-              const hasSkill = !opportunity.missingSkills.includes(skill);
+            {requiredSkills.map((skill) => {
+              const hasSkill = !missingSkills.includes(skill);
               return (
                 <div
                   key={skill}
@@ -107,13 +118,13 @@ export function MatchBadge({
           </div>
 
           <div className="pt-2 text-xs font-semibold">
-            {opportunity.missingSkills.length === 0 ? (
+            {missingSkills.length === 0 ? (
               <span className="text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md inline-block">
                 ✓ You are eligible for this opportunity.
               </span>
             ) : (
               <span className="text-amber-800 bg-amber-50 px-2 py-1 rounded-md inline-block">
-                You are missing {opportunity.missingSkills.length} required skill{opportunity.missingSkills.length > 1 ? 's' : ''} ({opportunity.missingSkills.join(', ')}).
+                You are missing {missingSkills.length} required skill{missingSkills.length > 1 ? 's' : ''} ({missingSkills.join(', ')}).
               </span>
             )}
           </div>
@@ -123,7 +134,7 @@ export function MatchBadge({
       {/* Action Footer */}
       <div className="mt-4 flex items-center justify-between pt-2">
         <span className="inline-flex rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-          {opportunity.package}
+          {opportunity?.package || 'N/A'}
         </span>
         <div className="flex items-center gap-2">
           {onView && (
@@ -137,9 +148,17 @@ export function MatchBadge({
           {onApply && (
             <button
               onClick={onApply}
-              className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-indigo-700 transition-colors"
+              disabled={stateInfo.isButtonDisabled}
+              className={cn(
+                'rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors',
+                stateInfo.registrationStatus === 'REGISTERED' || stateInfo.registrationStatus === 'SHORTLISTED' || stateInfo.registrationStatus === 'SELECTED'
+                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 hover:bg-emerald-200'
+                  : stateInfo.isButtonDisabled
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                  : 'bg-indigo-600 text-white shadow-xs hover:bg-indigo-700'
+              )}
             >
-              Apply Now
+              {stateInfo.buttonText}
             </button>
           )}
         </div>

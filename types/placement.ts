@@ -103,9 +103,34 @@ export interface Opportunity {
   matchReasons: string[];
   missingSkills: string[];
   deadline: string;
+  applicationDeadline?: string;
+  registrationUrl?: string;
+  opportunityUrl?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+  organization?: string;
   eligible: boolean;
   type: ApplicationType;
   description?: string;
+}
+
+export interface OpportunityRegistrationItem {
+  id: string;
+  opportunityId: string;
+  studentId: string;
+  status: 'INITIATED' | 'REGISTERED' | 'ONGOING' | 'COMPLETED' | 'SHORTLISTED' | 'SELECTED' | 'REJECTED' | 'WITHDRAWN';
+  notes?: string | null;
+  outcome?: string | null;
+  role?: string | null;
+  certificateUrl?: string | null;
+  initiatedAt: string;
+  appliedAt?: string | null;
+  registeredAt?: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  updatedAt: string;
+  opportunity?: Opportunity;
 }
 
 export interface StudentProfile {

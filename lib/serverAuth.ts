@@ -17,14 +17,28 @@ export function verifyToken(token: string): jwt.JwtPayload | string | null {
 }
 
 export function getUserIdFromRequest(req: Request): string | null {
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null;
+  let token: string | null = null;
+
+  // 1. Try Authorization header
+  const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7);
   }
 
-  const token = authHeader.substring(7);
-  const payload = verifyToken(token);
+  // 2. Fallback to cookie if Authorization header is absent
+  if (!token) {
+    const cookieHeader = req.headers.get('cookie');
+    if (cookieHeader) {
+      const match = cookieHeader.match(/(?:^|;\s*)(?:token|auth_token)=([^;]+)/);
+      if (match) {
+        token = decodeURIComponent(match[1]);
+      }
+    }
+  }
 
+  if (!token) return null;
+
+  const payload = verifyToken(token);
   if (payload && typeof payload === 'object') {
     if ('sub' in payload && payload.sub) return payload.sub as string;
     if ('id' in payload && payload.id) return payload.id as string;

@@ -31,8 +31,9 @@ export function NotificationDropdown() {
       const res = await api.get('/notifications');
       setNotifications(res.data.data || []);
     } catch (error: any) {
-      if (error.response?.status !== 401) {
-        console.error('Error fetching notifications:', error);
+      // Ignore transient background polling, 401s, or 500s silently to avoid console error spam
+      if (error?.response?.status && error.response.status !== 401 && error.response.status !== 500) {
+        console.warn('Deferred notification fetch:', error?.message || error);
       }
     }
   };

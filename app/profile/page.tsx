@@ -12,7 +12,11 @@ import {
   Trash2,
   X,
   Save,
+  Trophy,
+  CheckCircle2,
+  ExternalLink
 } from 'lucide-react';
+import Link from 'next/link';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/Button';
 import { Input, Textarea } from '@/components/ui/Input';
@@ -54,6 +58,7 @@ export default function ProfilePage() {
     { id: 'skills', label: 'Skills', icon: Code },
     { id: 'projects', label: 'Projects', icon: Code },
     { id: 'experience', label: 'Experience', icon: Briefcase },
+    { id: 'activities', label: 'Career Activities', icon: Trophy },
     { id: 'social', label: 'Social Links', icon: LinkIcon },
   ];
 
@@ -96,6 +101,9 @@ export default function ProfilePage() {
           )}
           {activeSection === 'experience' && (
             <ExperienceSection experiences={profile?.experiences ?? []} onUpdate={fetchProfile} />
+          )}
+          {activeSection === 'activities' && (
+            <CareerActivitiesSection />
           )}
           {activeSection === 'social' && (
             <SocialSection profile={profile} onUpdate={fetchProfile} />
@@ -430,30 +438,249 @@ function ExperienceSection({ experiences, onUpdate }: { experiences: Experience[
 }
 
 // ──────────────────────────────────────────────────
-// Social Links Section
+// Verified Profile Links Section (GitHub, LinkedIn, Codolio)
 // ──────────────────────────────────────────────────
 function SocialSection({ profile, onUpdate }: { profile: Profile | null; onUpdate: () => void }) {
-  const [form, setForm] = useState({ linkedinUrl: profile?.linkedinUrl ?? '', githubUrl: profile?.githubUrl ?? '', portfolioUrl: profile?.portfolioUrl ?? '' });
-  const [saving, setSaving] = useState(false);
+  const [urls, setUrls] = useState({
+    githubUrl: profile?.githubUrl ?? '',
+    linkedinUrl: profile?.linkedinUrl ?? '',
+    codolioUrl: (profile as any)?.codolioUrl ?? ''
+  });
 
-  const handleSave = async () => {
-    setSaving(true);
-    await api.put('/profiles/me', form);
-    onUpdate();
-    setSaving(false);
+  const [verifiedMap, setVerifiedMap] = useState<Record<string, any>>({});
+  const [verifying, setVerifying] = useState<Record<string, boolean>>({});
+  const [errorMsg, setErrorMsg] = useState<Record<string, string>>({});
+
+  const fetchVerifiedProfiles = useCallback(async () => {
+    try {
+      const res = await api.get('/profiles/verified');
+      if (res.data.verifiedProfiles) {
+        const map: Record<string, any> = {};
+        res.data.verifiedProfiles.forEach((vp: any) => {
+          map[vp.platform] = vp;
+        });
+        setVerifiedMap(map);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    fetchVerifiedProfiles();
+  }, [fetchVerifiedProfiles]);
+
+  useEffect(() => {
+    setUrls({
+      githubUrl: profile?.githubUrl ?? '',
+      linkedinUrl: profile?.linkedinUrl ?? '',
+      codolioUrl: (profile as any)?.codolioUrl ?? ''
+    });
+  }, [profile]);
+
+  const verifyPlatform = async (platform: 'GITHUB' | 'LINKEDIN' | 'CODOLIO') => {
+    const fieldName = platform === 'GITHUB' ? 'githubUrl' : platform === 'LINKEDIN' ? 'linkedinUrl' : 'codolioUrl';
+    const inputUrl = urls[fieldName as keyof typeof urls];
+
+    if (!inputUrl || !inputUrl.trim()) {
+      setErrorMsg((prev) => ({ ...prev, [platform]: `Please enter your ${platform} profile URL first.` }));
+      return;
+    }
+
+    setVerifying((prev) => ({ ...prev, [platform]: true }));
+    setErrorMsg((prev) => ({ ...prev, [platform]: '' }));
+
+    try {
+      const endpoint = `/profiles/${platform.toLowerCase()}/verify`;
+      const payload = { [fieldName]: inputUrl };
+      const res = await api.post(endpoint, payload);
+
+      if (res.data.verified) {
+        setVerifiedMap((prev) => ({ ...prev, [platform]: res.data.verifiedProfile || res.data }));
+        setUrls((prev) => ({ ...prev, [fieldName]: res.data.normalizedUrl }));
+        onUpdate();
+      } else {
+        setErrorMsg((prev) => ({ ...prev, [platform]: res.data.message || `Failed to verify ${platform} profile.` }));
+      }
+    } catch (err: any) {
+      setErrorMsg((prev) => ({
+        ...prev,
+        [platform]: err?.response?.data?.message || `Failed to verify ${platform} profile.`
+      }));
+    } finally {
+      setVerifying((prev) => ({ ...prev, [platform]: false }));
+    }
   };
 
+  const platforms = [
+    {
+      key: 'GITHUB' as const,
+      label: 'GitHub Profile',
+      placeholder: 'https://github.com/username',
+      urlKey: 'githubUrl' as const,
+      color: 'border-gray-900 bg-gray-900 text-white'
+    },
+    {
+      key: 'LINKEDIN' as const,
+      label: 'LinkedIn Profile',
+      placeholder: 'https://linkedin.com/in/username',
+      urlKey: 'linkedinUrl' as const,
+      color: 'border-blue-600 bg-blue-600 text-white'
+    },
+    {
+      key: 'CODOLIO' as const,
+      label: 'Codolio Profile',
+      placeholder: 'https://codolio.com/profile/username',
+      urlKey: 'codolioUrl' as const,
+      color: 'border-purple-600 bg-purple-600 text-white'
+    }
+  ];
+
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-      <h3 className="mb-6 text-lg font-semibold text-gray-900">Social Links</h3>
-      <div className="space-y-4">
-        <Input label="LinkedIn URL" type="url" value={form.linkedinUrl} onChange={(e) => setForm({ ...form, linkedinUrl: e.target.value })} placeholder="https://linkedin.com/in/yourname" />
-        <Input label="GitHub URL" type="url" value={form.githubUrl} onChange={(e) => setForm({ ...form, githubUrl: e.target.value })} placeholder="https://github.com/yourname" />
-        <Input label="Portfolio URL" type="url" value={form.portfolioUrl} onChange={(e) => setForm({ ...form, portfolioUrl: e.target.value })} placeholder="https://yourportfolio.dev" />
+    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900">Verified Profile Links</h3>
+        <p className="text-xs text-gray-500 mt-1">
+          Verify your GitHub, LinkedIn, and Codolio accounts. Verified links are required before applying for opportunities.
+        </p>
       </div>
-      <div className="mt-6 flex justify-end">
-        <Button variant="primary" isLoading={saving} onClick={handleSave}><Save className="h-4 w-4" />Save Links</Button>
+
+      <div className="space-y-6">
+        {platforms.map((p) => {
+          const verified = verifiedMap[p.key];
+          const isVerifying = verifying[p.key];
+          const err = errorMsg[p.key];
+
+          return (
+            <div key={p.key} className="rounded-xl border border-gray-200 p-4 space-y-3 bg-gray-50/50">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-bold text-gray-800">{p.label}</label>
+                {verified && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-300">
+                    Verified ✓ {verified.verificationStatus === 'FORMAT_VERIFIED' ? '(Format Verified)' : ''}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <Input
+                  type="url"
+                  placeholder={p.placeholder}
+                  value={urls[p.urlKey]}
+                  onChange={(e) => setUrls({ ...urls, [p.urlKey]: e.target.value })}
+                  className="flex-1 bg-white"
+                />
+                <Button
+                  variant="primary"
+                  isLoading={isVerifying}
+                  onClick={() => verifyPlatform(p.key)}
+                  className="shrink-0 font-bold"
+                >
+                  {verified ? 'Re-Verify' : 'Verify'}
+                </Button>
+              </div>
+
+              {err && (
+                <p className="text-xs font-semibold text-red-600 mt-1">{err}</p>
+              )}
+
+              {verified && verified.publicMetadata && (
+                <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50/60 p-3 text-xs text-emerald-950 space-y-1">
+                  {verified.publicMetadata.username && (
+                    <p><strong>Username:</strong> {verified.publicMetadata.username}</p>
+                  )}
+                  {verified.publicMetadata.bio && (
+                    <p><strong>Bio:</strong> {verified.publicMetadata.bio}</p>
+                  )}
+                  {verified.publicMetadata.publicRepos !== undefined && (
+                    <p><strong>Public Repositories:</strong> {verified.publicMetadata.publicRepos} · <strong>Followers:</strong> {verified.publicMetadata.followers}</p>
+                  )}
+                  {verified.publicMetadata.verificationNote && (
+                    <p className="text-[11px] text-emerald-700">{verified.publicMetadata.verificationNote}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
+
+function CareerActivitiesSection() {
+  const [completedActivities, setCompletedActivities] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadCompletedActivities() {
+      try {
+        const res = await api.get('/student/opportunity-history?status=COMPLETED');
+        if (res.data.success) {
+          setCompletedActivities(res.data.history || []);
+        }
+      } catch (err) {
+        console.error('Failed to load completed activities:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadCompletedActivities();
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div>
+          <h3 className="text-lg font-bold text-gray-900">Career Activities</h3>
+          <p className="text-xs text-gray-500 mt-1">Showcase your completed hackathons, internships, competitions & workshops</p>
+        </div>
+        <Link
+          href="/dashboard/student/opportunity-history"
+          className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 transition-colors"
+        >
+          View Full History →
+        </Link>
+      </div>
+
+      {loading ? (
+        <div className="flex h-32 items-center justify-center">
+          <LoadingSpinner size="md" />
+        </div>
+      ) : completedActivities.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-gray-200 bg-white p-8 text-center space-y-2">
+          <Trophy className="h-8 w-8 text-gray-300 mx-auto" />
+          <p className="text-sm font-semibold text-gray-700">No completed career activities yet</p>
+          <p className="text-xs text-gray-500">Activities you mark as completed will automatically appear here on your profile.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {completedActivities.map((act) => (
+            <div key={act.id} className="flex items-center justify-between rounded-xl border border-gray-100 bg-white p-4 shadow-2xs hover:border-indigo-100 transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 font-bold text-xs">
+                  ✓
+                </div>
+                <div>
+                  <h4 className="font-bold text-gray-900 text-sm leading-tight">{act.title}</h4>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {act.outcome || 'Participated'} • {act.organization}
+                  </p>
+                </div>
+              </div>
+              {act.certificateUrl && (
+                <a
+                  href={act.certificateUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-semibold text-indigo-600 hover:underline flex items-center gap-1"
+                >
+                  Certificate <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+

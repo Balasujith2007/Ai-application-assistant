@@ -117,6 +117,7 @@ export type ApplicationType = 'INTERNSHIP' | 'JOB' | 'HACKATHON' | 'OTHER';
 
 export type ApplicationStatus =
   | 'SAVED'
+  | 'INITIATED'
   | 'APPLIED'
   | 'SHORTLISTED'
   | 'INTERVIEW'

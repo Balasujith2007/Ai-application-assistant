@@ -29,6 +29,7 @@ const NAV_ITEMS = [
   { label: 'Applications', href: '/applications', icon: Briefcase },
   { label: 'Interviews', href: '/interviews', icon: Calendar },
   { label: 'Tasks', href: '/tasks', icon: CheckSquare },
+  { label: 'Opportunity History', href: '/dashboard/student/opportunity-history', icon: Trophy },
   { label: 'My Profile', href: '/profile', icon: User },
   { label: 'Resume', href: '/resume', icon: FileText },
   { label: 'AI Assistant', href: '/ai-assistant', icon: Bot },

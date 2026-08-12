@@ -7,11 +7,19 @@ import Link from 'next/link';
 import axios from 'axios';
 import {
   Users, FileText, Calendar, Clock, AlertCircle, CheckCircle2,
-  BellRing, Send, Eye, Loader2, RefreshCw,
+  BellRing, Send, Eye, Loader2, RefreshCw, Briefcase, Trophy
 } from 'lucide-react';
 
 interface DashboardData {
-  stats: { assignedStudents: number; pendingResumes: number; todayInterviews: number; upcomingDeadlines: number };
+  stats: {
+    assignedStudents: number;
+    pendingResumes: number;
+    todayInterviews: number;
+    upcomingDeadlines: number;
+    hackathonRegistrations?: number;
+    internshipRegistrations?: number;
+    totalRegisteredStudents?: number;
+  };
   attentionStudents: { id: string; name: string; email: string; issue: string; priority: string }[];
   upcomingInterviews: { id: string; student: string; company: string; role: string; date: string; time?: string; type: string }[];
   notifications: { id: string; title: string; message: string; isRead: boolean; createdAt: string }[];
@@ -68,6 +76,9 @@ export default function MentorDashboard() {
     { label: 'Pending Reviews', value: data.stats.pendingResumes, icon: FileText, color: 'text-orange-600', bg: 'bg-orange-50' },
     { label: "Today's Interviews", value: data.stats.todayInterviews, icon: Calendar, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Upcoming Deadlines', value: data.stats.upcomingDeadlines, icon: Clock, color: 'text-rose-600', bg: 'bg-rose-50' },
+    { label: 'Hackathon Registrations', value: data.stats.hackathonRegistrations || 0, icon: Trophy, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { label: 'Internship Registrations', value: data.stats.internshipRegistrations || 0, icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Total Registered Students', value: data.stats.totalRegisteredStudents || 0, icon: CheckCircle2, color: 'text-teal-600', bg: 'bg-teal-50' },
   ] : [];
 
   if (loading) {
@@ -94,9 +105,16 @@ export default function MentorDashboard() {
           </h1>
           <p className="mt-1 text-gray-500">Manage students, review resumes, and guide them efficiently.</p>
         </div>
-        <button onClick={fetchDashboard} className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm hover:bg-gray-50">
-          <RefreshCw className="h-4 w-4" /> Refresh
-        </button>
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard/mentor/opportunities">
+            <button className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors">
+              <Briefcase className="h-4 w-4" /> My Opportunities
+            </button>
+          </Link>
+          <button onClick={fetchDashboard} className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm hover:bg-gray-50">
+            <RefreshCw className="h-4 w-4" /> Refresh
+          </button>
+        </div>
       </motion.div>
 
       {error && (

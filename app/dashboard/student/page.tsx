@@ -29,6 +29,7 @@ import { ApplicationTimeline } from '@/components/placement/ApplicationTimeline'
 import { AddApplicationModal } from '@/components/placement/AddApplicationModal';
 import { AddTaskModal } from '@/components/placement/AddTaskModal';
 import { MockInterviewModal } from '@/components/placement/MockInterviewModal';
+import { ApplicationAssistantModal, ApplicationAssistantOpportunity } from '@/components/opportunities/ApplicationAssistantModal';
 import Link from 'next/link';
 
 export default function StudentDashboard() {
@@ -50,6 +51,7 @@ export default function StudentDashboard() {
   const [isAddAppOpen, setIsAddAppOpen] = useState(false);
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
   const [isMockOpen, setIsMockOpen] = useState(false);
+  const [selectedAssistantOpp, setSelectedAssistantOpp] = useState<ApplicationAssistantOpportunity | null>(null);
 
   // Active highlighted application for pipeline widget
   const activeApp =
@@ -200,8 +202,8 @@ export default function StudentDashboard() {
                 <MatchBadge
                   key={opp.id}
                   opportunity={opp}
-                  onApply={() => applyToOpportunity(opp)}
-                  onView={() => alert(`Viewing details for ${opp.role} at ${opp.companyName}`)}
+                  onApply={() => setSelectedAssistantOpp(opp as any)}
+                  onView={() => setSelectedAssistantOpp(opp as any)}
                 />
               ))}
             </div>
@@ -216,11 +218,19 @@ export default function StudentDashboard() {
           >
             <h2 className="mb-6 text-lg font-bold text-gray-900">Quick Actions</h2>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+              <Link
+                href="/dashboard/student/opportunities"
+                className="flex flex-col items-center justify-center gap-3 rounded-xl border border-indigo-100 bg-indigo-50/50 p-6 text-center transition-all hover:border-indigo-300 hover:bg-indigo-100"
+              >
+                <Briefcase className="h-6 w-6 text-indigo-600" />
+                <span className="text-sm font-bold text-indigo-900">Opportunities Hub</span>
+              </Link>
+
               <button
                 onClick={() => setIsAddAppOpen(true)}
                 className="flex flex-col items-center justify-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-6 text-center transition-all hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
               >
-                <Briefcase className="h-6 w-6 text-gray-500 transition-colors group-hover:text-indigo-600" />
+                <PlusCircle className="h-6 w-6 text-gray-500 transition-colors group-hover:text-indigo-600" />
                 <span className="text-sm font-semibold text-gray-700">Add Application</span>
               </button>
 
@@ -239,6 +249,14 @@ export default function StudentDashboard() {
                 <Sparkles className="h-6 w-6 text-gray-500 transition-colors group-hover:text-indigo-600" />
                 <span className="text-sm font-semibold text-gray-700">Mock Interview</span>
               </button>
+
+              <Link
+                href="/dashboard/student/opportunity-history"
+                className="flex flex-col items-center justify-center gap-3 rounded-xl border border-amber-100 bg-amber-50/50 p-6 text-center transition-all hover:border-amber-300 hover:bg-amber-100"
+              >
+                <Trophy className="h-6 w-6 text-amber-600" />
+                <span className="text-sm font-bold text-amber-900">Opportunity History</span>
+              </Link>
 
               <Link
                 href="/resume"
@@ -383,6 +401,12 @@ export default function StudentDashboard() {
       <MockInterviewModal
         isOpen={isMockOpen}
         onClose={() => setIsMockOpen(false)}
+      />
+
+      <ApplicationAssistantModal
+        isOpen={!!selectedAssistantOpp}
+        onClose={() => setSelectedAssistantOpp(null)}
+        opportunity={selectedAssistantOpp}
       />
     </div>
   );

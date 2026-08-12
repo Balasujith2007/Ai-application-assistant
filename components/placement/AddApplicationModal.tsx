@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ExtendedApplication, ApplicationStatus, ApplicationType } from '@/types/placement';
 import { verifyGithubProfile, verifyCodolioProfile } from '@/lib/placementApi';
-import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, Link as LinkIcon, Sparkles } from 'lucide-react';
+import api from '@/lib/api';
 
 interface AddApplicationModalProps {
   isOpen: boolean;
@@ -25,7 +26,7 @@ const STATUSES: ApplicationStatus[] = [
   'WITHDRAWN',
 ];
 
-const TYPES: ApplicationType[] = ['JOB', 'INTERNSHIP', 'HACKATHON', 'OTHER'];
+const TYPES: string[] = ['JOB', 'INTERNSHIP', 'HACKATHON', 'COMPETITION', 'WORKSHOP', 'SCHOLARSHIP', 'OTHER'];
 
 type VerificationState = 'idle' | 'checking' | 'verified' | 'failed';
 
@@ -35,6 +36,11 @@ export function AddApplicationModal({
   onSave,
   initialData,
 }: AddApplicationModalProps) {
+  const [opportunityUrlInput, setOpportunityUrlInput] = useState('');
+  const [isFetchingUrl, setIsFetchingUrl] = useState(false);
+  const [fetchNotice, setFetchNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [fetchedFields, setFetchedFields] = useState<Record<string, boolean>>({});
+
   const [form, setForm] = useState({
     companyName: '',
     position: '',
@@ -85,6 +91,8 @@ export function AddApplicationModal({
       setGithubMsg(initialData.githubUrl ? 'GitHub profile verified' : '');
       setCodolioState(initialData.codolioUrl ? 'verified' : 'idle');
       setCodolioMsg(initialData.codolioUrl ? 'Codolio profile verified' : '');
+      setFetchedFields({});
+      setFetchNotice(null);
     } else {
       setForm({
         companyName: '',
@@ -107,10 +115,51 @@ export function AddApplicationModal({
       setGithubMsg('');
       setCodolioState('idle');
       setCodolioMsg('');
+      setOpportunityUrlInput('');
+      setFetchedFields({});
+      setFetchNotice(null);
     }
     setSubmitError('');
     setIsSubmitting(false);
   }, [initialData, isOpen]);
+
+  const handleFetchDetails = async () => {
+    if (!opportunityUrlInput.trim()) {
+      setFetchNotice({ type: 'error', message: 'Please enter an Opportunity URL first.' });
+      return;
+    }
+
+    setIsFetchingUrl(true);
+    setFetchNotice(null);
+
+    try {
+      const res = await api.post('/opportunities/fetch-details', { url: opportunityUrlInput.trim() });
+      if (res.data.success && res.data.data) {
+        const fetched = res.data.data;
+        const newFetchedTrack: Record<string, boolean> = {};
+
+        setForm((prev) => {
+          const next = { ...prev };
+          if (fetched.organization) { next.companyName = fetched.organization; newFetchedTrack.companyName = true; }
+          if (fetched.title) { next.position = fetched.title; newFetchedTrack.position = true; }
+          if (fetched.location) { next.location = fetched.location; newFetchedTrack.location = true; }
+          if (fetched.opportunityUrl) { next.applicationUrl = fetched.opportunityUrl; newFetchedTrack.applicationUrl = true; }
+          if (fetched.type) { next.applicationType = fetched.type; newFetchedTrack.applicationType = true; }
+          if (fetched.description) { next.description = fetched.description; newFetchedTrack.description = true; }
+          return next;
+        });
+
+        setFetchedFields(newFetchedTrack);
+        setFetchNotice({ type: 'success', message: 'Details fetched successfully! Verify missing fields below.' });
+      } else {
+        setFetchNotice({ type: 'error', message: res.data.message || 'Failed to fetch details.' });
+      }
+    } catch (err: any) {
+      setFetchNotice({ type: 'error', message: err?.response?.data?.message || 'Error fetching details from URL.' });
+    } finally {
+      setIsFetchingUrl(false);
+    }
+  };
 
   const handleVerifyGithub = async (urlToVerify?: string) => {
     const targetUrl = (urlToVerify !== undefined ? urlToVerify : form.githubUrl).trim();
@@ -228,32 +277,107 @@ export function AddApplicationModal({
       size="lg"
     >
       <form onSubmit={handleSubmit} className="flex flex-col min-h-0">
-        {/* Scrollable Form Fields Container */}
-        <div className="space-y-4 pb-4">
+        {/* Scrollable Form Body */}
+        <div className="space-y-4 pb-4 max-h-[70vh] overflow-y-auto pr-1">
           {submitError && (
             <div className="rounded-lg bg-red-50 p-3 text-xs font-semibold text-red-700 border border-red-200">
               {submitError}
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
-              label="Company Name *"
-              placeholder="e.g. Zoho, Infosys"
-              value={form.companyName}
-              onChange={(e) => setForm({ ...form, companyName: e.target.value })}
-              required
-            />
-            <Input
-              label="Job Role *"
-              placeholder="e.g. Software Engineer, SDE Intern"
-              value={form.position}
-              onChange={(e) => setForm({ ...form, position: e.target.value })}
-              required
-            />
+          {/* STEP 1: Opportunity Link Fetcher */}
+          <div className="rounded-2xl border border-indigo-200 bg-indigo-50/50 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-indigo-900 flex items-center gap-1.5">
+                <LinkIcon className="h-4 w-4 text-indigo-600" />
+                Opportunity Link (Auto-Fetch Details)
+              </label>
+              <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full">
+                Step 1: Paste URL
+              </span>
+            </div>
+
+            <div className="flex gap-2">
+              <input
+                type="url"
+                placeholder="Paste Hackathon / Internship / Job URL..."
+                value={opportunityUrlInput}
+                onChange={(e) => setOpportunityUrlInput(e.target.value)}
+                className="flex-1 rounded-xl border border-indigo-200 bg-white px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              />
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={handleFetchDetails}
+                disabled={isFetchingUrl}
+                className="shrink-0 font-bold"
+              >
+                {isFetchingUrl ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Fetching...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Fetch Details
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {fetchNotice && (
+              <div
+                className={`text-xs font-semibold rounded-lg p-2.5 flex items-center justify-between ${
+                  fetchNotice.type === 'success'
+                    ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                    : 'bg-red-100 text-red-900 border border-red-300'
+                }`}
+              >
+                <span>{fetchNotice.message}</span>
+              </div>
+            )}
           </div>
 
-          {/* Profile Links Section */}
+          {/* STEP 2 & 3: Auto-Filled Details */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-gray-700">Company / Organization *</label>
+                {fetchedFields.companyName && (
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                    Fetched from URL
+                  </span>
+                )}
+              </div>
+              <Input
+                placeholder="e.g. Zoho, Infosys"
+                value={form.companyName}
+                onChange={(e) => setForm({ ...form, companyName: e.target.value })}
+                required
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-gray-700">Role / Opportunity Title *</label>
+                {fetchedFields.position && (
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                    Fetched from URL
+                  </span>
+                )}
+              </div>
+              <Input
+                placeholder="e.g. Software Engineer, Skill India Hackathon"
+                value={form.position}
+                onChange={(e) => setForm({ ...form, position: e.target.value })}
+                required
+              />
+            </div>
+          </div>
+
+          {/* STEP 4: Verified Profile Links Section */}
           <div className="rounded-xl border border-indigo-100 bg-indigo-50/30 p-4 space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-900">
               Profile Links (Required & Verified)
@@ -395,15 +519,24 @@ export function AddApplicationModal({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-gray-700">Location</label>
+                {fetchedFields.location && (
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                    Fetched from URL
+                  </span>
+                )}
+              </div>
+              <Input
+                placeholder="e.g. Chennai / Online"
+                value={form.location}
+                onChange={(e) => setForm({ ...form, location: e.target.value })}
+              />
+            </div>
             <Input
-              label="Location"
-              placeholder="e.g. Chennai / Remote"
-              value={form.location}
-              onChange={(e) => setForm({ ...form, location: e.target.value })}
-            />
-            <Input
-              label="Salary / Stipend"
-              placeholder="e.g. CTC: ₹8 - 12 LPA or ₹40k/mo"
+              label="Salary / Stipend / Prize"
+              placeholder="e.g. CTC: ₹8 - 12 LPA or ₹50k prize"
               value={form.salary}
               onChange={(e) => setForm({ ...form, salary: e.target.value })}
             />
@@ -411,10 +544,10 @@ export function AddApplicationModal({
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-gray-700">Application Type</label>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700">Opportunity Type</label>
               <select
                 value={form.applicationType}
-                onChange={(e) => setForm({ ...form, applicationType: e.target.value as ApplicationType })}
+                onChange={(e) => setForm({ ...form, applicationType: e.target.value as any })}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
               >
                 {TYPES.map((t) => (
@@ -463,13 +596,22 @@ export function AddApplicationModal({
             />
           </div>
 
-          <Input
-            label="Job URL / Career Portal Link"
-            type="url"
-            placeholder="https://careers.company.com/..."
-            value={form.applicationUrl}
-            onChange={(e) => setForm({ ...form, applicationUrl: e.target.value })}
-          />
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-semibold text-gray-700">Job URL / Registration Link</label>
+              {fetchedFields.applicationUrl && (
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                  Fetched from URL
+                </span>
+              )}
+            </div>
+            <Input
+              type="url"
+              placeholder="https://careers.company.com/..."
+              value={form.applicationUrl}
+              onChange={(e) => setForm({ ...form, applicationUrl: e.target.value })}
+            />
+          </div>
 
           <Input
             label="Next Action (Optional)"
@@ -479,18 +621,25 @@ export function AddApplicationModal({
           />
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold text-gray-700">Notes / Comments</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-semibold text-gray-700">Description / Notes</label>
+              {fetchedFields.description && (
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                  Fetched from URL
+                </span>
+              )}
+            </div>
             <textarea
-              rows={2}
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              placeholder="Any specific notes, referral details, or assessment info..."
+              rows={3}
+              value={form.description || form.notes}
+              onChange={(e) => setForm({ ...form, description: e.target.value, notes: e.target.value })}
+              placeholder="Any specific description, referral details, or assessment info..."
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
             />
           </div>
         </div>
 
-        {/* Sticky Action Footer */}
+        {/* STEP 5: Sticky Action Footer */}
         <div className="sticky bottom-0 -mx-6 -mb-6 mt-2 flex justify-end gap-3 border-t border-gray-200 bg-white px-6 py-4 z-10">
           <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
             Cancel
