@@ -161,6 +161,18 @@ export function ApplicationAssistantModal({
     setErrorMessage(null);
 
     try {
+      // Step 1: Create short-lived CareerAI Agent Autofill Session
+      let targetUrl = effectiveUrl;
+      try {
+        const sessionRes = await api.post('/agent/session', { opportunityId: opportunity.id });
+        if (sessionRes.data?.success && sessionRes.data?.autofillUrl) {
+          targetUrl = sessionRes.data.autofillUrl;
+        }
+      } catch (agentErr) {
+        console.warn('Agent session initialization warning, falling back to direct URL:', agentErr);
+      }
+
+      // Step 2: Record application initiate status
       const res = await api.post(`/opportunities/${opportunity.id}/initiate`, {
         saveToProfile,
         missingFields: {
@@ -178,8 +190,7 @@ export function ApplicationAssistantModal({
           return;
         }
 
-        const targetUrl = res.data.registrationUrl || effectiveUrl;
-        // Open official registration page in a new tab
+        // Open official registration page with CareerAI Agent session handoff
         window.open(targetUrl, '_blank', 'noopener,noreferrer');
 
         // Transition to STARTED stage
@@ -188,9 +199,9 @@ export function ApplicationAssistantModal({
         const errorMsg = res.data.error || res.data.message || 'Unable to initiate application.';
         setErrorMessage(errorMsg);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('API Error initiating opportunity application:', err);
-      const serverError = err?.response?.data?.error || err?.response?.data?.message;
+      const serverError = (err as any)?.response?.data?.error || (err as any)?.response?.data?.message;
       setErrorMessage(serverError || 'Unable to open the application link. Please try again.');
     } finally {
       setActionLoading(false);

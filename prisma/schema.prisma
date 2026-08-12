@@ -105,6 +105,7 @@ model User {
   sentNotifications    Notification[] @relation("SentNotifications")
   postedOpportunities  Opportunity[]  @relation("PostedOpportunities")
   registrations        OpportunityRegistration[]
+  autofillSessions     AutofillSession[]
 
   // Mentor-Student relationship
   mentorId      String?
@@ -417,6 +418,7 @@ model Opportunity {
   postedBy      User?                     @relation("PostedOpportunities", fields: [postedById], references: [id], onDelete: SetNull)
   registrations OpportunityRegistration[]
   applications  Application[]
+  autofillSessions AutofillSession[]
 
   @@map("opportunities")
 }
@@ -486,4 +488,25 @@ model Notification {
   sender User? @relation("SentNotifications", fields: [senderId], references: [id], onDelete: SetNull)
 
   @@map("notifications")
+}
+
+// ============================================================
+// AUTOFILL SESSION
+// ============================================================
+
+model AutofillSession {
+  id             String   @id @default(cuid())
+  studentId      String
+  opportunityId  String
+  sessionToken   String   @unique
+  status         String   @default("CREATED") // CREATED, OPENED, FILLING, COMPLETED, EXPIRED
+  fieldsDetected Int      @default(0)
+  fieldsFilled   Int      @default(0)
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+
+  student     User        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@map("autofill_sessions")
 }

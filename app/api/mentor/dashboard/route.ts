@@ -41,7 +41,17 @@ export async function GET(req: Request) {
     const registrations = await prisma.opportunityRegistration.findMany({
       where: {
         studentId: { in: studentIds },
-        status: 'REGISTERED'
+        status: { in: ['REGISTERED', 'SHORTLISTED', 'SELECTED', 'COMPLETED', 'INITIATED', 'ONGOING'] }
+      },
+      include: {
+        opportunity: { select: { type: true } }
+      }
+    });
+
+    const applications = await prisma.application.findMany({
+      where: {
+        userId: { in: studentIds },
+        status: { in: ['APPLIED', 'SHORTLISTED', 'INTERVIEW', 'SELECTED', 'INITIATED'] }
       },
       include: {
         opportunity: { select: { type: true } }
@@ -54,10 +64,21 @@ export async function GET(req: Request) {
 
     for (const reg of registrations) {
       totalRegisteredStudentSet.add(reg.studentId);
-      if (reg.opportunity?.type === 'HACKATHON') {
+      const type = reg.opportunity?.type;
+      if (type === 'HACKATHON') {
         hackathonStudentSet.add(reg.studentId);
-      } else if (reg.opportunity?.type === 'INTERNSHIP') {
+      } else if (type === 'INTERNSHIP') {
         internshipStudentSet.add(reg.studentId);
+      }
+    }
+
+    for (const app of applications) {
+      totalRegisteredStudentSet.add(app.userId);
+      const type = app.opportunity?.type || app.applicationType;
+      if (type === 'HACKATHON') {
+        hackathonStudentSet.add(app.userId);
+      } else if (type === 'INTERNSHIP') {
+        internshipStudentSet.add(app.userId);
       }
     }
 
