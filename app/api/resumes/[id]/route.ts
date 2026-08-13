@@ -38,7 +38,7 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
     // Authorization checks
     if (requester.id !== resume.userId) {
       if (requester.role === 'MENTOR') {
-        if (resume.user.mentorId && resume.user.mentorId !== requester.id) {
+        if (resume.user.mentorId !== requester.id) {
           return NextResponse.json(
             { message: "Forbidden: You are not authorized to view this student's resume." },
             { status: 403 }

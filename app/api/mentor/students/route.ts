@@ -29,6 +29,7 @@ export async function GET(req: Request) {
 
     const whereClause: Prisma.UserWhereInput = {
       role: 'STUDENT',
+      ...(mentor.role === 'MENTOR' ? { mentorId: mentor.id } : {}),
       ...(search
         ? {
             OR: [

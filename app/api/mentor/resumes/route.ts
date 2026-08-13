@@ -20,14 +20,11 @@ export async function GET(req: Request) {
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || '';
 
-    // Find student IDs assigned to mentor OR unassigned students
+    // Find student IDs assigned to mentor (if mentor) or all students (if HOD/Admin)
     const assignedStudents = await prisma.user.findMany({
       where: {
         role: 'STUDENT',
-        OR: [
-          { mentorId: mentor.id },
-          { mentorId: null },
-        ],
+        ...(mentor.role === 'MENTOR' ? { mentorId: mentor.id } : {}),
       },
       select: { id: true },
     });

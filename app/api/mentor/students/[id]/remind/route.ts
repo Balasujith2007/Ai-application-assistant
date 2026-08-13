@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
+import { sendMentorMessageNotification } from '@/lib/email/notification.service';
 
 async function getMentor(req: Request) {
   const userId = getUserIdFromRequest(req);
@@ -27,20 +28,24 @@ export async function POST(
       return NextResponse.json({ message: 'Student not found' }, { status: 404 });
     }
 
+    if (mentor.role === 'MENTOR' && student.mentorId !== mentor.id) {
+      return NextResponse.json({ message: 'Forbidden: You can only send messages/reminders to assigned students' }, { status: 403 });
+    }
+
     const body = await req.json().catch(() => ({}));
+    const title = body.title || `Reminder from ${mentor.name}`;
     const customMessage = body.message ||
       `Your mentor ${mentor.name} has sent you a reminder. Please check your profile, resume, and keep your career progress updated.`;
 
-    const notification = await prisma.notification.create({
-      data: {
-        userId: student.id,
-        title: `Reminder from ${mentor.name}`,
-        message: customMessage,
-        link: '/dashboard/student',
-      },
+    // Send async email & create in-app notification without blocking response
+    sendMentorMessageNotification({
+      studentId: student.id,
+      mentorName: mentor.name,
+      title,
+      message: customMessage,
     });
 
-    return NextResponse.json({ success: true, data: notification, message: 'Reminder sent successfully' });
+    return NextResponse.json({ success: true, message: 'Reminder sent successfully' });
   } catch (error) {
     console.error('Mentor remind student error:', error);
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });

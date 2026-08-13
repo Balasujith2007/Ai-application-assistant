@@ -109,8 +109,14 @@ export default function MentorStudentsPage() {
       ) : students.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-white py-20 text-center">
           <UserX className="h-12 w-12 text-gray-300 mb-4" />
-          <p className="text-lg font-semibold text-gray-700">No students found</p>
-          <p className="text-sm text-gray-400 mt-1">No student records match your query.</p>
+          <p className="text-lg font-semibold text-gray-700">
+            {search ? 'No students found' : 'No Students Assigned'}
+          </p>
+          <p className="text-sm text-gray-400 mt-1 whitespace-pre-line">
+            {search
+              ? 'No student records match your query.'
+              : 'Students assigned to you by the HOD\nwill appear here.'}
+          </p>
         </div>
       ) : (
         <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
 import prisma from '@/lib/prisma';
 import { getNormalizedDeadline } from '@/lib/utils';
+import { sendOpportunityNotification } from '@/lib/email/notification.service';
 
 export async function GET(req: Request) {
   try {
@@ -180,41 +181,51 @@ export async function POST(req: Request) {
 
     // Create Broadcast Notifications if PUBLISHED
     if (newOpportunity.status === 'PUBLISHED') {
-      let recipientQuery: any = {};
-      
-      if (user.role === 'HOD' || targetAudience) {
-        if (targetAudience === 'ALL_STUDENTS') {
-          recipientQuery.role = 'STUDENT';
-        } else if (targetAudience === 'ALL_MENTORS') {
-          recipientQuery.role = 'MENTOR';
-        } else if (targetAudience === 'BOTH') {
-          recipientQuery.role = { in: ['STUDENT', 'MENTOR'] };
-        } else {
-          recipientQuery.role = 'STUDENT';
-        }
-      } else {
-        recipientQuery.role = 'STUDENT';
+      const recipientConditions: any[] = [];
+
+      const profileFilter: any = {};
+      if (newOpportunity.targetDepartment) {
+        profileFilter.department = { equals: newOpportunity.targetDepartment, mode: 'insensitive' };
+      }
+      if (newOpportunity.targetYear) {
+        profileFilter.year = newOpportunity.targetYear;
+      }
+      if (newOpportunity.targetSection) {
+        profileFilter.section = { equals: newOpportunity.targetSection, mode: 'insensitive' };
+      }
+
+      const hasProfileFilter = Object.keys(profileFilter).length > 0;
+      const audience = newOpportunity.targetAudience || 'ALL_STUDENTS';
+
+      if (audience === 'ALL_STUDENTS' || audience === 'BOTH') {
+        recipientConditions.push({
+          role: 'STUDENT',
+          ...(hasProfileFilter ? { profile: profileFilter } : {})
+        });
+      }
+
+      if (audience === 'ALL_MENTORS' || audience === 'BOTH') {
+        recipientConditions.push({
+          role: 'MENTOR'
+        });
+      }
+
+      if (recipientConditions.length === 0) {
+        recipientConditions.push({ role: 'STUDENT' });
       }
 
       const targetUsers = await prisma.user.findMany({
-        where: recipientQuery,
+        where: { OR: recipientConditions },
         select: { id: true }
       });
 
-      if (targetUsers.length > 0) {
-        const notificationsData = targetUsers.map((u) => ({
-          userId: u.id,
-          senderId: user.id,
-          type: 'OPPORTUNITY_POSTED',
-          title: `New ${newOpportunity.type} Opportunity: ${newOpportunity.title}`,
-          message: `${newOpportunity.organization} has posted a new opportunity. Deadline: ${new Date(newOpportunity.applicationDeadline).toLocaleDateString()}`,
-          relatedEntityId: newOpportunity.id,
-          relatedEntityType: 'OPPORTUNITY',
-          link: '/dashboard/student/opportunities'
-        }));
+      const uniqueUserIds = Array.from(new Set(targetUsers.map((u) => u.id)));
 
-        await prisma.notification.createMany({
-          data: notificationsData
+      if (uniqueUserIds.length > 0) {
+        sendOpportunityNotification({
+          userIds: uniqueUserIds,
+          senderId: user.id,
+          opportunity: newOpportunity,
         });
       }
     }

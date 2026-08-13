@@ -15,11 +15,18 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     if (!email) return;
     setLoading(true);
-    // Simulate password reset email send
-    setTimeout(() => {
+    try {
+      await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+    } catch (err) {
+      console.error('Error submitting forgot password:', err);
+    } finally {
       setLoading(false);
       setSubmitted(true);
-    }, 1000);
+    }
   };
 
   return (

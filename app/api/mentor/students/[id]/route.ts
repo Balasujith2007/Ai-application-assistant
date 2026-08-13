@@ -20,7 +20,11 @@ export async function GET(
     const mentor = await getMentor(req);
     if (!mentor) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
-    const whereClause: Prisma.UserWhereInput = { id, role: 'STUDENT' };
+    const whereClause: Prisma.UserWhereInput = { 
+      id, 
+      role: 'STUDENT',
+      ...(mentor.role === 'MENTOR' ? { mentorId: mentor.id } : {}),
+    };
 
     const student = await prisma.user.findFirst({
       where: whereClause,

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcrypt';
 import { signToken } from '@/lib/serverAuth';
+import { sendLoginAlertNotification } from '@/lib/email/notification.service';
 
 export async function POST(req: Request) {
   try {
@@ -21,6 +22,15 @@ export async function POST(req: Request) {
     const token = signToken({ sub: user.id, email: user.email, role: user.role });
 
     const { password: _, ...userWithoutPassword } = user;
+
+    // Send async login alert without blocking response
+    const userAgent = req.headers.get('user-agent') || undefined;
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || undefined;
+    sendLoginAlertNotification({
+      userId: user.id,
+      userAgent,
+      ip,
+    });
 
     return NextResponse.json({
       data: {

@@ -28,17 +28,9 @@ export async function PUT(
       return NextResponse.json({ message: 'Resume not found' }, { status: 404 });
     }
 
-    // Verify security: prevent reviewing student assigned to another mentor
-    if (resume.user.mentorId && resume.user.mentorId !== mentor.id && mentor.role !== 'HOD' && mentor.role !== 'ADMIN') {
-      return NextResponse.json({ message: 'Access denied: student is assigned to another mentor' }, { status: 403 });
-    }
-
-    // If student has no mentor assigned, assign to current mentor
-    if (!resume.user.mentorId && mentor.role === 'MENTOR') {
-      await prisma.user.update({
-        where: { id: resume.userId },
-        data: { mentorId: mentor.id },
-      });
+    // Verify security: prevent reviewing student not assigned to this mentor
+    if (mentor.role === 'MENTOR' && resume.user.mentorId !== mentor.id) {
+      return NextResponse.json({ message: 'Access denied: student is not assigned to you' }, { status: 403 });
     }
 
     const body = await req.json();
