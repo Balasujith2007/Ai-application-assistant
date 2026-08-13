@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import { sendEmail } from './email.service';
 import {
   getOpportunityEmailTemplate,
+  getHODAnnouncementEmailTemplate,
   getMentorMessageEmailTemplate,
   getMentorReminderEmailTemplate,
   getLoginAlertEmailTemplate,
@@ -12,6 +13,21 @@ type AppUrl = string;
 
 function getBaseUrl(): AppUrl {
   return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+}
+
+function deduplicateByEmail<T extends { email: string | null }>(users: T[]): T[] {
+  const seen = new Set<string>();
+  const result: T[] = [];
+  for (const user of users) {
+    if (user.email && typeof user.email === 'string') {
+      const cleanEmail = user.email.trim().toLowerCase();
+      if (cleanEmail.includes('@') && !seen.has(cleanEmail)) {
+        seen.add(cleanEmail);
+        result.push(user);
+      }
+    }
+  }
+  return result;
 }
 
 export async function sendOpportunityNotification(params: {
@@ -32,10 +48,10 @@ export async function sendOpportunityNotification(params: {
 
   const users = await prisma.user.findMany({
     where: { id: { in: userIds } },
-    select: { id: true, email: true, name: true }
+    select: { id: true, email: true, name: true, role: true }
   });
 
-  // Create in-app notifications in bulk
+  // Create in-app notifications in bulk for all target users
   const notificationsData = users.map((u) => ({
     userId: u.id,
     senderId,
@@ -44,21 +60,22 @@ export async function sendOpportunityNotification(params: {
     message: `${opportunity.organization} has posted a new opportunity. Deadline: ${new Date(opportunity.applicationDeadline).toLocaleDateString()}`,
     relatedEntityId: opportunity.id,
     relatedEntityType: 'OPPORTUNITY',
-    link: '/dashboard/student/opportunities'
+    link: u.role === 'MENTOR' ? '/dashboard/mentor/opportunities' : '/dashboard/student/opportunities'
   }));
 
   try {
     await prisma.notification.createMany({ data: notificationsData });
   } catch (err) {
-    console.error('Error creating in-app opportunity notifications:', err);
+    console.error('Error creating in-app opportunity notifications:', (err as any)?.message || err);
   }
 
-  // Send emails asynchronously
+  // Deduplicate recipients for email delivery
+  const uniqueUsers = deduplicateByEmail(users);
   const baseUrl = getBaseUrl();
-  const link = `${baseUrl}/dashboard/student/opportunities`;
 
-  for (const user of users) {
+  for (const user of uniqueUsers) {
     if (!user.email) continue;
+    const link = `${baseUrl}${user.role === 'MENTOR' ? '/dashboard/mentor/opportunities' : '/dashboard/student/opportunities'}`;
     const html = getOpportunityEmailTemplate({
       title: opportunity.title,
       organization: opportunity.organization,
@@ -70,11 +87,72 @@ export async function sendOpportunityNotification(params: {
       recipientName: user.name,
     });
 
-    sendEmail({
-      to: user.email,
-      subject: `New ${opportunity.type} Opportunity: ${opportunity.title}`,
-      html,
+    try {
+      sendEmail({
+        to: user.email,
+        subject: `New ${opportunity.type} Opportunity: ${opportunity.title}`,
+        html,
+      });
+    } catch (err) {
+      console.error('Error sending opportunity email:', (err as any)?.message || err);
+    }
+  }
+}
+
+export async function sendHODAnnouncementNotification(params: {
+  userIds: string[];
+  senderId: string;
+  senderName: string;
+  title: string;
+  message: string;
+}) {
+  const { userIds, senderId, senderName, title, message } = params;
+  if (!userIds.length) return;
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: userIds } },
+    select: { id: true, email: true, name: true, role: true }
+  });
+
+  // Create in-app notifications
+  const notificationsData = users.map((u) => ({
+    userId: u.id,
+    senderId,
+    type: 'HOD_ANNOUNCEMENT',
+    title: `📢 ${title}`,
+    message,
+    link: u.role === 'STUDENT' ? '/dashboard/student' : '/dashboard/mentor',
+  }));
+
+  try {
+    await prisma.notification.createMany({ data: notificationsData });
+  } catch (err) {
+    console.error('Error creating in-app HOD announcement notifications:', (err as any)?.message || err);
+  }
+
+  // Deduplicate recipients for email delivery
+  const uniqueUsers = deduplicateByEmail(users);
+  const baseUrl = getBaseUrl();
+
+  for (const user of uniqueUsers) {
+    if (!user.email) continue;
+    const html = getHODAnnouncementEmailTemplate({
+      title,
+      message,
+      senderName,
+      recipientName: user.name,
+      link: `${baseUrl}${user.role === 'STUDENT' ? '/dashboard/student' : '/dashboard/mentor'}`,
     });
+
+    try {
+      sendEmail({
+        to: user.email,
+        subject: `📢 ${title}`,
+        html,
+      });
+    } catch (err) {
+      console.error('Error sending HOD announcement email:', (err as any)?.message || err);
+    }
   }
 }
 
@@ -107,11 +185,11 @@ export async function sendMentorMessageNotification(params: {
       },
     });
   } catch (err) {
-    console.error('Error creating in-app mentor message notification:', err);
+    console.error('Error creating in-app mentor message notification:', (err as any)?.message || err);
   }
 
-  // Send email asynchronously
-  if (student.email) {
+  // Send email asynchronously if student email exists
+  if (student.email && student.email.includes('@')) {
     const baseUrl = getBaseUrl();
     const html = getMentorMessageEmailTemplate({
       title,
@@ -121,11 +199,15 @@ export async function sendMentorMessageNotification(params: {
       link: `${baseUrl}/dashboard/student`,
     });
 
-    sendEmail({
-      to: student.email,
-      subject: title,
-      html,
-    });
+    try {
+      sendEmail({
+        to: student.email,
+        subject: title,
+        html,
+      });
+    } catch (err) {
+      console.error('Error sending mentor message email:', (err as any)?.message || err);
+    }
   }
 }
 
@@ -159,14 +241,15 @@ export async function sendMentorReminderNotification(params: {
   try {
     await prisma.notification.createMany({ data: notificationsData });
   } catch (err) {
-    console.error('Error creating in-app mentor reminder notifications:', err);
+    console.error('Error creating in-app mentor reminder notifications:', (err as any)?.message || err);
   }
 
-  // Send emails asynchronously
+  // Deduplicate students for email delivery
+  const uniqueStudents = deduplicateByEmail(students);
   const baseUrl = getBaseUrl();
   const link = `${baseUrl}/dashboard/student`;
 
-  for (const student of students) {
+  for (const student of uniqueStudents) {
     if (!student.email) continue;
     const html = getMentorReminderEmailTemplate({
       title,
@@ -178,11 +261,15 @@ export async function sendMentorReminderNotification(params: {
       link,
     });
 
-    sendEmail({
-      to: student.email,
-      subject: `Reminder: ${title}`,
-      html,
-    });
+    try {
+      sendEmail({
+        to: student.email,
+        subject: `Reminder: ${title}`,
+        html,
+      });
+    } catch (err) {
+      console.error('Error sending mentor reminder email:', (err as any)?.message || err);
+    }
   }
 }
 
@@ -207,11 +294,15 @@ export async function sendLoginAlertNotification(params: {
     ip,
   });
 
-  sendEmail({
-    to: user.email,
-    subject: 'New Login to Your CareerAI Account',
-    html,
-  });
+  try {
+    sendEmail({
+      to: user.email,
+      subject: 'New Login to Your CareerAI Account',
+      html,
+    });
+  } catch (err) {
+    console.error('Error sending login alert email:', (err as any)?.message || err);
+  }
 }
 
 export async function sendPasswordResetNotification(params: {
@@ -234,4 +325,5 @@ export async function sendPasswordResetNotification(params: {
     html,
   });
 }
+
 

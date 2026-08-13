@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
 import { Role } from '@prisma/client';
+import { sendHODAnnouncementNotification } from '@/lib/email/notification.service';
 
 async function verifyHOD(req: Request) {
   const userId = getUserIdFromRequest(req);
@@ -63,13 +64,13 @@ export async function POST(req: Request) {
     });
 
     if (targetUsers.length > 0) {
-      await prisma.notification.createMany({
-        data: targetUsers.map((u) => ({
-          userId: u.id,
-          title: `📢 ${title}`,
-          message,
-          link: u.role === 'STUDENT' ? '/dashboard/student' : '/dashboard/mentor',
-        })),
+      const userIds = targetUsers.map((u) => u.id);
+      sendHODAnnouncementNotification({
+        userIds,
+        senderId: hod.id,
+        senderName: hod.name,
+        title,
+        message,
       });
     }
 

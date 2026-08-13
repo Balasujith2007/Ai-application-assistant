@@ -197,14 +197,14 @@ export async function POST(req: Request) {
       const hasProfileFilter = Object.keys(profileFilter).length > 0;
       const audience = newOpportunity.targetAudience || 'ALL_STUDENTS';
 
-      if (audience === 'ALL_STUDENTS' || audience === 'BOTH') {
+      if (audience === 'ALL_STUDENTS' || audience === 'BOTH' || audience === 'STUDENTS_MENTORS') {
         recipientConditions.push({
           role: 'STUDENT',
           ...(hasProfileFilter ? { profile: profileFilter } : {})
         });
       }
 
-      if (audience === 'ALL_MENTORS' || audience === 'BOTH') {
+      if (audience === 'ALL_MENTORS' || audience === 'BOTH' || audience === 'STUDENTS_MENTORS') {
         recipientConditions.push({
           role: 'MENTOR'
         });

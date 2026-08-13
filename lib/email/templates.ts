@@ -198,3 +198,39 @@ export function getPasswordResetEmailTemplate(params: {
   `;
 }
 
+export function getHODAnnouncementEmailTemplate(params: {
+  title: string;
+  message: string;
+  senderName: string;
+  recipientName: string;
+  link: string;
+}) {
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 8px;">
+      <h2 style="color: #4f46e5; margin-bottom: 24px;">CareerAI</h2>
+      <hr style="border: 0; border-top: 1px solid #eaeaea; margin-bottom: 24px;" />
+      
+      <h3 style="color: #333; margin-bottom: 16px;">📢 ${params.title}</h3>
+      <p style="color: #555; margin-bottom: 20px;">Hello ${params.recipientName},</p>
+      
+      <div style="background-color: #f9fafb; padding: 16px; border-radius: 6px; margin-bottom: 24px; color: #444; line-height: 1.5; white-space: pre-wrap;">
+        ${params.message}
+      </div>
+
+      <p style="color: #666; margin-bottom: 24px;">
+        Announcement from Head of Department: <strong>${params.senderName}</strong>
+      </p>
+
+      <a href="${params.link}" style="display: inline-block; background-color: #4f46e5; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold;">
+        Open CareerAI
+      </a>
+      
+      <div style="margin-top: 40px; color: #888; font-size: 12px;">
+        <p>Regards,</p>
+        <p>CareerAI Team</p>
+      </div>
+    </div>
+  `;
+}
+
+
