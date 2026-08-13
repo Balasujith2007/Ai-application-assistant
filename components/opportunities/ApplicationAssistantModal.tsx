@@ -365,10 +365,13 @@ export function ApplicationAssistantModal({
                 <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 text-xs text-gray-600 space-y-2">
                   <p className="font-semibold text-gray-900">Next Steps:</p>
                   <ol className="list-decimal list-inside space-y-1">
-                    <li>Complete your registration / form submission on the opened external website.</li>
-                    <li>Submit the external registration form.</li>
-                    <li>Return to CareerAI and click <strong>"I Completed My Registration"</strong> below.</li>
+                    <li>If the CareerAI Apply Agent extension is installed, it will detect the form, pause on CAPTCHA, autofill known fields, and ask only for missing info.</li>
+                    <li>Complete and <strong>submit the external form yourself</strong> — the agent never submits for you.</li>
+                    <li>Return here and click <strong>&quot;I Completed My Registration&quot;</strong>.</li>
                   </ol>
+                  <p className="pt-1">
+                    No extension yet? Open <a href="/connect-extension" className="font-semibold text-indigo-700 underline">/connect-extension</a> after loading <code>application-auto-agent/dist</code>.
+                  </p>
                 </div>
               </div>
             ) : step === 'COMPLETED' ? (

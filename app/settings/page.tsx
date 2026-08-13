@@ -10,6 +10,7 @@ import { NotificationSettings } from '@/components/settings/NotificationSettings
 import { PrivacySettings } from '@/components/settings/PrivacySettings';
 import { AIPreferences } from '@/components/settings/AIPreferences';
 import { DataSettings } from '@/components/settings/DataSettings';
+import { AgentKnowledge } from '@/components/settings/AgentKnowledge';
 import api from '@/lib/api';
 
 export default function SettingsPage() {
@@ -54,6 +55,7 @@ export default function SettingsPage() {
       case 'notifications': return <NotificationSettings data={userSettings} onSave={handleSave} />;
       case 'privacy': return <PrivacySettings data={userSettings} onSave={handleSave} />;
       case 'ai': return <AIPreferences data={userSettings} onSave={handleSave} />;
+      case 'agent': return <AgentKnowledge />;
       case 'data': return <DataSettings data={userSettings} />;
       default: return null;
     }

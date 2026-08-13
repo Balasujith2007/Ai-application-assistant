@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "CareerAI Apply Agent",
+  "version": "1.1.0",
+  "description": "Intelligent auto-apply assistant. Fills internship, job, hackathon and scholarship forms from your CareerAI profile. Learns only with your approval. Never bypasses CAPTCHA. Never submits without you.",
+  "permissions": ["storage"],
+  "host_permissions": ["http://localhost:3000/*", "http://127.0.0.1:3000/*", "<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "CareerAI Apply Agent"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "apply-agent@careerai.local",
+      "strict_min_version": "109.0"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "application-auto-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CareerAI cross-browser Apply Agent (Manifest V3)",
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.287",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.0.0"
+  }
+}

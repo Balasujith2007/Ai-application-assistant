@@ -8,6 +8,15 @@ export function signToken(payload: object): string {
   return jwt.sign(payload, JWT_SECRET, options);
 }
 
+/** Short-lived token for the Apply Agent only. Never embed website 7d JWTs in page messaging. */
+export function signExtensionToken(payload: { sub: string; email: string; role?: string }): string {
+  return jwt.sign(
+    { ...payload, aud: 'careerai-extension', typ: 'ext' },
+    JWT_SECRET,
+    { expiresIn: '2h' },
+  );
+}
+
 export function verifyToken(token: string): jwt.JwtPayload | string | null {
   try {
     return jwt.verify(token, JWT_SECRET);

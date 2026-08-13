@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CareerAI Apply Agent</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <div>
+          <div class="brand">CareerAI Apply Agent</div>
+          <div class="sub">Smart assistant — never a blind bot</div>
+        </div>
+      </header>
+
+      <section id="view-login" class="card hidden">
+        <h2>Connect your account</h2>
+        <p>Use the same email and password as careerai.local / localhost:3000.</p>
+        <label>Email <input id="email" type="email" autocomplete="username" /></label>
+        <label>Password <input id="password" type="password" autocomplete="current-password" /></label>
+        <p id="login-error" class="error"></p>
+        <button id="login-btn" class="primary">Sign in</button>
+        <p class="hint">Or open <strong>http://localhost:3000/connect-extension</strong> while logged into CareerAI.</p>
+      </section>
+
+      <section id="view-home" class="card hidden">
+        <p class="ok" id="hello"></p>
+        <div class="grid">
+          <button id="open-profile" class="ghost">Profile knowledge</button>
+          <button id="open-settings" class="ghost">Settings</button>
+          <button id="open-test" class="ghost">Open test application</button>
+          <button id="logout" class="danger">Sign out</button>
+        </div>
+        <ul class="rules">
+          <li>Know → fill automatically</li>
+          <li>Don’t know → ask you</li>
+          <li>Sensitive / legal / CAPTCHA → pause</li>
+          <li>Never submit without you</li>
+        </ul>
+      </section>
+
+      <section id="view-profile" class="card hidden">
+        <button id="back-from-profile" class="link">← Back</button>
+        <h2>Profile knowledge</h2>
+        <p class="hint">Learned only from you. Disable a field to stop auto-fill.</p>
+        <div id="fields"></div>
+      </section>
+
+      <section id="view-settings" class="card hidden">
+        <button id="back-from-settings" class="link">← Back</button>
+        <h2>Settings</h2>
+        <label>API base <input id="api-base" type="url" /></label>
+        <label class="check"><input id="auto-advance" type="checkbox" /> Auto-advance to next page (never auto-submit)</label>
+        <label class="check"><input id="developer-mode" type="checkbox" /> Developer mode</label>
+        <label class="check"><input id="dry-run" type="checkbox" /> Dry run (detect &amp; map only — do not modify the form)</label>
+        <h3>Per-field autofill</h3>
+        <p class="hint">AUTOMATIC / ASK / NEVER. Legal declarations are always NEVER.</p>
+        <label>Email
+          <select id="policy-email">
+            <option value="AUTOMATIC">AUTOMATIC</option>
+            <option value="ASK">ASK</option>
+            <option value="NEVER">NEVER</option>
+          </select>
+        </label>
+        <label>Phone
+          <select id="policy-phone">
+            <option value="AUTOMATIC">AUTOMATIC</option>
+            <option value="ASK">ASK</option>
+            <option value="NEVER">NEVER</option>
+          </select>
+        </label>
+        <label>Expected salary
+          <select id="policy-salary">
+            <option value="AUTOMATIC">AUTOMATIC</option>
+            <option value="ASK">ASK</option>
+            <option value="NEVER">NEVER</option>
+          </select>
+        </label>
+        <label>Work authorization
+          <select id="policy-workauth">
+            <option value="ASK">ASK</option>
+            <option value="AUTOMATIC">AUTOMATIC</option>
+            <option value="NEVER">NEVER</option>
+          </select>
+        </label>
+        <label>Gender
+          <select id="policy-gender">
+            <option value="ASK">ASK</option>
+            <option value="NEVER">NEVER</option>
+            <option value="AUTOMATIC">AUTOMATIC</option>
+          </select>
+        </label>
+        <button id="save-settings" class="primary">Save settings</button>
+      </section>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>

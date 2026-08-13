@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { User, Briefcase, Award, Bell, Lock, Bot, Database } from 'lucide-react';
+import { User, Briefcase, Award, Bell, Lock, Bot, Database, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const tabs = [
@@ -10,6 +10,7 @@ const tabs = [
   { id: 'notifications', label: 'Notification Preferences', icon: Bell },
   { id: 'privacy', label: 'Privacy & Security', icon: Lock },
   { id: 'ai', label: 'AI Career Assistant', icon: Bot },
+  { id: 'agent', label: 'Apply Agent Knowledge', icon: Sparkles },
   { id: 'data', label: 'Data & Account', icon: Database },
 ];
 

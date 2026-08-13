@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     const sessionToken = `cai_agent_${crypto.randomBytes(16).toString('hex')}`;
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
-    const session = await prisma.autofillSession.create({
+    await prisma.autofillSession.create({
       data: {
         studentId: userId,
         opportunityId,
