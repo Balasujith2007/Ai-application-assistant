@@ -34,9 +34,11 @@ export default function HODOpportunitiesPage() {
     requiredSkills: '',
     targetAudience: 'BOTH', // ALL_STUDENTS, ALL_MENTORS, BOTH
     targetDepartment: '',
-    targetYear: '',
-    targetSection: ''
+    targetYear: ''
   });
+
+  const availableDepartments = ['AIDS', 'CSE', 'AIML', 'IT', 'ECE', 'EEE', 'MECH'];
+  const availableYears = [1, 2, 3, 4];
 
   const fetchOpportunities = useCallback(async () => {
     setLoading(true);
@@ -267,10 +269,37 @@ export default function HODOpportunitiesPage() {
                     </label>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 pt-1">
-                    <Input label="Department" placeholder="e.g. CSE" value={form.targetDepartment} onChange={(e) => setForm({ ...form, targetDepartment: e.target.value })} />
-                    <Input label="Year" placeholder="e.g. 3" value={form.targetYear} onChange={(e) => setForm({ ...form, targetYear: e.target.value })} />
-                    <Input label="Section" placeholder="e.g. A" value={form.targetSection} onChange={(e) => setForm({ ...form, targetSection: e.target.value })} />
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-gray-700">Department</label>
+                      <select
+                        value={form.targetDepartment}
+                        onChange={(e) => setForm({ ...form, targetDepartment: e.target.value })}
+                        className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs focus:border-indigo-500 focus:outline-none"
+                      >
+                        <option value="">All Departments</option>
+                        {availableDepartments.map((dept) => (
+                          <option key={dept} value={dept}>
+                            {dept}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-gray-700">Year</label>
+                      <select
+                        value={form.targetYear}
+                        onChange={(e) => setForm({ ...form, targetYear: e.target.value })}
+                        className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs focus:border-indigo-500 focus:outline-none"
+                      >
+                        <option value="">All Years</option>
+                        {availableYears.map((yr) => (
+                          <option key={yr} value={yr}>
+                            Year {yr}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
 
