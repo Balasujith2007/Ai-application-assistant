@@ -59,7 +59,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { name: 'Dashboard', href: '/dashboard/mentor', icon: LayoutDashboard },
       { name: 'My Students', href: '/dashboard/mentor/students', icon: Users },
       { name: 'Resumes', href: '/dashboard/mentor/resumes', icon: FileText },
-      { name: 'Interviews', href: '/dashboard/mentor/interviews', icon: CalendarDays },
       { name: 'Tasks', href: '/dashboard/mentor/tasks', icon: CheckSquare },
       { name: 'Student Progress', href: '/dashboard/mentor/progress', icon: PieChart },
     ];
