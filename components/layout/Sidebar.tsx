@@ -7,11 +7,8 @@ import {
   LayoutDashboard,
   User,
   FileText,
-  Briefcase,
   Laptop,
   Trophy,
-  Bot,
-  Calendar,
   Bell,
   Settings,
   ChevronLeft,
@@ -26,13 +23,10 @@ import { Avatar } from '@/components/ui/index';
 
 const NAV_ITEMS = [
   { label: 'Overview', href: '/dashboard/student', icon: LayoutDashboard },
-  { label: 'Applications', href: '/applications', icon: Briefcase },
-  { label: 'Interviews', href: '/interviews', icon: Calendar },
   { label: 'Tasks', href: '/tasks', icon: CheckSquare },
   { label: 'Opportunity History', href: '/dashboard/student/opportunity-history', icon: Trophy },
   { label: 'My Profile', href: '/profile', icon: User },
   { label: 'Resume', href: '/resume', icon: FileText },
-  { label: 'AI Assistant', href: '/ai-assistant', icon: Bot },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 

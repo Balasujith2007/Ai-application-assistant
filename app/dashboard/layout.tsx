@@ -52,8 +52,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { name: 'Dashboard', href: '/dashboard/student', icon: LayoutDashboard },
       { name: 'My Profile', href: '/profile', icon: Users },
       { name: 'Resume', href: '/resume', icon: FileText },
-      { name: 'Applications', href: '/applications', icon: Briefcase },
-      { name: 'Interviews', href: '/interviews', icon: CalendarDays },
       { name: 'Tasks', href: '/tasks', icon: CheckSquare },
     ];
   } else if (user?.role === 'MENTOR') {
