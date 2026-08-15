@@ -31,7 +31,10 @@ import { ApplicationDetailModal } from '@/components/placement/ApplicationDetail
 import { AddApplicationModal } from '@/components/placement/AddApplicationModal';
 import { DeadlineAlert } from '@/components/placement/DeadlineAlert';
 
+import { useAuth } from '@/context/AuthContext';
+
 export default function ApplicationsPage() {
+  const { user } = useAuth();
   const {
     applications,
     addApplication,
@@ -125,10 +128,12 @@ export default function ApplicationsPage() {
               Track and manage all your internship and job applications in one place.
             </p>
           </div>
-          <Button variant="primary" onClick={handleOpenAdd} className="shadow-sm">
-            <Plus className="h-4 w-4" />
-            Add Application
-          </Button>
+          {user?.role !== 'STUDENT' && (
+            <Button variant="primary" onClick={handleOpenAdd} className="shadow-sm">
+              <Plus className="h-4 w-4" />
+              Add Application
+            </Button>
+          )}
         </div>
 
         {/* Deadline Alerts */}

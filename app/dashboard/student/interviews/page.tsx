@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
+import InterviewsPage from '@/app/interviews/page';
 
 export default function StudentInterviewsPage() {
-  redirect('/dashboard/student');
+  return <InterviewsPage />;
 }

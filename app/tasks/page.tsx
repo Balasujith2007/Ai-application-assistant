@@ -23,7 +23,10 @@ import { AddTaskModal } from '@/components/placement/AddTaskModal';
 import { DeadlineAlert } from '@/components/placement/DeadlineAlert';
 import { EmptyState } from '@/components/ui/index';
 
+import { useAuth } from '@/context/AuthContext';
+
 export default function TasksPage() {
+  const { user } = useAuth();
   const { tasks, addTask, toggleTask, updateTask, deleteTask, stats, isLoading } = usePlacement();
 
   const [search, setSearch] = useState('');
@@ -103,10 +106,12 @@ export default function TasksPage() {
               Stay organized and complete every important placement activity on time.
             </p>
           </div>
-          <Button variant="primary" onClick={handleOpenAdd} className="shadow-sm">
-            <Plus className="h-4 w-4" />
-            Add Task
-          </Button>
+          {user?.role !== 'STUDENT' && (
+            <Button variant="primary" onClick={handleOpenAdd} className="shadow-sm">
+              <Plus className="h-4 w-4" />
+              Add Task
+            </Button>
+          )}
         </div>
 
         {/* Deadline Intelligence Alert */}

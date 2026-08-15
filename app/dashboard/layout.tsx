@@ -50,9 +50,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (user?.role === 'STUDENT') {
     mainLinks = [
       { name: 'Dashboard', href: '/dashboard/student', icon: LayoutDashboard },
-      { name: 'My Profile', href: '/profile', icon: Users },
-      { name: 'Resume', href: '/resume', icon: FileText },
-      { name: 'Tasks', href: '/tasks', icon: CheckSquare },
+      { name: 'Opportunities', href: '/dashboard/student/opportunities', icon: Briefcase },
+      { name: 'My Applications', href: '/dashboard/student/applications', icon: FileText },
+      { name: 'My Tasks', href: '/dashboard/student/tasks', icon: CheckSquare },
+      { name: 'Interviews', href: '/dashboard/student/interviews', icon: CalendarDays },
+      { name: 'My Resume', href: '/resume', icon: FileText },
+      { name: 'My Progress', href: '/dashboard/student/progress', icon: PieChart },
+      { name: 'Announcements', href: '/dashboard/student/announcements', icon: Bell },
+      { name: 'Notifications', href: '/dashboard/notifications', icon: Bell },
     ];
   } else if (user?.role === 'MENTOR') {
     mainLinks = [
