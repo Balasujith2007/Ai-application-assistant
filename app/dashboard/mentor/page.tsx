@@ -22,6 +22,7 @@ interface RegistrationDetails {
 interface DashboardData {
   stats: {
     assignedStudents: number;
+    ourStudents?: number;
     pendingResumes: number;
     todayInterviews: number;
     upcomingDeadlines: number;
@@ -82,8 +83,9 @@ export default function MentorDashboard() {
   };
 
   const stats = data ? [
-    { label: 'Assigned Students', value: data.stats.assignedStudents, icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-    { label: 'Pending Reviews', value: data.stats.pendingResumes, icon: FileText, color: 'text-orange-600', bg: 'bg-orange-50' },
+    { label: 'Assigned Students', value: data.stats.assignedStudents, icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50', href: '/dashboard/mentor/students' },
+    { label: 'Our Students', value: data.stats.ourStudents ?? 0, icon: Users, color: 'text-sky-600', bg: 'bg-sky-50', href: '/dashboard/mentor/our-students' },
+    { label: 'Pending Reviews', value: data.stats.pendingResumes, icon: FileText, color: 'text-orange-600', bg: 'bg-orange-50', href: '/dashboard/mentor/resumes' },
     { label: "Today's Interviews", value: data.stats.todayInterviews, icon: Calendar, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Upcoming Deadlines', value: data.stats.upcomingDeadlines, icon: Clock, color: 'text-rose-600', bg: 'bg-rose-50' },
     { label: 'Hackathon Registrations', value: data.stats.hackathonRegistrations || 0, icon: Trophy, color: 'text-purple-600', bg: 'bg-purple-50' },
@@ -133,9 +135,8 @@ export default function MentorDashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, idx) => (
-          <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.1 }}
-            className="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+        {stats.map((stat, idx) => {
+          const CardContent = (
             <div className="flex items-center gap-4">
               <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${stat.bg} ${stat.color}`}>
                 <stat.icon className="h-6 w-6" />
@@ -145,8 +146,19 @@ export default function MentorDashboard() {
                 <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
               </div>
             </div>
-          </motion.div>
-        ))}
+          );
+          return (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.1 }}
+              className="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow"
+            >
+              {stat.href ? <Link href={stat.href}>{CardContent}</Link> : CardContent}
+            </motion.div>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">

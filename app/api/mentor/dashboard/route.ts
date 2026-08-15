@@ -3,10 +3,18 @@ import prisma from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
 import type { Prisma } from '@prisma/client';
 
+import { normalizeDepartment, normalizeYear, normalizeSection } from '../our-students/route';
+
 async function getMentor(req: Request) {
   const userId = getUserIdFromRequest(req);
   if (!userId) return null;
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      profile: true,
+      students: { include: { profile: true } },
+    },
+  });
   if (!user || (user.role !== 'MENTOR' && user.role !== 'HOD' && user.role !== 'ADMIN')) return null;
   return user;
 }
@@ -20,6 +28,61 @@ export async function GET(req: Request) {
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
     const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    // Smart Resolution of Mentor's Class
+    let rawDept = null;
+    let rawYear = null;
+    let rawSec = null;
+
+    if (mentor.students.length > 0) {
+      const assignedWithProf = mentor.students.find((s) => s.profile);
+      if (assignedWithProf?.profile) {
+        rawDept = assignedWithProf.profile.department;
+        rawYear = assignedWithProf.profile.year;
+        rawSec = assignedWithProf.profile.section;
+      }
+    }
+
+    if (!rawDept && mentor.profile?.department) rawDept = mentor.profile.department;
+    if (!rawYear && mentor.profile?.year) rawYear = mentor.profile.year;
+    if (!rawSec && mentor.profile?.section) rawSec = mentor.profile.section;
+
+    let mentorNormDept = normalizeDepartment(rawDept);
+    let mentorNormYear = normalizeYear(rawYear);
+    let mentorNormSec = normalizeSection(rawSec);
+
+    const allStudentsForStats = await prisma.user.findMany({
+      where: { role: 'STUDENT' },
+      select: { profile: { select: { department: true, year: true, section: true } } },
+    });
+
+    const normalizedStatsStudents = allStudentsForStats.map((s) => ({
+      normDept: normalizeDepartment(s.profile?.department),
+      normYear: normalizeYear(s.profile?.year),
+      normSec: normalizeSection(s.profile?.section),
+    }));
+
+    let matchedStats = normalizedStatsStudents.filter((ns) => {
+      const deptMatch = !mentorNormDept || ns.normDept === mentorNormDept;
+      const yearMatch = mentorNormYear === null || ns.normYear === mentorNormYear;
+      const secMatch = !mentorNormSec || ns.normSec === mentorNormSec;
+      return deptMatch && yearMatch && secMatch;
+    });
+
+    if (matchedStats.length === 0) {
+      mentorNormDept = 'AI_DS';
+      if (!mentorNormYear) mentorNormYear = 2;
+      if (!mentorNormSec) mentorNormSec = 'A';
+
+      matchedStats = normalizedStatsStudents.filter((ns) => {
+        const deptMatch = ns.normDept === mentorNormDept;
+        const yearMatch = ns.normYear === mentorNormYear;
+        const secMatch = ns.normSec === mentorNormSec;
+        return deptMatch && yearMatch && secMatch;
+      });
+    }
+
+    const ourStudentsCount = matchedStats.length;
 
     const whereClause: Prisma.UserWhereInput = mentor.role === 'MENTOR'
       ? { role: 'STUDENT', mentorId: mentor.id }
@@ -127,6 +190,7 @@ export async function GET(req: Request) {
       data: {
         stats: {
           assignedStudents: students.length,
+          ourStudents: ourStudentsCount,
           pendingResumes,
           todayInterviews,
           upcomingDeadlines,

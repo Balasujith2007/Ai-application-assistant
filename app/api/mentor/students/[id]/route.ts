@@ -20,14 +20,26 @@ export async function GET(
     const mentor = await getMentor(req);
     if (!mentor) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
-    const whereClause: Prisma.UserWhereInput = { 
-      id, 
-      role: 'STUDENT',
-      ...(mentor.role === 'MENTOR' ? { mentorId: mentor.id } : {}),
-    };
+    // First check if student exists
+    const existingStudent = await prisma.user.findFirst({
+      where: { id, role: 'STUDENT' },
+      select: { id: true, mentorId: true },
+    });
+
+    if (!existingStudent) {
+      return NextResponse.json({ message: 'Student not found' }, { status: 404 });
+    }
+
+    // Enforce mentor assignment authorization for full profile view
+    if (mentor.role === 'MENTOR' && existingStudent.mentorId !== mentor.id) {
+      return NextResponse.json(
+        { message: "Forbidden: You are not authorized to view this student's full profile." },
+        { status: 403 }
+      );
+    }
 
     const student = await prisma.user.findFirst({
-      where: whereClause,
+      where: { id, role: 'STUDENT' },
       include: {
         profile: {
           include: {
@@ -44,10 +56,6 @@ export async function GET(
         notifications: { orderBy: { createdAt: 'desc' }, take: 5 },
       },
     });
-
-    if (!student) {
-      return NextResponse.json({ message: 'Student not found' }, { status: 404 });
-    }
 
     return NextResponse.json({ data: student });
   } catch (error) {
