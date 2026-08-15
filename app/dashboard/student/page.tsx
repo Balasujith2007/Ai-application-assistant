@@ -28,7 +28,6 @@ import { DeadlineAlert } from '@/components/placement/DeadlineAlert';
 import { ApplicationTimeline } from '@/components/placement/ApplicationTimeline';
 import { AddApplicationModal } from '@/components/placement/AddApplicationModal';
 import { AddTaskModal } from '@/components/placement/AddTaskModal';
-import { MockInterviewModal } from '@/components/placement/MockInterviewModal';
 import { ApplicationAssistantModal, ApplicationAssistantOpportunity } from '@/components/opportunities/ApplicationAssistantModal';
 import Link from 'next/link';
 
@@ -50,7 +49,6 @@ export default function StudentDashboard() {
 
   const [isAddAppOpen, setIsAddAppOpen] = useState(false);
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
-  const [isMockOpen, setIsMockOpen] = useState(false);
   const [selectedAssistantOpp, setSelectedAssistantOpp] = useState<ApplicationAssistantOpportunity | null>(null);
 
   // Active highlighted application for pipeline widget
@@ -242,14 +240,6 @@ export default function StudentDashboard() {
                 <span className="text-sm font-semibold text-gray-700">Add Task</span>
               </button>
 
-              <button
-                onClick={() => setIsMockOpen(true)}
-                className="flex flex-col items-center justify-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-6 text-center transition-all hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
-              >
-                <Sparkles className="h-6 w-6 text-gray-500 transition-colors group-hover:text-indigo-600" />
-                <span className="text-sm font-semibold text-gray-700">Mock Interview</span>
-              </button>
-
               <Link
                 href="/dashboard/student/opportunity-history"
                 className="flex flex-col items-center justify-center gap-3 rounded-xl border border-amber-100 bg-amber-50/50 p-6 text-center transition-all hover:border-amber-300 hover:bg-amber-100"
@@ -272,14 +262,6 @@ export default function StudentDashboard() {
               >
                 <User className="h-6 w-6 text-gray-500 transition-colors group-hover:text-indigo-600" />
                 <span className="text-sm font-semibold text-gray-700">Edit Profile</span>
-              </Link>
-
-              <Link
-                href="/interviews"
-                className="flex flex-col items-center justify-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-6 text-center transition-all hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
-              >
-                <Calendar className="h-6 w-6 text-gray-500 transition-colors group-hover:text-indigo-600" />
-                <span className="text-sm font-semibold text-gray-700">View Interviews</span>
               </Link>
             </div>
           </motion.div>
@@ -396,11 +378,6 @@ export default function StudentDashboard() {
         isOpen={isAddTaskOpen}
         onClose={() => setIsAddTaskOpen(false)}
         onSave={addTask}
-      />
-
-      <MockInterviewModal
-        isOpen={isMockOpen}
-        onClose={() => setIsMockOpen(false)}
       />
 
       <ApplicationAssistantModal
