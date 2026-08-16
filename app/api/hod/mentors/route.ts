@@ -15,16 +15,36 @@ export async function GET(req: Request) {
     const hod = await getHOD(req);
     if (!hod) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
+    const { searchParams } = new URL(req.url);
+    const department = searchParams.get('department');
+    const year = searchParams.get('year');
+    const section = searchParams.get('section');
+
+    const studentWhereClause =
+      department || year || section
+        ? {
+            role: 'STUDENT' as const,
+            profile: {
+              ...(department ? { department: { equals: department, mode: 'insensitive' as const } } : {}),
+              ...(year ? { year: parseInt(year) } : {}),
+              ...(section ? { section: { equals: section, mode: 'insensitive' as const } } : {}),
+            },
+          }
+        : { role: 'STUDENT' as const };
+
     const mentors = await prisma.user.findMany({
       where: { role: 'MENTOR' },
       include: {
         profile: true,
-        students: { select: { id: true, name: true, email: true } },
+        students: {
+          where: studentWhereClause,
+          select: { id: true, name: true, email: true },
+        },
       },
       orderBy: { name: 'asc' },
     });
 
-    const data = mentors.map((m) => ({
+    let data = mentors.map((m) => ({
       id: m.id,
       name: m.name,
       email: m.email,
@@ -33,6 +53,14 @@ export async function GET(req: Request) {
       assignedStudentsCount: m.students.length,
       assignedStudents: m.students,
     }));
+
+    if (department || year || section) {
+      data = data.filter(
+        (m) =>
+          m.assignedStudentsCount > 0 ||
+          (department && m.department.toLowerCase() === department.toLowerCase())
+      );
+    }
 
     return NextResponse.json({ data });
   } catch (error) {

@@ -18,6 +18,7 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search') || '';
+    const department = searchParams.get('department');
     const year = searchParams.get('year');
     const section = searchParams.get('section');
     const mentorId = searchParams.get('mentorId');
@@ -34,11 +35,12 @@ export async function GET(req: Request) {
             ],
           }
         : {}),
-      ...(year || section
+      ...(department || year || section
         ? {
             profile: {
+              ...(department ? { department: { equals: department, mode: 'insensitive' } } : {}),
               ...(year ? { year: parseInt(year) } : {}),
-              ...(section ? { section } : {}),
+              ...(section ? { section: { equals: section, mode: 'insensitive' } } : {}),
             },
           }
         : {}),

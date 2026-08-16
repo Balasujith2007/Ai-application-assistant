@@ -1,5 +1,7 @@
-import InterviewsPage from '@/app/interviews/page';
+import { redirect } from 'next/navigation';
 
+// Interview section removed from Student Dashboard.
+// This route now redirects to the Student Dashboard.
 export default function StudentInterviewsPage() {
-  return <InterviewsPage />;
+  redirect('/dashboard/student');
 }

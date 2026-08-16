@@ -6,7 +6,7 @@ async function verifyHOD(req: Request) {
   const userId = getUserIdFromRequest(req);
   if (!userId) return null;
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user || user.role !== 'HOD') return null;
+  if (!user || (user.role !== 'HOD' && user.role !== 'ADMIN')) return null;
   return user;
 }
 
@@ -15,8 +15,24 @@ export async function GET(req: Request) {
     const hod = await verifyHOD(req);
     if (!hod) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
+    const { searchParams } = new URL(req.url);
+    const department = searchParams.get('department');
+    const year = searchParams.get('year');
+    const section = searchParams.get('section');
+
     const students = await prisma.user.findMany({
-      where: { role: 'STUDENT' },
+      where: {
+        role: 'STUDENT',
+        ...(department || year || section
+          ? {
+              profile: {
+                ...(department ? { department: { equals: department, mode: 'insensitive' } } : {}),
+                ...(year ? { year: parseInt(year) } : {}),
+                ...(section ? { section: { equals: section, mode: 'insensitive' } } : {}),
+              },
+            }
+          : {}),
+      },
       include: {
         profile: true,
         mentor: { select: { name: true } },

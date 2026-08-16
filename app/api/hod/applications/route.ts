@@ -15,7 +15,26 @@ export async function GET(req: Request) {
     const hod = await getHOD(req);
     if (!hod) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
+    const { searchParams } = new URL(req.url);
+    const department = searchParams.get('department');
+    const year = searchParams.get('year');
+    const section = searchParams.get('section');
+
     const applications = await prisma.application.findMany({
+      where: {
+        ...(department || year || section
+          ? {
+              user: {
+                role: 'STUDENT',
+                profile: {
+                  ...(department ? { department: { equals: department, mode: 'insensitive' } } : {}),
+                  ...(year ? { year: parseInt(year) } : {}),
+                  ...(section ? { section: { equals: section, mode: 'insensitive' } } : {}),
+                },
+              },
+            }
+          : {}),
+      },
       include: {
         user: {
           select: {
