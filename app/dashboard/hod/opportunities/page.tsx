@@ -73,8 +73,10 @@ export default function HODOpportunitiesPage() {
           organization: d.organization || prev.organization,
           type: d.type || prev.type,
           description: d.description || prev.description,
-          registrationUrl: d.registrationUrl || prev.registrationUrl,
-          location: d.location || prev.location
+          registrationUrl: d.registrationUrl || prev.registrationUrl || prev.opportunityUrl,
+          location: d.location || prev.location,
+          stipend: d.stipend || prev.stipend,
+          requiredSkills: Array.isArray(d.skills) && d.skills.length > 0 ? d.skills.join(', ') : prev.requiredSkills
         }));
         if (d.isRegistrationDetected) {
           setIsRegDetected(true);
@@ -82,9 +84,11 @@ export default function HODOpportunitiesPage() {
         } else {
           setFetchNotice('Fetched metadata successfully!');
         }
+      } else {
+        setFetchNotice(res.data.message || 'Could not fetch details from URL.');
       }
-    } catch {
-      setFetchNotice('Could not fetch details from URL.');
+    } catch (err: any) {
+      setFetchNotice(err?.response?.data?.message || 'Could not fetch details from URL.');
     } finally {
       setIsFetchingUrl(false);
     }

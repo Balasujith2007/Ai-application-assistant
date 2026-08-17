@@ -58,9 +58,12 @@ export default function MentorPostOpportunityPage() {
           organization: d.organization || prev.organization,
           type: d.type || prev.type,
           description: d.description || prev.description,
-          registrationUrl: d.registrationUrl || prev.registrationUrl,
+          registrationUrl: d.registrationUrl || prev.registrationUrl || prev.opportunityUrl,
           location: d.location || prev.location,
-          mode: d.mode || prev.mode
+          mode: d.mode || prev.mode,
+          stipend: d.stipend || prev.stipend,
+          salary: d.salary || prev.salary,
+          requiredSkills: Array.isArray(d.skills) && d.skills.length > 0 ? d.skills.join(', ') : prev.requiredSkills
         }));
         if (d.isRegistrationDetected) {
           setIsRegDetected(true);
