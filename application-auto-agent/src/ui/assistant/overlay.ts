@@ -9,10 +9,18 @@ export interface MissingQuestion {
   required: boolean;
   placeholder?: string;
   hint?: string;
+  currentValue?: string;
 }
 
 export interface MissingResult {
-  answers: Array<{ id: string; key: string; label: string; value: string; classification: FieldClassification }>;
+  answers: Array<{
+    id: string;
+    key: string;
+    label: string;
+    value: string;
+    classification: FieldClassification;
+    saveMode: 'SAVE' | 'USE_ONCE';
+  }>;
   saveForFuture: boolean;
 }
 
@@ -48,17 +56,24 @@ type OverlayApi = {
   toast: (msg: string) => void;
 };
 
-let api: OverlayApi | null = null;
+let api: OverlayApi & { dismissTransient: () => void } | null = null;
 
-export function getOverlay(): OverlayApi {
+export function getOverlay() {
   if (api) return api;
   api = mountOverlay();
   return api;
 }
 
-function mountOverlay(): OverlayApi {
+export function dismissOverlayModals() {
+  if (!api) return;
+  api.dismissTransient();
+}
+
+function mountOverlay() {
+  const existing = document.getElementById('careerai-apply-overlay') || document.getElementById('careerai-apply-agent-root');
+  if (existing) existing.remove();
   const host = document.createElement('div');
-  host.id = 'careerai-apply-agent-root';
+  host.id = 'careerai-apply-overlay';
   host.style.all = 'initial';
   document.documentElement.appendChild(host);
   const shadow = host.attachShadow({ mode: 'open' });
@@ -101,7 +116,8 @@ function mountOverlay(): OverlayApi {
         background: #7c2d12; color: #fff7ed; border-radius: 12px; padding: 12px 16px; max-width: 520px;
         border: 1px solid #fb923c; font-size: 13px; font-weight: 600;
       }
-      ul { margin: 8px 0 0; padding-left: 18px; font-size: 12px; color: #334155; max-height: 160px; overflow: auto; }
+      .save-row { display: flex; gap: 12px; margin-top: 6px; font-size: 12px; color: #475569; }
+      .save-row label { display: flex; gap: 4px; align-items: center; font-size: 12px; }
     </style>
     <div class="panel" id="panel">
       <div class="row">
@@ -134,47 +150,69 @@ function mountOverlay(): OverlayApi {
       extra.innerHTML = `
         <div class="modal-backdrop">
           <div class="modal">
-            <h3>Additional information required</h3>
-            <p>${questions.length} detail${questions.length === 1 ? '' : 's'} needed before we can continue. We will not invent answers.</p>
+            <h3>CareerAI Apply Agent</h3>
+            <p><strong>We need a few details</strong></p>
+            <p>${questions.length} field${questions.length === 1 ? '' : 's'} are not in your CareerAI profile. We will not invent answers.</p>
             <form id="mf">
-              ${questions.map((q) => `
+              ${questions.map((q) => {
+                const lockedOnce = q.classification === 'APPLICATION_SPECIFIC_FIELD' || q.classification === 'LEGAL_FIELD';
+                const isLong = q.classification === 'APPLICATION_SPECIFIC_FIELD' || (q.label + (q.hint || '')).length > 80;
+                return `
                 <div class="q">
                   <label>
                     ${escapeHtml(q.label)}${q.required ? ' *' : ''}
                     ${q.hint ? `<br><small>${escapeHtml(q.hint)}</small>` : ''}
-                    ${q.classification === 'SENSITIVE_FIELD' ? '<br><small>Sensitive — you must answer this yourself.</small>' : ''}
-                    ${q.classification === 'APPLICATION_SPECIFIC_FIELD' ? '<br><small>Application-specific — not saved to your permanent profile by default.</small>' : ''}
-                    ${q.classification === 'APPLICATION_SPECIFIC_FIELD' || (q.label + q.hint || '').length > 80
-                      ? `<textarea name="${escapeHtml(q.id)}" placeholder="${escapeHtml(q.placeholder || '')}" ${q.required ? 'required' : ''}></textarea>`
-                      : `<input type="text" name="${escapeHtml(q.id)}" placeholder="${escapeHtml(q.placeholder || '')}" ${q.required ? 'required' : ''} />`
+                    ${q.classification === 'SENSITIVE_FIELD' ? '<br><small>Sensitive — you must answer this yourself. Saving is optional.</small>' : ''}
+                    ${q.classification === 'APPLICATION_SPECIFIC_FIELD' ? '<br><small>Application-specific — used for this application only.</small>' : ''}
+                    ${isLong
+                      ? `<textarea name="${escapeHtml(q.id)}" placeholder="${escapeHtml(q.placeholder || '')}" ${q.required ? 'required' : ''}>${escapeHtml(q.currentValue || '')}</textarea>`
+                      : `<input type="text" name="${escapeHtml(q.id)}" placeholder="${escapeHtml(q.placeholder || '')}" value="${escapeHtml(q.currentValue || '')}" ${q.required ? 'required' : ''} />`
                     }
                   </label>
-                </div>
-              `).join('')}
-              <label class="check">
-                <input type="checkbox" name="saveFuture" checked />
-                <span>Save reusable answers to my CareerAI profile for future applications</span>
-              </label>
-              <div class="actions">
+                  ${lockedOnce
+                    ? '<p class="hint" style="margin:6px 0 0;font-size:12px;color:#64748b">Use once — not saved to your profile.</p>'
+                    : `<div class="save-row">
+                        <label><input type="radio" name="save-${escapeHtml(q.id)}" value="SAVE" ${q.classification === 'SENSITIVE_FIELD' ? '' : 'checked'} /> Save for future</label>
+                        <label><input type="radio" name="save-${escapeHtml(q.id)}" value="USE_ONCE" ${q.classification === 'SENSITIVE_FIELD' ? 'checked' : ''} /> Use once</label>
+                      </div>`}
+                </div>`;
+              }).join('')}
+              <div class="actions" style="flex-wrap:wrap">
+                <button type="button" class="ghost" id="once-all">Use once</button>
+                <button type="button" class="ghost" id="save-all">Save selected</button>
                 <button type="submit" class="primary">Continue</button>
               </div>
             </form>
           </div>
         </div>`;
+      extra.querySelector('#once-all')?.addEventListener('click', () => {
+        extra.querySelectorAll<HTMLInputElement>('input[type="radio"][value="USE_ONCE"]').forEach((r) => { r.checked = true; });
+        (extra.querySelector('#mf') as HTMLFormElement | null)?.requestSubmit();
+      });
+      extra.querySelector('#save-all')?.addEventListener('click', () => {
+        extra.querySelectorAll<HTMLInputElement>('input[type="radio"][value="SAVE"]').forEach((r) => { r.checked = true; });
+        (extra.querySelector('#mf') as HTMLFormElement | null)?.requestSubmit();
+      });
       extra.querySelector('#mf')?.addEventListener('submit', (e) => {
         e.preventDefault();
         const form = e.target as HTMLFormElement;
         const fd = new FormData(form);
-        const saveForFuture = fd.get('saveFuture') === 'on';
-        const answers = questions.map((q) => ({
-          id: q.id,
-          key: q.key,
-          label: q.label,
-          classification: q.classification,
-          value: String(fd.get(q.id) || '').trim(),
-        })).filter((a) => a.value);
+        const answers = questions.map((q) => {
+          const lockedOnce = q.classification === 'APPLICATION_SPECIFIC_FIELD' || q.classification === 'LEGAL_FIELD';
+          const saveMode: 'SAVE' | 'USE_ONCE' = lockedOnce
+            ? 'USE_ONCE'
+            : (String(fd.get(`save-${q.id}`) || 'SAVE') === 'USE_ONCE' ? 'USE_ONCE' : 'SAVE');
+          return {
+            id: q.id,
+            key: q.key,
+            label: q.label,
+            classification: q.classification,
+            value: String(fd.get(q.id) || '').trim(),
+            saveMode,
+          };
+        }).filter((a) => a.value);
         extra.innerHTML = '';
-        resolve({ answers, saveForFuture });
+        resolve({ answers, saveForFuture: answers.some((a) => a.saveMode === 'SAVE') });
       });
     });
   }
@@ -204,6 +242,9 @@ function mountOverlay(): OverlayApi {
     extra.innerHTML = `<div class="banner">Human verification required. Complete the CAPTCHA on the page. The agent will never solve it for you.</div>`;
   }
   function hideCaptcha() {
+    extra.innerHTML = '';
+  }
+  function dismissTransient() {
     extra.innerHTML = '';
   }
   function confirmCaptchaDone(): Promise<boolean> {
@@ -299,13 +340,15 @@ function mountOverlay(): OverlayApi {
       extra.innerHTML = `
         <div class="modal-backdrop">
           <div class="modal">
-            <h3>Application ready</h3>
-            <p>✓ ${summary.filled} / ${summary.detected} fields filled<br>
-               ✓ ${summary.providedByUser} fields provided by you<br>
-               ✓ ${summary.savedToProfile} new profile fields saved<br>
-               ${summary.missingRequired ? `⚠ ${summary.missingRequired} required fields still empty` : '✓ 0 required fields missing'}</p>
+            <h3>CareerAI Apply Agent</h3>
+            <p><strong>Application Review</strong></p>
+            <p>Known fields completed: ${summary.filled}<br>
+               User-provided fields: ${summary.providedByUser}<br>
+               Manual fields remaining: ${summary.missingRequired}<br>
+               Saved to profile: ${summary.savedToProfile}</p>
             <ul>${summary.items.map((i) => `<li>${escapeHtml(i)}</li>`).join('')}</ul>
-            <p><strong>The agent will not click Submit.</strong> Review the page, then submit yourself.</p>
+            <p><strong>${summary.missingRequired ? 'Resolve the remaining manual fields before submitting.' : 'Ready for final submission.'}</strong></p>
+            <p>The agent will not click Submit. Review the page, then submit yourself.</p>
             <div class="actions">
               <button class="primary" id="ok">I understand — I will submit</button>
             </div>
@@ -322,6 +365,7 @@ function mountOverlay(): OverlayApi {
   return {
     renderState, askMissing, askConflict, showCaptcha, hideCaptcha, confirmCaptchaDone,
     showReview, showDryRun, askStartAssistant, showReconnect, waitForHuman, setUndoHandler, toast,
+    dismissTransient,
   };
 }
 

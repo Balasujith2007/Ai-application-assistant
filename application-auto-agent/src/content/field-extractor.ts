@@ -1,5 +1,5 @@
 export interface ExtractedField {
-  element: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+  element: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLElement;
   id: string;
   name: string;
   type: string;
@@ -8,6 +8,7 @@ export interface ExtractedField {
   label: string;
   required: boolean;
   options?: string[];
+  isContentEditable?: boolean;
 }
 
 function visible(el: HTMLElement): boolean {
@@ -19,18 +20,26 @@ function visible(el: HTMLElement): boolean {
 }
 
 function labelFor(el: HTMLElement): string {
+  const type = (el.getAttribute('type') || '').toLowerCase();
+  const fieldset = el.closest('fieldset');
+  const legend = fieldset?.querySelector(':scope > legend')?.textContent?.trim() || '';
+  if ((type === 'radio' || type === 'checkbox') && legend) return legend;
+
   const aria = el.getAttribute('aria-label') || '';
   if (el.id) {
     const lab = document.querySelector(`label[for="${CSS.escape(el.id)}"]`);
     if (lab?.textContent) return lab.textContent.trim();
   }
   const wrapping = el.closest('label');
-  if (wrapping?.textContent) return wrapping.textContent.trim();
+  if (wrapping?.textContent) {
+    const wrapText = wrapping.textContent.trim();
+    if (!(type === 'radio' || type === 'checkbox') || !legend) return wrapText;
+  }
   const prev = el.previousElementSibling;
   if (prev && prev.tagName === 'LABEL') return (prev.textContent || '').trim();
   const parentLabel = el.parentElement?.querySelector('label');
   if (parentLabel?.textContent) return parentLabel.textContent.trim();
-  return aria;
+  return legend || aria;
 }
 
 export function extractFields(root: ParentNode = document): ExtractedField[] {
@@ -57,5 +66,29 @@ export function extractFields(root: ParentNode = document): ExtractedField[] {
       options,
     });
   }
+
+  // Also capture contenteditable fields (rich-text editors used by some ATS platforms)
+  const contentEditables = Array.from(root.querySelectorAll<HTMLElement>('[contenteditable="true"],[contenteditable=""]'))
+    .filter((el) => {
+      if (!visible(el)) return false;
+      const role = el.getAttribute('role') || '';
+      // Skip toolbar items and buttons
+      if (['button', 'menuitem', 'option', 'tab', 'listitem'].includes(role)) return false;
+      return true;
+    });
+  for (const el of contentEditables) {
+    out.push({
+      element: el,
+      id: el.id || '',
+      name: el.getAttribute('name') || el.getAttribute('data-field') || '',
+      type: 'contenteditable',
+      placeholder: el.getAttribute('placeholder') || el.getAttribute('data-placeholder') || '',
+      autocomplete: '',
+      label: labelFor(el),
+      required: el.getAttribute('aria-required') === 'true',
+      isContentEditable: true,
+    });
+  }
+
   return out;
 }

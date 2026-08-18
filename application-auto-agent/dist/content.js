@@ -30,18 +30,25 @@
     return rect.width > 0 && rect.height > 0;
   }
   function labelFor(el) {
+    const type = (el.getAttribute("type") || "").toLowerCase();
+    const fieldset = el.closest("fieldset");
+    const legend = fieldset?.querySelector(":scope > legend")?.textContent?.trim() || "";
+    if ((type === "radio" || type === "checkbox") && legend) return legend;
     const aria = el.getAttribute("aria-label") || "";
     if (el.id) {
       const lab = document.querySelector(`label[for="${CSS.escape(el.id)}"]`);
       if (lab?.textContent) return lab.textContent.trim();
     }
     const wrapping = el.closest("label");
-    if (wrapping?.textContent) return wrapping.textContent.trim();
+    if (wrapping?.textContent) {
+      const wrapText = wrapping.textContent.trim();
+      if (!(type === "radio" || type === "checkbox") || !legend) return wrapText;
+    }
     const prev = el.previousElementSibling;
     if (prev && prev.tagName === "LABEL") return (prev.textContent || "").trim();
     const parentLabel = el.parentElement?.querySelector("label");
     if (parentLabel?.textContent) return parentLabel.textContent.trim();
-    return aria;
+    return legend || aria;
   }
   function extractFields(root = document) {
     const nodes = Array.from(root.querySelectorAll(
@@ -65,6 +72,25 @@
         options
       });
     }
+    const contentEditables = Array.from(root.querySelectorAll('[contenteditable="true"],[contenteditable=""]')).filter((el) => {
+      if (!visible(el)) return false;
+      const role = el.getAttribute("role") || "";
+      if (["button", "menuitem", "option", "tab", "listitem"].includes(role)) return false;
+      return true;
+    });
+    for (const el of contentEditables) {
+      out.push({
+        element: el,
+        id: el.id || "",
+        name: el.getAttribute("name") || el.getAttribute("data-field") || "",
+        type: "contenteditable",
+        placeholder: el.getAttribute("placeholder") || el.getAttribute("data-placeholder") || "",
+        autocomplete: "",
+        label: labelFor(el),
+        required: el.getAttribute("aria-required") === "true",
+        isContentEditable: true
+      });
+    }
     return out;
   }
 
@@ -80,7 +106,7 @@
     "education.college": ["college", "college name", "institution", "institution name", "university", "university name", "institute", "school name"],
     "education.degree": ["degree", "qualification", "highest qualification", "program"],
     "education.department": ["department", "branch", "stream", "specialization", "course", "field of study", "major"],
-    "education.cgpa": ["cgpa", "gpa", "grade", "percentage", "marks", "academic score", "current cgpa"],
+    "education.cgpa": ["cgpa", "gpa", "grade point average", "grade", "percentage", "marks", "academic score", "current cgpa"],
     "education.graduationYear": ["graduation year", "year of graduation", "passing year", "expected graduation"],
     "education.year": ["academic year", "current year", "year of study", "year"],
     "links.github": ["github", "github url", "github profile", "github link"],
@@ -99,16 +125,28 @@
       "ctc",
       "expected ctc",
       "desired compensation",
-      "current compensation"
+      "current compensation",
+      "compensation expectation"
     ],
-    "preferences.preferredLocation": ["preferred location", "preferred city", "location preference", "job location", "preferred work location"],
+    "preferences.preferredLocation": [
+      "preferred location",
+      "preferred city",
+      "location preference",
+      "job location",
+      "preferred work location",
+      "where would you like to work",
+      "where would you like to work at"
+    ],
     "preferences.noticePeriod": [
       "notice period",
       "expected notice period",
       "availability notice period",
       "availability / notice period",
       "how soon can you join",
-      "joining time"
+      "joining time",
+      "notice duration",
+      "joining notice",
+      "availability"
     ],
     "preferences.workMode": ["work mode", "work type", "preferred work mode"],
     "preferences.workAuthorization": [
@@ -171,7 +209,7 @@
 
   // src/ai/question-classifier.ts
   function normalizeLabel(input) {
-    return (input || "").toLowerCase().replace(/[*?!:\-_/\\(),.\[\]]+/g, " ").replace(/\s+/g, " ").trim();
+    return (input || "").replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase().replace(/[*?!:\-_/\\(),.\[\]]+/g, " ").replace(/\s+/g, " ").trim();
   }
   function includesAny(haystack, needles) {
     return needles.some((n) => haystack.includes(n));
@@ -206,25 +244,51 @@
     { re: /experience|employer|company/, w: 8, reason: "experience field" },
     { re: /apply|candidate|applicant|registration/, w: 8, reason: "application wording" }
   ];
+  function pathnameOf(href) {
+    try {
+      if (href && href.includes("://")) return new URL(href).pathname.replace(/\/$/, "") || "/";
+      if (href?.startsWith("/")) return href.split("?")[0].replace(/\/$/, "") || "/";
+    } catch {
+    }
+    if (typeof location !== "undefined") return location.pathname.replace(/\/$/, "") || "/";
+    return "/";
+  }
   function scoreFromSignals(input) {
     const reasons = [];
     let score = 0;
+    const path = pathnameOf(input.href);
+    const fieldCount = input.fieldCount || 0;
     if (input.isTestApp) {
-      return { score: 100, reasons: ["CareerAI test application"], autoStart: true };
+      score += 25;
+      reasons.push("trusted test application");
+    }
+    if (path === "/test-apply") {
+      return {
+        score: Math.min(100, score + 15),
+        reasons: [...reasons, "landing \u2014 no form"],
+        autoStart: false,
+        kind: "LANDING"
+      };
     }
     if (input.hasSessionId) {
       score += 45;
       reasons.push("CareerAI apply session");
     }
     const href = (input.href || "").toLowerCase();
-    if (/careers|jobs|apply|internship|hackathon|scholarship|greenhouse|lever\.co|workday|myworkday|unstop|dare2compete/.test(href)) {
+    if (/careers|jobs|apply|internship|hackathon|scholarship|greenhouse|lever\.co|workday|myworkday|unstop|dare2compete|smartrecruiters|icims|taleo|successfactors|jobvite|breezy\.hr|recruitee|ashby|rippling|bamboohr|ats\.|recruit\./.test(href)) {
       score += 18;
       reasons.push("career URL pattern");
     }
-    const fieldCount = input.fieldCount || 0;
+    if (input.captchaBlocking) {
+      score += 40;
+      reasons.push("human verification");
+    }
     if (fieldCount >= 3) {
       score += 10;
       reasons.push(`${fieldCount} visible inputs`);
+    } else if (fieldCount >= 1) {
+      score += 6;
+      reasons.push("form field present");
     }
     const blob = input.labelBlob || "";
     for (const { re, w, reason } of LABEL_WEIGHTS) {
@@ -233,21 +297,37 @@
         reasons.push(reason);
       }
     }
+    let kind = "NONE";
+    if (path.includes("/review") || input.hasSubmitButton) kind = "REVIEW";
+    else if (input.captchaBlocking && fieldCount < 3) kind = "CAPTCHA";
+    else if (fieldCount >= 1) kind = "FORM";
     score = Math.min(100, score);
-    return { score, reasons, autoStart: score >= 70 };
+    const autoStart = Boolean(
+      kind !== "NONE" && (score >= 70 || input.captchaBlocking || input.isTestApp && (kind === "FORM" || kind === "REVIEW" || kind === "CAPTCHA"))
+    );
+    return { score, reasons, autoStart, kind: kind || "NONE" };
   }
   function scoreApplicationPage(doc = document) {
     const fields = extractFields(doc);
+    const captchaEl = doc.querySelector("[data-careerai-captcha], #careerai-test-captcha, .g-recaptcha, .h-captcha, #cf-turnstile");
+    let captchaBlocking = false;
+    if (captchaEl) {
+      const input = captchaEl instanceof HTMLInputElement ? captchaEl : captchaEl.querySelector('input[type="checkbox"]');
+      if (input instanceof HTMLInputElement) captchaBlocking = !input.checked;
+      else captchaBlocking = true;
+    }
+    const submit = Array.from(doc.querySelectorAll('button, input[type="submit"]')).some(
+      (el) => /submit|send application|finish/i.test(el.textContent || el.value || "")
+    );
     return scoreFromSignals({
       isTestApp: !!doc.querySelector("[data-careerai-test-app]"),
-      hasSessionId: !!new URLSearchParams(location.search).get("careerai_session_id"),
-      href: location.href,
+      hasSessionId: typeof location !== "undefined" && !!new URLSearchParams(location.search).get("careerai_session_id"),
+      href: typeof location !== "undefined" ? location.href : "",
       fieldCount: fields.length,
-      labelBlob: fields.map((f) => normalizeLabel(`${f.label} ${f.name} ${f.placeholder}`)).join(" ")
+      labelBlob: fields.map((f) => normalizeLabel(`${f.label} ${f.name} ${f.placeholder}`)).join(" "),
+      captchaBlocking,
+      hasSubmitButton: submit
     });
-  }
-  function fieldFingerprint(doc = document) {
-    return extractFields(doc).map((f) => `${f.id}|${f.name}|${f.type}|${f.label}`).join("~");
   }
 
   // src/automation/state-machine.ts
@@ -285,63 +365,137 @@
   };
 
   // src/content/captcha-detector.ts
-  function isCaptchaPresent(root = document) {
+  var completedInstances = /* @__PURE__ */ new Set();
+  function instanceKey(pathname, kind) {
+    return `${pathname || "/"}::${kind}`;
+  }
+  function markCaptchaInstanceCompleted(pathname, kind = "widget") {
+    completedInstances.add(instanceKey(pathname, kind));
+  }
+  function classifyCaptchaSignals(s) {
+    const path = s.pathname || "/";
+    if (s.hasTestMarker) {
+      if (s.testCheckboxChecked === true || s.userMarkedComplete) {
+        markCaptchaInstanceCompleted(path, "test");
+        return "CAPTCHA_COMPLETED";
+      }
+      if (completedInstances.has(instanceKey(path, "test"))) return "CAPTCHA_COMPLETED";
+      return "CAPTCHA_DETECTED";
+    }
+    if (s.hasWidget) {
+      if (s.userMarkedComplete || s.recaptchaResponseFilled || s.recaptchaCheckboxChecked) {
+        markCaptchaInstanceCompleted(path, "widget");
+        return "CAPTCHA_COMPLETED";
+      }
+      if (completedInstances.has(instanceKey(path, "widget"))) return "CAPTCHA_COMPLETED";
+      return "CAPTCHA_DETECTED";
+    }
+    return "CAPTCHA_NOT_PRESENT";
+  }
+  function isCaptchaBlocking(state) {
+    return state === "CAPTCHA_DETECTED" || state === "CAPTCHA_WAITING_FOR_USER" || state === "CAPTCHA_UNKNOWN";
+  }
+  function testCheckbox(root) {
+    const host = root.querySelector("[data-careerai-captcha], #careerai-test-captcha");
+    if (!host) return null;
+    if (host instanceof HTMLInputElement) return host;
+    const inner = host.querySelector('input[type="checkbox"]');
+    return inner instanceof HTMLInputElement ? inner : null;
+  }
+  function widgetPresent(root) {
     const iframes = Array.from(root.querySelectorAll("iframe"));
-    const iframeHit = iframes.some((f) => {
+    if (iframes.some((f) => {
       const src = (f.src || "").toLowerCase();
       return src.includes("recaptcha") || src.includes("hcaptcha") || src.includes("challenges.cloudflare") || src.includes("turnstile");
-    });
-    if (iframeHit) return true;
-    if (root.querySelector(".g-recaptcha, [data-hcaptcha-widget-id], .h-captcha, #cf-turnstile, [data-careerai-captcha]")) {
-      return true;
-    }
-    const text = (root.textContent || "").toLowerCase();
-    if (text.includes("i'm not a robot") || text.includes("verify you are human") || text.includes("human verification required")) {
-      const box = root.querySelector('[data-careerai-captcha], #careerai-test-captcha, input[type="checkbox"][name*="captcha" i]');
-      if (box) {
-        const input = box instanceof HTMLInputElement ? box : box.querySelector('input[type="checkbox"]');
-        if (input instanceof HTMLInputElement) return !input.checked;
-      }
-      if (root.querySelector("[data-careerai-captcha]")) return true;
-    }
+    })) return true;
+    return !!root.querySelector(".g-recaptcha, [data-hcaptcha-widget-id], .h-captcha, #cf-turnstile");
+  }
+  function recaptchaLooksComplete(root) {
+    const ta = root.querySelector('textarea[name="g-recaptcha-response"], textarea[name="h-captcha-response"]');
+    if (ta && ta.value && ta.value.trim().length > 8) return true;
+    if (root.querySelector('.recaptcha-checkbox-checked, [aria-checked="true"][role="checkbox"]')) return true;
     return false;
   }
-  function waitForCaptchaClear(timeoutMs = 8 * 60 * 1e3, userConfirmed) {
+  function readCaptchaSignals(root = document, pathname) {
+    const path = pathname || (typeof location !== "undefined" ? location.pathname : "/");
+    const box = testCheckbox(root);
+    const hasTest = !!root.querySelector("[data-careerai-captcha], #careerai-test-captcha");
+    return {
+      pathname: path,
+      hasTestMarker: hasTest,
+      testCheckboxChecked: box ? box.checked || box.getAttribute("aria-checked") === "true" : null,
+      hasWidget: widgetPresent(root),
+      recaptchaResponseFilled: recaptchaLooksComplete(root),
+      recaptchaCheckboxChecked: recaptchaLooksComplete(root),
+      userMarkedComplete: completedInstances.has(instanceKey(path, hasTest ? "test" : "widget"))
+    };
+  }
+  function evaluateCaptcha(root = document, pathname) {
+    return classifyCaptchaSignals(readCaptchaSignals(root, pathname));
+  }
+  function markCurrentCaptchaCompleted(pathname) {
+    const path = pathname || (typeof location !== "undefined" ? location.pathname : "/");
+    markCaptchaInstanceCompleted(path, "test");
+    markCaptchaInstanceCompleted(path, "widget");
+  }
+  function waitForCaptchaClear(timeoutMs = 8 * 60 * 1e3, userConfirmed, opts) {
     return new Promise((resolve, reject) => {
-      if (!isCaptchaPresent()) {
+      const done = () => {
+        try {
+          obs.disconnect();
+        } catch {
+        }
+        clearInterval(poll);
+        resolve();
+      };
+      const fail = (err) => {
+        try {
+          obs.disconnect();
+        } catch {
+        }
+        clearInterval(poll);
+        reject(err);
+      };
+      const tick = () => evaluateCaptcha();
+      if (!isCaptchaBlocking(tick())) {
         resolve();
         return;
       }
       const started = Date.now();
       let asked = false;
-      const finish = () => {
-        obs.disconnect();
-        clearInterval(poll);
-        resolve();
-      };
-      const fail = (err) => {
-        obs.disconnect();
-        clearInterval(poll);
-        reject(err);
-      };
+      const unknownAfter = opts?.unknownAfterMs ?? 12e3;
       const obs = new MutationObserver(() => {
-        if (!isCaptchaPresent()) finish();
+        if (opts?.isAborted?.()) {
+          done();
+          return;
+        }
+        if (!isCaptchaBlocking(tick())) done();
       });
       obs.observe(document.documentElement, { childList: true, subtree: true, attributes: true });
       const poll = setInterval(() => {
-        if (!isCaptchaPresent()) {
-          finish();
+        if (opts?.isAborted?.()) {
+          done();
+          return;
+        }
+        const state = tick();
+        if (!isCaptchaBlocking(state)) {
+          done();
           return;
         }
         const elapsed = Date.now() - started;
-        if (!asked && elapsed > 2e4 && userConfirmed) {
+        if (!asked && elapsed > unknownAfter && userConfirmed) {
           asked = true;
           void userConfirmed().then((ok) => {
-            if (ok) finish();
+            if (ok) {
+              markCurrentCaptchaCompleted();
+              done();
+            } else {
+              asked = false;
+            }
           });
         }
         if (elapsed > timeoutMs) fail(new Error("Timed out waiting for human verification."));
-      }, 400);
+      }, 300);
     });
   }
 
@@ -366,7 +520,22 @@
   }
 
   // src/content/autofill-engine.ts
+  function fillContentEditable(el, value) {
+    try {
+      el.focus();
+      el.textContent = value;
+      el.dispatchEvent(new InputEvent("input", { bubbles: true, data: value }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+      el.dispatchEvent(new Event("blur", { bubbles: true }));
+      return (el.textContent || "").trim().toLowerCase().includes(value.trim().toLowerCase());
+    } catch {
+      return false;
+    }
+  }
   function readFieldValue(element) {
+    if (element.isContentEditable || element.getAttribute?.("contenteditable")) {
+      return element.textContent?.trim() || "";
+    }
     if (element instanceof HTMLSelectElement) {
       return element.options[element.selectedIndex]?.text || element.value || "";
     }
@@ -382,12 +551,16 @@
     return a === e || a.includes(e) || e.includes(a);
   }
   function fillAndVerify(element, value) {
+    if (element.isContentEditable || element.getAttribute?.("contenteditable") === "true" || element.getAttribute?.("contenteditable") === "") {
+      return fillContentEditable(element, value);
+    }
     if (!nativeSetValue(element, value)) return false;
     if (element instanceof HTMLInputElement && element.type === "radio" && element.name) {
       const group = document.querySelectorAll(`input[type="radio"][name="${CSS.escape(element.name)}"]`);
       const selected = Array.from(group).find((r) => r.checked);
       if (!selected) return false;
-      const lab = document.querySelector(`label[for="${CSS.escape(selected.id)}"]`)?.textContent || "";
+      const wrapping = selected.closest("label")?.textContent || "";
+      const lab = document.querySelector(`label[for="${CSS.escape(selected.id)}"]`)?.textContent || wrapping || "";
       return valuesMatch(`${selected.value} ${lab}`, value) || valuesMatch(selected.value, value) || valuesMatch(lab, value);
     }
     return valuesMatch(readFieldValue(element), value);
@@ -419,12 +592,14 @@
           const group = document.querySelectorAll(`input[type="radio"][name="${CSS.escape(element.name)}"]`);
           let matched = null;
           group.forEach((r) => {
-            const lab = document.querySelector(`label[for="${CSS.escape(r.id)}"]`)?.textContent || r.value;
+            const wrapping = r.closest("label")?.textContent || "";
+            const lab = document.querySelector(`label[for="${CSS.escape(r.id)}"]`)?.textContent || wrapping || r.value;
             if (lab.toLowerCase().includes(needle) || r.value.toLowerCase().includes(needle)) matched = r;
             if (yes && /^(yes|y|true|authorized)/i.test(lab.trim() || r.value)) matched = r;
+            if (no && /^(no|n|false)/i.test(lab.trim() || r.value)) matched = r;
           });
           if (!matched) return false;
-          matched.checked = true;
+          setNativeChecked(matched, true);
           element = matched;
         }
       } else {
@@ -433,6 +608,7 @@
         if (setter) setter.call(element, value);
         else element.value = value;
       }
+      element.dispatchEvent(new Event("click", { bubbles: true }));
       element.dispatchEvent(new Event("input", { bubbles: true }));
       element.dispatchEvent(new Event("change", { bubbles: true }));
       element.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true }));
@@ -441,6 +617,12 @@
     } catch {
       return false;
     }
+  }
+  function setNativeChecked(el, checked) {
+    const proto = Object.getPrototypeOf(el);
+    const setter = Object.getOwnPropertyDescriptor(proto, "checked")?.set || Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "checked")?.set;
+    if (setter) setter.call(el, checked);
+    else el.checked = checked;
   }
   function highlight(el, kind) {
     const colors = {
@@ -472,16 +654,21 @@
   }
 
   // src/content/multi-page-manager.ts
-  var NEXT_WORDS = ["next", "continue", "save and continue", "proceed", "go to next"];
-  var SUBMIT_WORDS = ["submit", "submit application", "finish", "complete application", "send application"];
+  var NEXT_WORDS = ["next", "continue", "save and continue", "proceed", "go to next", "save & continue"];
   function buttonText(el) {
     return (el.innerText || el.getAttribute("value") || el.getAttribute("aria-label") || "").toLowerCase().trim();
+  }
+  function isProtectedSubmitText(t) {
+    const n = (t || "").toLowerCase().trim();
+    if (!n) return false;
+    if (["submit", "apply", "send", "finish"].includes(n)) return true;
+    return /submit application|apply now|send application|finish application|complete application/.test(n) || /^submit\b/.test(n) || /^apply\b/.test(n);
   }
   function findNextButton() {
     const els = Array.from(document.querySelectorAll('button, a, input[type="button"], input[type="submit"], [role="button"]'));
     for (const el of els) {
       const t = buttonText(el);
-      if (SUBMIT_WORDS.some((w) => t === w || t.includes(w))) continue;
+      if (isProtectedSubmitText(t)) continue;
       if (NEXT_WORDS.some((w) => t === w || t.startsWith(w))) return el;
     }
     return null;
@@ -490,7 +677,7 @@
     const els = Array.from(document.querySelectorAll('button, a, input[type="submit"], [role="button"]'));
     for (const el of els) {
       const t = buttonText(el);
-      if (SUBMIT_WORDS.some((w) => t === w || t.includes(w))) return el;
+      if (isProtectedSubmitText(t)) return el;
     }
     return null;
   }
@@ -548,11 +735,41 @@
   }
 
   // src/browser/browser-api.ts
+  function hasRuntimeSendMessage(api2) {
+    try {
+      if (!api2 || typeof api2 !== "object") return false;
+      const runtime = api2.runtime;
+      return typeof runtime?.sendMessage === "function";
+    } catch {
+      return false;
+    }
+  }
+  function pickExtensionApi(root) {
+    if (hasRuntimeSendMessage(root.chrome)) return root.chrome;
+    if (hasRuntimeSendMessage(root.browser)) return root.browser;
+    return null;
+  }
+  function isExtensionRuntimeAvailable(root = globalThis) {
+    try {
+      const api2 = pickExtensionApi(root);
+      if (!api2?.runtime || typeof api2.runtime.sendMessage !== "function") return false;
+      if (typeof api2.runtime.id === "string") return api2.runtime.id.length > 0;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  function mapRuntimeError(err) {
+    const msg = String(err?.message || err || "");
+    if (!msg || /sendMessage/i.test(msg) || /cannot read propert/i.test(msg) || /undefined/i.test(msg) && /runtime/i.test(msg) || /context invalidated/i.test(msg) || /receiving end does not exist/i.test(msg) || /message port closed/i.test(msg) || /EXTENSION_RUNTIME/i.test(msg)) {
+      return "Could not reach the CareerAI extension. Reload the extension, refresh this page, then click Connect again.";
+    }
+    return msg;
+  }
   function getApi() {
-    const root = globalThis;
-    const api2 = root.browser || root.chrome;
-    if (!api2) {
-      throw new Error("This script must run inside a browser extension.");
+    const api2 = pickExtensionApi(globalThis);
+    if (!api2?.runtime) {
+      throw new Error("EXTENSION_RUNTIME_UNAVAILABLE");
     }
     return api2;
   }
@@ -560,45 +777,71 @@
     runtime: {
       sendMessage(message) {
         const api2 = getApi();
+        const runtime = api2.runtime;
         return new Promise((resolve, reject) => {
+          let settled = false;
+          const done = (err, value) => {
+            if (settled) return;
+            settled = true;
+            if (err) reject(new Error(mapRuntimeError(err)));
+            else resolve(value);
+          };
           try {
-            api2.runtime.sendMessage(message, (response) => {
-              const err = api2.runtime.lastError;
-              if (err) reject(new Error(err.message));
-              else resolve(response);
+            const result = runtime.sendMessage(message, (response) => {
+              const last = runtime.lastError;
+              if (last?.message) done(new Error(last.message));
+              else done(null, response);
             });
+            if (result && typeof result.then === "function") {
+              result.then(
+                (value) => done(null, value),
+                (err) => done(err instanceof Error ? err : new Error(String(err)))
+              );
+            }
           } catch (e) {
-            reject(e);
+            done(e instanceof Error ? e : new Error(String(e)));
           }
         });
       },
       onMessage: {
         addListener(fn) {
-          getApi().runtime.onMessage.addListener(fn);
+          getApi().runtime?.onMessage?.addListener(fn);
         }
       },
       getURL(path) {
-        return getApi().runtime.getURL(path);
+        return getApi().runtime?.getURL?.(path) || path;
       }
     },
     storage: {
       local: {
         async get(keys) {
           const api2 = getApi();
-          return new Promise((resolve) => {
-            api2.storage.local.get(keys ?? null, (items) => resolve(items));
+          return new Promise((resolve, reject) => {
+            try {
+              api2.storage.local.get(keys ?? null, (items) => resolve(items));
+            } catch (e) {
+              reject(e);
+            }
           });
         },
         async set(items) {
           const api2 = getApi();
-          return new Promise((resolve) => {
-            api2.storage.local.set(items, () => resolve());
+          return new Promise((resolve, reject) => {
+            try {
+              api2.storage.local.set(items, () => resolve());
+            } catch (e) {
+              reject(e);
+            }
           });
         },
         async remove(keys) {
           const api2 = getApi();
-          return new Promise((resolve) => {
-            api2.storage.local.remove(keys, () => resolve());
+          return new Promise((resolve, reject) => {
+            try {
+              api2.storage.local.remove(keys, () => resolve());
+            } catch (e) {
+              reject(e);
+            }
           });
         }
       }
@@ -606,8 +849,12 @@
     tabs: {
       async query(info) {
         const api2 = getApi();
-        return new Promise((resolve) => {
-          api2.tabs.query(info, (tabs) => resolve(tabs));
+        return new Promise((resolve, reject) => {
+          try {
+            api2.tabs.query(info, (tabs) => resolve(tabs));
+          } catch (e) {
+            reject(e);
+          }
         });
       }
     }
@@ -625,9 +872,15 @@
     api = mountOverlay();
     return api;
   }
+  function dismissOverlayModals() {
+    if (!api) return;
+    api.dismissTransient();
+  }
   function mountOverlay() {
+    const existing = document.getElementById("careerai-apply-overlay") || document.getElementById("careerai-apply-agent-root");
+    if (existing) existing.remove();
     const host = document.createElement("div");
-    host.id = "careerai-apply-agent-root";
+    host.id = "careerai-apply-overlay";
     host.style.all = "initial";
     document.documentElement.appendChild(host);
     const shadow = host.attachShadow({ mode: "open" });
@@ -669,7 +922,8 @@
         background: #7c2d12; color: #fff7ed; border-radius: 12px; padding: 12px 16px; max-width: 520px;
         border: 1px solid #fb923c; font-size: 13px; font-weight: 600;
       }
-      ul { margin: 8px 0 0; padding-left: 18px; font-size: 12px; color: #334155; max-height: 160px; overflow: auto; }
+      .save-row { display: flex; gap: 12px; margin-top: 6px; font-size: 12px; color: #475569; }
+      .save-row label { display: flex; gap: 4px; align-items: center; font-size: 12px; }
     </style>
     <div class="panel" id="panel">
       <div class="row">
@@ -699,44 +953,66 @@
         extra.innerHTML = `
         <div class="modal-backdrop">
           <div class="modal">
-            <h3>Additional information required</h3>
-            <p>${questions.length} detail${questions.length === 1 ? "" : "s"} needed before we can continue. We will not invent answers.</p>
+            <h3>CareerAI Apply Agent</h3>
+            <p><strong>We need a few details</strong></p>
+            <p>${questions.length} field${questions.length === 1 ? "" : "s"} are not in your CareerAI profile. We will not invent answers.</p>
             <form id="mf">
-              ${questions.map((q) => `
+              ${questions.map((q) => {
+          const lockedOnce = q.classification === "APPLICATION_SPECIFIC_FIELD" || q.classification === "LEGAL_FIELD";
+          const isLong = q.classification === "APPLICATION_SPECIFIC_FIELD" || (q.label + (q.hint || "")).length > 80;
+          return `
                 <div class="q">
                   <label>
                     ${escapeHtml(q.label)}${q.required ? " *" : ""}
                     ${q.hint ? `<br><small>${escapeHtml(q.hint)}</small>` : ""}
-                    ${q.classification === "SENSITIVE_FIELD" ? "<br><small>Sensitive \u2014 you must answer this yourself.</small>" : ""}
-                    ${q.classification === "APPLICATION_SPECIFIC_FIELD" ? "<br><small>Application-specific \u2014 not saved to your permanent profile by default.</small>" : ""}
-                    ${q.classification === "APPLICATION_SPECIFIC_FIELD" || (q.label + q.hint || "").length > 80 ? `<textarea name="${escapeHtml(q.id)}" placeholder="${escapeHtml(q.placeholder || "")}" ${q.required ? "required" : ""}></textarea>` : `<input type="text" name="${escapeHtml(q.id)}" placeholder="${escapeHtml(q.placeholder || "")}" ${q.required ? "required" : ""} />`}
+                    ${q.classification === "SENSITIVE_FIELD" ? "<br><small>Sensitive \u2014 you must answer this yourself. Saving is optional.</small>" : ""}
+                    ${q.classification === "APPLICATION_SPECIFIC_FIELD" ? "<br><small>Application-specific \u2014 used for this application only.</small>" : ""}
+                    ${isLong ? `<textarea name="${escapeHtml(q.id)}" placeholder="${escapeHtml(q.placeholder || "")}" ${q.required ? "required" : ""}>${escapeHtml(q.currentValue || "")}</textarea>` : `<input type="text" name="${escapeHtml(q.id)}" placeholder="${escapeHtml(q.placeholder || "")}" value="${escapeHtml(q.currentValue || "")}" ${q.required ? "required" : ""} />`}
                   </label>
-                </div>
-              `).join("")}
-              <label class="check">
-                <input type="checkbox" name="saveFuture" checked />
-                <span>Save reusable answers to my CareerAI profile for future applications</span>
-              </label>
-              <div class="actions">
+                  ${lockedOnce ? '<p class="hint" style="margin:6px 0 0;font-size:12px;color:#64748b">Use once \u2014 not saved to your profile.</p>' : `<div class="save-row">
+                        <label><input type="radio" name="save-${escapeHtml(q.id)}" value="SAVE" ${q.classification === "SENSITIVE_FIELD" ? "" : "checked"} /> Save for future</label>
+                        <label><input type="radio" name="save-${escapeHtml(q.id)}" value="USE_ONCE" ${q.classification === "SENSITIVE_FIELD" ? "checked" : ""} /> Use once</label>
+                      </div>`}
+                </div>`;
+        }).join("")}
+              <div class="actions" style="flex-wrap:wrap">
+                <button type="button" class="ghost" id="once-all">Use once</button>
+                <button type="button" class="ghost" id="save-all">Save selected</button>
                 <button type="submit" class="primary">Continue</button>
               </div>
             </form>
           </div>
         </div>`;
+        extra.querySelector("#once-all")?.addEventListener("click", () => {
+          extra.querySelectorAll('input[type="radio"][value="USE_ONCE"]').forEach((r) => {
+            r.checked = true;
+          });
+          extra.querySelector("#mf")?.requestSubmit();
+        });
+        extra.querySelector("#save-all")?.addEventListener("click", () => {
+          extra.querySelectorAll('input[type="radio"][value="SAVE"]').forEach((r) => {
+            r.checked = true;
+          });
+          extra.querySelector("#mf")?.requestSubmit();
+        });
         extra.querySelector("#mf")?.addEventListener("submit", (e) => {
           e.preventDefault();
           const form = e.target;
           const fd = new FormData(form);
-          const saveForFuture = fd.get("saveFuture") === "on";
-          const answers = questions.map((q) => ({
-            id: q.id,
-            key: q.key,
-            label: q.label,
-            classification: q.classification,
-            value: String(fd.get(q.id) || "").trim()
-          })).filter((a) => a.value);
+          const answers2 = questions.map((q) => {
+            const lockedOnce = q.classification === "APPLICATION_SPECIFIC_FIELD" || q.classification === "LEGAL_FIELD";
+            const saveMode = lockedOnce ? "USE_ONCE" : String(fd.get(`save-${q.id}`) || "SAVE") === "USE_ONCE" ? "USE_ONCE" : "SAVE";
+            return {
+              id: q.id,
+              key: q.key,
+              label: q.label,
+              classification: q.classification,
+              value: String(fd.get(q.id) || "").trim(),
+              saveMode
+            };
+          }).filter((a) => a.value);
           extra.innerHTML = "";
-          resolve({ answers, saveForFuture });
+          resolve({ answers: answers2, saveForFuture: answers2.some((a) => a.saveMode === "SAVE") });
         });
       });
     }
@@ -773,6 +1049,9 @@
       extra.innerHTML = `<div class="banner">Human verification required. Complete the CAPTCHA on the page. The agent will never solve it for you.</div>`;
     }
     function hideCaptcha() {
+      extra.innerHTML = "";
+    }
+    function dismissTransient() {
       extra.innerHTML = "";
     }
     function confirmCaptchaDone() {
@@ -894,13 +1173,15 @@
         extra.innerHTML = `
         <div class="modal-backdrop">
           <div class="modal">
-            <h3>Application ready</h3>
-            <p>\u2713 ${summary.filled} / ${summary.detected} fields filled<br>
-               \u2713 ${summary.providedByUser} fields provided by you<br>
-               \u2713 ${summary.savedToProfile} new profile fields saved<br>
-               ${summary.missingRequired ? `\u26A0 ${summary.missingRequired} required fields still empty` : "\u2713 0 required fields missing"}</p>
+            <h3>CareerAI Apply Agent</h3>
+            <p><strong>Application Review</strong></p>
+            <p>Known fields completed: ${summary.filled}<br>
+               User-provided fields: ${summary.providedByUser}<br>
+               Manual fields remaining: ${summary.missingRequired}<br>
+               Saved to profile: ${summary.savedToProfile}</p>
             <ul>${summary.items.map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul>
-            <p><strong>The agent will not click Submit.</strong> Review the page, then submit yourself.</p>
+            <p><strong>${summary.missingRequired ? "Resolve the remaining manual fields before submitting." : "Ready for final submission."}</strong></p>
+            <p>The agent will not click Submit. Review the page, then submit yourself.</p>
             <div class="actions">
               <button class="primary" id="ok">I understand \u2014 I will submit</button>
             </div>
@@ -928,7 +1209,8 @@
       showReconnect,
       waitForHuman,
       setUndoHandler,
-      toast
+      toast,
+      dismissTransient
     };
   }
   function humanState(s) {
@@ -1024,14 +1306,71 @@
     }
   }
 
+  // src/automation/nav-state.ts
+  var epoch = 0;
+  function currentEpoch() {
+    return epoch;
+  }
+  function bumpNavigation() {
+    epoch += 1;
+    return epoch;
+  }
+  function isStale(snapshot) {
+    return snapshot !== epoch;
+  }
+
+  // src/debug.ts
+  function applyLog(scope, message) {
+    try {
+      const host = typeof location !== "undefined" ? location.hostname : "";
+      if (host !== "localhost" && host !== "127.0.0.1") return;
+      console.info(`[ApplyAI][${scope}] ${message}`);
+    } catch {
+    }
+  }
+
+  // src/automation/session-answers.ts
+  var answers = /* @__PURE__ */ new Map();
+  function rememberSessionAnswer(key, value) {
+    if (!key || !value) return;
+    answers.set(key, value);
+    const short = key.split(".").pop();
+    if (short) answers.set(short, value);
+  }
+  function getSessionAnswer(key) {
+    if (answers.get(key)) return answers.get(key);
+    const short = key.split(".").pop() || "";
+    return answers.get(short) || "";
+  }
+  function clearSessionAnswers() {
+    answers.clear();
+  }
+
+  // src/automation/fill-decision.ts
+  function decideFieldAction(input) {
+    if (input.classification === "LEGAL_FIELD" || input.policy === "NEVER") return "SKIP";
+    if (input.classification === "DOCUMENT_FIELD") return "FILE";
+    if (input.classification === "SENSITIVE_FIELD" || input.classification === "APPLICATION_SPECIFIC_FIELD" || input.policy === "ASK") {
+      return "ASK";
+    }
+    if (input.hasValue && input.confidence >= 0.8) return "FILL";
+    if (!input.hasValue) return "ASK";
+    return "FILL";
+  }
+
   // src/automation/application-runner.ts
+  function asFormEl(el) {
+    return el;
+  }
   async function runApplicationAgent() {
+    const epoch2 = currentEpoch();
     const machine = new AgentStateMachine();
     const ui = getOverlay();
     machine.subscribe((snap) => ui.renderState(snap));
     const detection = scoreApplicationPage();
+    applyLog("Detector", `kind=${detection.kind} score=${detection.score}`);
     audit("DETECTED", { detail: `confidence ${detection.score}` });
-    if (detection.score < 40 && !getSessionIdFromPage()) {
+    if (detection.kind === "LANDING" || detection.score < 40 && !getSessionIdFromPage() && !detection.autoStart) {
       machine.transition("IDLE", { detail: "No application form detected on this page." });
       return;
     }
@@ -1053,7 +1392,9 @@
       machine.transition("APPLICATION_DETECTED", { detail: `Application confidence ${detection.score}%` });
       machine.transition("ANALYZING");
       machine.transition("CAPTCHA_CHECK");
-      await handleCaptcha(machine, ui, sessionId);
+      if (isStale(epoch2)) return;
+      await handleCaptcha(machine, ui, sessionId, epoch2);
+      if (isStale(epoch2)) return;
       machine.transition("FORM_DETECTED");
       machine.transition("PROFILE_LOADING");
       const settingsRes = await bg({ type: "GET_SETTINGS" });
@@ -1066,18 +1407,19 @@
         sessionId: sessionId || void 0,
         categories
       });
+      applyLog("Profile", profileRes?.success ? "Profile loaded" : `Profile failed (${profileRes?.error ? "error" : "no-auth"})`);
       if (!profileRes?.success) {
         if (profileRes?.authExpired) {
           machine.pause("AUTH_EXPIRED", "CareerAI connection expired.");
           audit("AUTH_EXPIRED");
-          await ui.showReconnect("CareerAI connection expired. Open the popup or /connect-extension to reconnect.");
+          await ui.showReconnect("Unable to load CareerAI profile. Retry or reconnect your CareerAI account.");
           await flushAudit(sessionId);
           return;
         }
         if (profileRes?.network) {
           machine.pause("NETWORK_ERROR", "CareerAI connection unavailable.");
           audit("NETWORK_ERROR");
-          const action = await ui.showReconnect("CareerAI connection unavailable.");
+          const action = await ui.showReconnect("Unable to load CareerAI profile. Retry or reconnect.");
           if (action === "retry") {
             await flushAudit(sessionId);
             return runApplicationAgent();
@@ -1085,8 +1427,8 @@
           await flushAudit(sessionId);
           return;
         }
-        machine.pause("AUTH_EXPIRED", profileRes?.error || "Connect your CareerAI account in the extension popup.");
-        await ui.showReconnect(profileRes?.error || "Open the extension popup and sign in to CareerAI.");
+        machine.pause("AUTH_EXPIRED", profileRes?.error || "Unable to load CareerAI profile.");
+        await ui.showReconnect(profileRes?.error || "Unable to load CareerAI profile. Retry or reconnect.");
         await flushAudit(sessionId);
         return;
       }
@@ -1105,34 +1447,38 @@
       });
       await fillCurrentPage();
       async function fillCurrentPage() {
-        await handleCaptcha(machine, ui, sessionId);
-        if (document.querySelector("[data-careerai-custom-dropdown]")) {
-          machine.pause("UNSUPPORTED_WIDGET", "Custom dropdown cannot be filled safely.");
-          audit("SKIPPED", { detail: "unsupported custom dropdown" });
-          await ui.waitForHuman("Unsupported widget", "Please complete the custom dropdown yourself, then resume.");
-          machine.resume();
-        }
+        if (isStale(epoch2)) return;
+        await handleCaptcha(machine, ui, sessionId, epoch2);
+        if (isStale(epoch2)) return;
         machine.transition("FIELD_MAPPING");
         const fields = getExtractedFields();
         detected = Math.max(detected, fields.length);
         const missing = [];
-        const sensitiveConfirm = [];
+        const pendingFiles = [];
+        const legalLabels = [];
+        const hasCustomDropdown = !!document.querySelector("[data-careerai-custom-dropdown]");
         const dryRows = [];
+        const seenKeys = /* @__PURE__ */ new Set();
         machine.transition(dryRun ? "FIELD_MAPPING" : "AUTOFILLING");
         for (const field of fields) {
           const label = field.label || field.placeholder || field.name || field.id;
-          const classification = classifyField(label);
+          if (field.element.closest("[data-careerai-captcha]") || field.id === "careerai-test-captcha" || /captcha|recaptcha|hcaptcha|turnstile/i.test(`${field.name} ${field.id} ${label}`)) {
+            continue;
+          }
+          const signalBlob = [label, field.name, field.id, field.placeholder].filter(Boolean).join(" ");
           const hit = matchField(field, memory, siteHost);
+          const classification = hit?.classification || classifyField(signalBlob);
           const key = hit?.key || (isReusable(classification) ? `custom.${customKeyFromLabel(label)}` : `application.${customKeyFromLabel(label)}`);
           const policy = resolvePolicy(key, classification, settings.fillPolicies);
           const confidence = hit?.confidence ?? (classification === "REUSABLE_PROFILE_FIELD" ? 0.85 : 0.4);
+          const value = lookup(flat, key);
+          const action = decideFieldAction({
+            classification,
+            policy,
+            hasValue: !!value,
+            confidence: value ? confidence : 0
+          });
           audit(hit ? "MAPPED" : "DETECTED", { fieldKey: key, fieldLabel: label, detail: hit?.method || classification });
-          if (classification === "LEGAL_FIELD" || policy === "NEVER") {
-            highlight(field.element, "skip");
-            audit("SKIPPED", { fieldKey: key, fieldLabel: label, detail: "legal or NEVER policy" });
-            dryRows.push({ label, key, confidence, action: "WOULD SKIP" });
-            continue;
-          }
           if (field.type === "file" || classification === "DOCUMENT_FIELD") {
             if (dryRun) {
               dryRows.push({ label, key, confidence: 0.7, action: "WOULD ASK (file)" });
@@ -1145,33 +1491,32 @@
               highlight(field.element, "file");
               audit("FILLED", { fieldKey: key, fieldLabel: label, detail: "resume" });
             } else {
-              machine.pause("FILE_SELECTION", "Please attach your resume file. Browsers block silent file uploads.");
+              pendingFiles.push(field.element);
               highlight(field.element, "file");
-              ui.toast("Please select your resume file, then continue.");
-              await waitForFile(field.element);
-              machine.resume();
-              audit("USER_PROVIDED", { fieldKey: key, fieldLabel: label, detail: "file" });
+              audit("MISSING", { fieldKey: key, fieldLabel: label, detail: "file" });
             }
             continue;
           }
-          const value = lookup(flat, key);
+          if (action === "SKIP" || classification === "LEGAL_FIELD" || policy === "NEVER") {
+            highlight(field.element, "skip");
+            if (classification === "LEGAL_FIELD") {
+              legalLabels.push(label);
+              reviewItems.push(`${label} \u2014 Manual action required`);
+            }
+            audit("SKIPPED", { fieldKey: key, fieldLabel: label, detail: "legal or NEVER policy" });
+            dryRows.push({ label, key, confidence, action: "WOULD SKIP" });
+            continue;
+          }
           if (dryRun) {
-            let action = "WOULD ASK";
-            if (value && policy === "AUTOMATIC" && (classification === "REUSABLE_PROFILE_FIELD" || hit && hit.confidence >= 0.8)) {
-              action = "WOULD FILL";
-            } else if (!value) {
-              action = "WOULD ASK";
-            } else if (policy === "ASK") {
-              action = "WOULD ASK";
-            }
-            dryRows.push({ label, key, confidence, action });
+            dryRows.push({
+              label,
+              key,
+              confidence,
+              action: action === "FILL" ? "WOULD FILL" : "WOULD ASK"
+            });
             continue;
           }
-          if ((classification === "SENSITIVE_FIELD" || policy === "ASK") && value) {
-            sensitiveConfirm.push({ field, key, value });
-            continue;
-          }
-          if (value && policy === "AUTOMATIC" && (classification === "REUSABLE_PROFILE_FIELD" || hit && hit.confidence >= 0.8)) {
+          if (action === "FILL" && value) {
             const ok = await fillWithRetry(field.element, value);
             if (ok) {
               filled += 1;
@@ -1183,7 +1528,7 @@
               failed += 1;
               highlight(field.element, "ask");
               audit("FAILED", { fieldKey: key, fieldLabel: label });
-              missing.push({
+              pushMissing(missing, seenKeys, {
                 id: `${key}-fail-${fields.indexOf(field)}`,
                 label,
                 key,
@@ -1195,54 +1540,27 @@
             }
             continue;
           }
-          if (!value || policy === "ASK") {
-            missing.push({
-              id: `${key}-${fields.indexOf(field)}`,
-              label,
-              key,
-              classification,
-              required: field.required || classification === "SENSITIVE_FIELD",
-              placeholder: classification === "APPLICATION_SPECIFIC_FIELD" ? "Write your answer for this application only" : "Enter value"
-            });
-            highlight(field.element, "ask");
-            audit("MISSING", { fieldKey: key, fieldLabel: label });
-          }
+          pushMissing(missing, seenKeys, {
+            id: `${key}-${fields.indexOf(field)}`,
+            label,
+            key,
+            classification,
+            required: field.required || classification === "SENSITIVE_FIELD",
+            placeholder: classification === "APPLICATION_SPECIFIC_FIELD" ? "Write your answer for this application only" : classification === "SENSITIVE_FIELD" ? key.includes("workAuthorization") || /authorization|visa|citizen/i.test(label) ? "Please select your work authorization (Yes or No)" : "Please answer this yourself. We will not guess." : "Enter value",
+            currentValue: value || "",
+            hint: classification === "SENSITIVE_FIELD" && value ? "Saved value is on file \u2014 confirm or replace. We will not guess." : void 0
+          });
+          highlight(field.element, "ask");
+          audit("MISSING", { fieldKey: key, fieldLabel: label });
         }
+        applyLog("Mapper", `${fields.length} fields inspected`);
+        applyLog("Autofill", `${filled} filled, ${missing.length} missing`);
         if (dryRun) {
           audit("DRY_RUN", { detail: `${dryRows.length} predictions` });
           await ui.showDryRun(dryRows);
           await flushAudit(sessionId);
           machine.transition("IDLE", { detail: "Dry run complete \u2014 no fields were modified." });
           return;
-        }
-        if (sensitiveConfirm.length) {
-          machine.pause("SENSITIVE_QUESTION", "Confirm sensitive values before filling.");
-          const qs = sensitiveConfirm.map((s, i) => ({
-            id: `sens-${i}`,
-            label: `${s.field.label || s.key} (saved value on file \u2014 confirm or replace)`,
-            key: s.key,
-            classification: "SENSITIVE_FIELD",
-            required: true,
-            placeholder: "Type the value to use"
-          }));
-          const result = await ui.askMissing(qs);
-          providedByUser += result.answers.length;
-          for (let i = 0; i < result.answers.length; i++) {
-            const ans = result.answers[i];
-            const target = sensitiveConfirm[i];
-            const v = ans.value || target.value;
-            const ok = await fillWithRetry(target.field.element, v);
-            if (ok) {
-              filled += 1;
-              reviewItems.push(target.field.label || target.key);
-              highlight(target.field.element, "filled");
-              audit("USER_PROVIDED", { fieldKey: target.key, fieldLabel: target.field.label || target.key });
-            } else {
-              failed += 1;
-              audit("FAILED", { fieldKey: target.key, fieldLabel: target.field.label || target.key });
-            }
-          }
-          machine.resume();
         }
         if (missing.length) {
           machine.transition("MISSING_INFORMATION");
@@ -1262,7 +1580,14 @@
                 audit("FAILED", { fieldKey: ans.key, fieldLabel: ans.label });
               }
             }
-            const saveMode = ans.classification === "APPLICATION_SPECIFIC_FIELD" ? "USE_ONCE" : result.saveForFuture ? "SAVE" : "USE_ONCE";
+            rememberSessionAnswer(ans.key, ans.value);
+            flat[ans.key] = ans.value;
+            const short = ans.key.split(".").pop();
+            if (short) flat[short] = ans.value;
+            let saveMode = ans.saveMode;
+            if (ans.classification === "APPLICATION_SPECIFIC_FIELD" || ans.classification === "LEGAL_FIELD") {
+              saveMode = "USE_ONCE";
+            }
             if (saveMode === "SAVE" && !isReusable(ans.classification) && ans.classification !== "UNKNOWN_FIELD") {
               audit("USER_PROVIDED", { fieldKey: ans.key, fieldLabel: ans.label, detail: "application-specific" });
               continue;
@@ -1285,10 +1610,16 @@
               await ui.showReconnect("CareerAI connection expired.");
               break;
             }
+            if (confirm?.network || !confirm?.ok && !confirm?.conflict && saveMode === "SAVE") {
+              ui.toast("Could not save this information. It will be used once.");
+              audit("USER_PROVIDED", { fieldKey: ans.key, fieldLabel: ans.label, detail: "USE_ONCE_FALLBACK" });
+              continue;
+            }
             if (confirm?.conflict && confirm.current && confirm.incoming) {
+              audit("USER_PROVIDED", { fieldKey: ans.key, fieldLabel: ans.label, detail: "FIELD_CONFLICT" });
               const choice = await ui.askConflict(ans.label, confirm.current, confirm.incoming);
               if (choice === "UPDATE") {
-                await bg({
+                const saved = await bg({
                   type: "CONFIRM_FIELD",
                   payload: {
                     key: ans.key,
@@ -1302,16 +1633,48 @@
                     sessionToken: sessionId
                   }
                 });
-                savedToProfile += 1;
+                if (saved?.saved) savedToProfile += 1;
+                else ui.toast("Could not save this information. It will be used once.");
+              } else if (choice === "CANCEL") {
+                if (target) await fillWithRetry(target.element, confirm.current);
+                rememberSessionAnswer(ans.key, confirm.current);
+                flat[ans.key] = confirm.current;
               }
             } else if (confirm?.saved) {
               savedToProfile += 1;
-              flat[ans.key] = ans.value;
-              const short = ans.key.split(".").pop();
-              if (short) flat[short] = ans.value;
             }
             audit("USER_PROVIDED", { fieldKey: ans.key, fieldLabel: ans.label, detail: saveMode });
           }
+          machine.resume();
+        }
+        if (pendingFiles.length) {
+          machine.pause("FILE_SELECTION", "Please select your resume file. Browsers block silent file uploads.");
+          for (const input of pendingFiles) {
+            highlight(input, "file");
+            await Promise.race([
+              waitForFile(input),
+              ui.waitForHuman("Resume", "Please select your resume file, then continue. We will not bypass browser security.")
+            ]);
+            if (!input.files || input.files.length === 0) {
+              reviewItems.push("Resume \u2014 please select your file");
+              failed += 1;
+              audit("MISSING", { fieldLabel: "Resume", detail: "file not selected" });
+            } else {
+              filled += 1;
+              reviewItems.push("Resume (selected by you)");
+            }
+          }
+          machine.resume();
+          audit("USER_PROVIDED", { detail: "file" });
+        }
+        if (hasCustomDropdown || legalLabels.length) {
+          const parts = [
+            legalLabels.length ? "Legal checkbox: Manual action required. The agent will not check it." : "",
+            hasCustomDropdown ? "Please complete the custom dropdown yourself." : ""
+          ].filter(Boolean);
+          machine.pause(hasCustomDropdown ? "UNSUPPORTED_WIDGET" : "LEGAL_CONFIRMATION", parts.join(" "));
+          if (hasCustomDropdown) audit("SKIPPED", { detail: "unsupported custom dropdown" });
+          await ui.waitForHuman("Manual action required", parts.join(" "));
           machine.resume();
         }
         machine.transition("VALIDATION", { detail: failed ? `${failed} field(s) could not be verified` : "Values verified" });
@@ -1334,6 +1697,13 @@
         if (canAdvance && clickNext()) {
           machine.transition("NEXT_PAGE", { detail: "Opening the next page\u2026" });
           await wait(900);
+          const validationErrors = detectValidationErrors();
+          if (validationErrors.length) {
+            audit("ERROR", { detail: `validation: ${validationErrors.map((e) => e.label || e.fieldId).join(", ")}` });
+            ui.toast(`Validation failed: ${validationErrors.map((e) => e.error).join(" | ")}`);
+            machine.transition("IDLE", { detail: "Validation errors found \u2014 please review and correct." });
+            return;
+          }
           await fillCurrentPage();
           return;
         }
@@ -1341,15 +1711,17 @@
           highlight(submitBtn, "skip");
           machine.transition("FINAL_REVIEW");
           audit("REVIEW_READY", { detail: `${filled} filled` });
+          const manualRemaining = failed + (legalLabels.length ? 1 : 0) + (pendingFiles.some((f) => !f.files?.length) ? 0 : 0);
           await ui.showReview({
             filled,
             detected,
             providedByUser,
             savedToProfile,
-            missingRequired: failed,
-            items: reviewItems.slice(0, 30)
+            missingRequired: manualRemaining || failed,
+            items: Array.from(new Set(reviewItems)).slice(0, 30)
           });
           machine.transition("USER_CONFIRMATION", { detail: "Submit the form yourself when you are ready." });
+          clearSessionAnswers();
           if (sessionId) {
             await bg({
               type: "REPORT_SESSION",
@@ -1357,13 +1729,21 @@
             });
           }
           await flushAudit(sessionId);
-        } else if (!settings.autoAdvancePages && clickNext()) {
-          machine.pause("MISSING_INFORMATION", "Auto-advance is off. Click Continue on the page when ready.");
-          await ui.waitForHuman("Next page", "Click Continue on the site when you are ready, then resume.");
-          machine.resume();
-          machine.transition("NEXT_PAGE");
-          await wait(600);
-          await fillCurrentPage();
+        } else if (!settings.autoAdvancePages && findNextButton()) {
+          machine.transition("IDLE", { detail: "Page filled. Click Continue on the site when ready." });
+          ui.toast("Filled this page. Click Continue on the site when you are ready.");
+          const stopWatcher = watchDynamicFields((newEls) => {
+            const count = newEls.filter((el) => {
+              const type = (el.getAttribute("type") || el.tagName).toLowerCase();
+              return !["submit", "button", "image", "reset", "hidden"].includes(type);
+            }).length;
+            if (count > 0) {
+              stopWatcher();
+              ui.toast(`${count} new field(s) appeared. Re-analyzing\u2026`);
+              void fillCurrentPage();
+            }
+          });
+          window.addEventListener("popstate", stopWatcher, { once: true });
         } else {
           ui.toast(`Filled ${filled}/${detected} fields. Continue on the site if there is another step.`);
         }
@@ -1376,19 +1756,27 @@
       if (undoCount() === 0) clearUndo();
     }
   }
-  async function handleCaptcha(machine, ui, sessionId) {
-    if (!isCaptchaPresent()) return;
+  async function handleCaptcha(machine, ui, sessionId, epoch2) {
+    const state = evaluateCaptcha();
+    applyLog("CAPTCHA", state);
+    if (state === "CAPTCHA_NOT_PRESENT" || state === "CAPTCHA_COMPLETED") return;
     machine.pause("CAPTCHA", "Human verification required. Complete the CAPTCHA.");
     ui.showCaptcha();
     audit("CAPTCHA_PAUSED");
-    await waitForCaptchaClear(8 * 60 * 1e3, () => ui.confirmCaptchaDone());
+    applyLog("CAPTCHA", "Waiting for user");
+    await waitForCaptchaClear(8 * 60 * 1e3, () => ui.confirmCaptchaDone(), {
+      isAborted: () => isStale(epoch2)
+    });
+    if (isStale(epoch2)) return;
+    markCurrentCaptchaCompleted();
     ui.hideCaptcha();
     machine.resume("Verification complete");
     audit("RESUMED", { detail: "captcha" });
+    applyLog("CAPTCHA", "Verification completed");
     await flushAudit(sessionId);
   }
   async function fillWithRetry(element, value) {
-    captureOriginal(element);
+    captureOriginal(asFormEl(element));
     if (fillAndVerify(element, value)) return true;
     await wait(80);
     return fillAndVerify(element, value);
@@ -1399,14 +1787,21 @@
       const blob = normalizeLabel(`${f.label} ${f.name} ${f.placeholder} ${f.autocomplete}`);
       if (/email|name|phone|mobile|gender|dob|birth/.test(blob)) cats.add("personal");
       if (/college|university|cgpa|gpa|degree|department|education/.test(blob)) cats.add("education");
-      if (/salary|ctc|notice|authorization|location|preference/.test(blob)) cats.add("preferences");
+      if (/salary|ctc|compensation|notice|authorization|location|preference/.test(blob)) cats.add("preferences");
       if (/resume|cv|upload|transcript|file/.test(blob)) cats.add("documents");
       if (/github|linkedin|portfolio/.test(blob)) cats.add("links");
     }
     if (cats.size === 1) return "personal,education,preferences,documents,custom";
     return [...cats].join(",");
   }
+  function pushMissing(missing, seenKeys, q) {
+    if (seenKeys.has(q.key)) return;
+    seenKeys.add(q.key);
+    missing.push(q);
+  }
   function lookup(flat, key) {
+    const sessionHit = getSessionAnswer(key);
+    if (sessionHit) return sessionHit;
     if (flat[key]) return flat[key];
     const short = key.split(".").pop() || "";
     if (flat[short]) return flat[short];
@@ -1443,6 +1838,49 @@
       input.addEventListener("change", onChange);
     });
   }
+  function detectValidationErrors() {
+    const errors = [];
+    const errorEls = Array.from(document.querySelectorAll(
+      '[aria-invalid="true"], .error, .field-error, [class*="error"], [role="alert"], .invalid-feedback, [data-error]'
+    ));
+    for (const el of errorEls) {
+      const text = el.textContent?.trim();
+      if (!text) continue;
+      const fieldId = el.getAttribute("data-field-id") || el.closest("[id]")?.id || "";
+      const label = el.closest("[data-label]")?.getAttribute("data-label") || document.querySelector(`label[for="${fieldId}"]`)?.textContent?.trim() || "";
+      errors.push({ fieldId, label, error: text });
+    }
+    return errors;
+  }
+  function watchDynamicFields(onNewFields) {
+    const seen = /* @__PURE__ */ new WeakSet();
+    let timer = null;
+    const pending = [];
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        for (const node of Array.from(m.addedNodes)) {
+          if (!(node instanceof HTMLElement)) continue;
+          const inputs = node.matches("input, select, textarea, [contenteditable]") ? [node] : Array.from(node.querySelectorAll("input, select, textarea, [contenteditable]"));
+          for (const inp of inputs) {
+            if (!seen.has(inp)) {
+              seen.add(inp);
+              pending.push(inp);
+            }
+          }
+        }
+      }
+      if (pending.length > 0) {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => {
+          const batch = pending.splice(0);
+          if (batch.length) onNewFields(batch);
+          timer = null;
+        }, 400);
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }
   function watchUserEdit(el, label, key, original) {
     const handler = async () => {
       const next = "value" in el ? String(el.value || "") : "";
@@ -1464,6 +1902,9 @@
   function allowedOrigin() {
     return window.location.origin;
   }
+  function reply(type, extra = {}) {
+    window.postMessage({ source: "careerai-extension", type, ...extra }, allowedOrigin());
+  }
   function setupCareerAiBridge() {
     window.addEventListener("message", async (event) => {
       if (event.source !== window) return;
@@ -1471,26 +1912,32 @@
       const data = event.data;
       if (!data || data.source !== "careerai-web") return;
       if (data.type === "CAREERAI_PING") {
-        window.postMessage({ source: "careerai-extension", type: "CAREERAI_PONG" }, allowedOrigin());
+        if (!isExtensionRuntimeAvailable()) {
+          reply("CAREERAI_UNAVAILABLE", {
+            error: "The CareerAI extension was reloaded. Refresh this page, then click Connect again."
+          });
+          return;
+        }
+        reply("CAREERAI_PONG");
         return;
       }
       if (data.type === "CAREERAI_CONNECT") {
         if (data.token && !data.code) {
-          window.postMessage({
-            source: "careerai-extension",
-            type: "CAREERAI_CONNECTED",
+          reply("CAREERAI_CONNECTED", {
             ok: false,
             error: "Refusing long-lived token. Use one-time authorization code."
-          }, allowedOrigin());
+          });
           return;
         }
         if (!data.code || !data.state) {
-          window.postMessage({
-            source: "careerai-extension",
-            type: "CAREERAI_CONNECTED",
+          reply("CAREERAI_CONNECTED", { ok: false, error: "Missing authorization code" });
+          return;
+        }
+        if (!isExtensionRuntimeAvailable()) {
+          reply("CAREERAI_CONNECTED", {
             ok: false,
-            error: "Missing authorization code"
-          }, allowedOrigin());
+            error: "The CareerAI extension was reloaded. Refresh this page, then click Connect again."
+          });
           return;
         }
         try {
@@ -1499,39 +1946,64 @@
             code: String(data.code),
             state: String(data.state)
           });
-          window.postMessage({
-            source: "careerai-extension",
-            type: "CAREERAI_CONNECTED",
+          reply("CAREERAI_CONNECTED", {
             ok: !!res?.success,
-            error: res?.error
-          }, allowedOrigin());
+            error: res?.error ? mapRuntimeError(res.error) : void 0
+          });
         } catch (e) {
-          window.postMessage({
-            source: "careerai-extension",
-            type: "CAREERAI_CONNECTED",
+          reply("CAREERAI_CONNECTED", {
             ok: false,
-            error: String(e)
-          }, allowedOrigin());
+            error: mapRuntimeError(e)
+          });
         }
       }
     });
   }
-  var running = false;
-  var lastFp = "";
-  async function maybeRun(force = false) {
-    if (running) return;
+  var activeRoute = "";
+  var finishedRoute = "";
+  var runnerBusy = false;
+  function routeKey() {
+    return `${location.pathname}${location.search}`;
+  }
+  function shouldStart(detection, sessionId) {
+    if (detection.kind === "LANDING") return false;
+    if (detection.autoStart) return true;
+    if (sessionId && detection.score >= 40 && detection.kind !== "NONE") return true;
+    return false;
+  }
+  async function maybeRun() {
     if (isCareerAiAppShell()) return;
-    const sessionId = getSessionIdFromPage();
     const detection = scoreApplicationPage();
-    if (!force && !sessionId && detection.score < 40) return;
-    const fp = `${location.href}::${fieldFingerprint()}`;
-    if (!force && fp === lastFp) return;
-    lastFp = fp;
-    running = true;
+    const sessionId = getSessionIdFromPage();
+    const route = routeKey();
+    applyLog("Detector", `${detection.kind} score=${detection.score} autoStart=${detection.autoStart} route=${route}`);
+    if (detection.kind === "LANDING") {
+      clearSessionAnswers();
+    }
+    if (!shouldStart(detection, sessionId)) {
+      applyLog("Runner", "No automation start on this page");
+      return;
+    }
+    if (runnerBusy && activeRoute === route) {
+      applyLog("Runner", "Already analyzing this page");
+      return;
+    }
+    if (!runnerBusy && finishedRoute === route) {
+      return;
+    }
+    if (runnerBusy && activeRoute !== route) {
+      bumpNavigation();
+      dismissOverlayModals();
+      applyLog("Navigation", `Leaving ${activeRoute} \u2192 ${route}`);
+    }
+    activeRoute = route;
+    runnerBusy = true;
     try {
+      applyLog("Runner", `Starting automation (${detection.kind})`);
       await runApplicationAgent();
+      if (routeKey() === route) finishedRoute = route;
     } finally {
-      running = false;
+      if (activeRoute === route) runnerBusy = false;
     }
   }
   function debounce(fn, ms) {
@@ -1542,7 +2014,15 @@
     });
   }
   function installSpaWatch() {
-    const onChange = debounce(() => void maybeRun(), 450);
+    const onChange = debounce(() => {
+      const next = routeKey();
+      if (next !== activeRoute) {
+        bumpNavigation();
+        dismissOverlayModals();
+        applyLog("Navigation", `Page changed ${next}`);
+      }
+      void maybeRun();
+    }, 350);
     window.addEventListener("popstate", onChange);
     const wrap = (method) => {
       const orig = history[method].bind(history);
@@ -1557,10 +2037,15 @@
     obs.observe(document.documentElement, { childList: true, subtree: true });
   }
   async function boot() {
+    if (window.__careeraiApplyAgentBooted) return;
+    window.__careeraiApplyAgentBooted = true;
     setupCareerAiBridge();
-    if (isCareerAiAppShell()) return;
-    await maybeRun(true);
+    if (isCareerAiAppShell()) {
+      applyLog("Runner", "CareerAI app shell \u2014 bridge only");
+      return;
+    }
     installSpaWatch();
+    await maybeRun();
   }
   if (document.readyState === "complete" || document.readyState === "interactive") {
     void boot();

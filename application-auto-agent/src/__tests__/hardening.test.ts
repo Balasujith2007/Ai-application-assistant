@@ -2,13 +2,39 @@ import { describe, expect, it } from 'vitest';
 import { scoreFromSignals } from '../content/application-detector';
 import { resolvePolicy } from '../storage/storage-manager';
 import { valuesMatch } from '../content/autofill-engine';
-import { hashAuthCode, generateAuthCode, isCodeExpired, isCodeConsumed } from '../../../lib/applyAgent/authCode';
+import { hashAuthCode, generateAuthCode, isCodeExpired, isCodeConsumed, evaluateAuthCode } from '../../../lib/applyAgent/authCode';
 import { sanitizeAuditEvent } from '../../../lib/applyAgent/auditSanitize';
 
 describe('application confidence', () => {
-  it('auto-starts the test application', () => {
-    const r = scoreFromSignals({ isTestApp: true });
-    expect(r.score).toBe(100);
+  it('does not auto-start the test landing page', () => {
+    const r = scoreFromSignals({
+      isTestApp: true,
+      href: 'http://localhost:3000/test-apply',
+      fieldCount: 0,
+    });
+    expect(r.kind).toBe('LANDING');
+    expect(r.autoStart).toBe(false);
+  });
+
+  it('auto-starts the CAPTCHA verify page', () => {
+    const r = scoreFromSignals({
+      isTestApp: true,
+      href: 'http://localhost:3000/test-apply/verify',
+      captchaBlocking: true,
+      fieldCount: 1,
+    });
+    expect(r.kind).toBe('CAPTCHA');
+    expect(r.autoStart).toBe(true);
+  });
+
+  it('auto-starts a form page on the trusted test app', () => {
+    const r = scoreFromSignals({
+      isTestApp: true,
+      href: 'http://localhost:3000/test-apply/page-1',
+      fieldCount: 6,
+      labelBlob: 'email first name college cgpa expected salary notice period',
+    });
+    expect(r.kind).toBe('FORM');
     expect(r.autoStart).toBe(true);
   });
 
@@ -30,6 +56,7 @@ describe('application confidence', () => {
       labelBlob: 'message subject',
     });
     expect(r.autoStart).toBe(false);
+    expect(typeof r.autoStart).toBe('boolean');
     expect(r.score).toBeLessThan(40);
   });
 });
@@ -76,6 +103,32 @@ describe('authorization codes', () => {
     expect(isCodeConsumed(new Date())).toBe(true);
     expect(isCodeExpired(a.expiresAt, new Date(a.expiresAt.getTime() + 1))).toBe(true);
     expect(isCodeExpired(a.expiresAt, new Date(a.expiresAt.getTime() - 1))).toBe(false);
+  });
+
+  it('rejects wrong state, consumed codes, and expired codes', () => {
+    const a = generateAuthCode(1000);
+    expect(evaluateAuthCode({
+      expectedState: a.state,
+      providedState: a.state,
+      expiresAt: a.expiresAt,
+    })).toBe('OK');
+    expect(evaluateAuthCode({
+      expectedState: a.state,
+      providedState: 'nope',
+      expiresAt: a.expiresAt,
+    })).toBe('INVALID_STATE');
+    expect(evaluateAuthCode({
+      expectedState: a.state,
+      providedState: a.state,
+      expiresAt: a.expiresAt,
+      usedAt: new Date(),
+    })).toBe('CONSUMED');
+    expect(evaluateAuthCode({
+      expectedState: a.state,
+      providedState: a.state,
+      expiresAt: a.expiresAt,
+      now: new Date(a.expiresAt.getTime() + 10),
+    })).toBe('EXPIRED');
   });
 });
 

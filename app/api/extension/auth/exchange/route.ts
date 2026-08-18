@@ -16,12 +16,20 @@ export async function POST(req: Request) {
     return jsonWithCors(req, { success: false, message: 'code and state are required' }, 400);
   }
 
-  const row = await prisma.extensionAuthCode.findUnique({
-    where: { codeHash: hashAuthCode(code) },
-    include: { user: { select: { id: true, name: true, email: true, role: true } } },
-  });
+  let row;
+  try {
+    row = await prisma.extensionAuthCode.findUnique({
+      where: { codeHash: hashAuthCode(code) },
+      include: { user: { select: { id: true, name: true, email: true, role: true } } },
+    });
+  } catch {
+    return jsonWithCors(req, { success: false, message: 'CareerAI connection unavailable. Retry.' }, 503);
+  }
 
-  if (!row || row.state !== state) {
+  if (!row) {
+    return jsonWithCors(req, { success: false, message: 'Invalid authorization code' }, 401);
+  }
+  if (row.state !== state) {
     return jsonWithCors(req, { success: false, message: 'Invalid authorization code' }, 401);
   }
   if (isCodeConsumed(row.usedAt) || isCodeExpired(row.expiresAt)) {

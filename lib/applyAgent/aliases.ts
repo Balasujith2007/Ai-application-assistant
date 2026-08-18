@@ -66,7 +66,7 @@ export const FIELD_ALIASES: Record<CanonicalFieldKey, string[]> = {
     'department', 'branch', 'stream', 'specialization', 'course', 'field of study', 'major',
   ],
   'education.cgpa': [
-    'cgpa', 'gpa', 'grade', 'percentage', 'marks', 'academic score', 'current cgpa',
+    'cgpa', 'gpa', 'grade point average', 'grade', 'percentage', 'marks', 'academic score', 'current cgpa',
   ],
   'education.graduationYear': [
     'graduation year', 'year of graduation', 'passing year', 'expected graduation',
@@ -82,15 +82,17 @@ export const FIELD_ALIASES: Record<CanonicalFieldKey, string[]> = {
     'expected salary', 'expected compensation', 'desired salary', 'salary expectation',
     'expected annual compensation', 'expected annual ctc', 'expected annual salary',
     'current annual ctc', 'ctc', 'expected ctc', 'salary expectation lpa',
-    'desired compensation', 'current compensation',
+    'desired compensation', 'current compensation', 'compensation expectation',
   ],
   'preferences.preferredLocation': [
     'preferred location', 'preferred city', 'location preference', 'willing to relocate',
-    'job location', 'preferred work location',
+    'job location', 'preferred work location', 'where would you like to work',
+    'where would you like to work at',
   ],
   'preferences.noticePeriod': [
     'notice period', 'expected notice period', 'availability notice period',
     'availability / notice period', 'notice', 'joining time', 'how soon can you join',
+    'notice duration', 'joining notice', 'availability',
   ],
   'preferences.workMode': [
     'work mode', 'work type', 'remote hybrid onsite', 'preferred work mode',

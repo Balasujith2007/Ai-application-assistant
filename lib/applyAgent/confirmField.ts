@@ -179,6 +179,9 @@ export async function confirmField(userId: string, input: ConfirmFieldInput) {
   if (key === 'preferences.expectedSalary') {
     await syncCareerPreference(userId, { expectedSalary: value });
   }
+  if (key === 'preferences.noticePeriod') {
+    await syncCareerPreference(userId, { noticePeriod: value });
+  }
   if (key === 'preferences.preferredLocation') {
     await syncCareerPreference(userId, { locations: value.split(',').map((s) => s.trim()).filter(Boolean) });
   }

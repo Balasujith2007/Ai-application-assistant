@@ -36,7 +36,7 @@ export const FIELD_ALIASES: Record<CanonicalFieldKey, string[]> = {
   'education.college': ['college', 'college name', 'institution', 'institution name', 'university', 'university name', 'institute', 'school name'],
   'education.degree': ['degree', 'qualification', 'highest qualification', 'program'],
   'education.department': ['department', 'branch', 'stream', 'specialization', 'course', 'field of study', 'major'],
-  'education.cgpa': ['cgpa', 'gpa', 'grade', 'percentage', 'marks', 'academic score', 'current cgpa'],
+  'education.cgpa': ['cgpa', 'gpa', 'grade point average', 'grade', 'percentage', 'marks', 'academic score', 'current cgpa'],
   'education.graduationYear': ['graduation year', 'year of graduation', 'passing year', 'expected graduation'],
   'education.year': ['academic year', 'current year', 'year of study', 'year'],
   'links.github': ['github', 'github url', 'github profile', 'github link'],
@@ -47,11 +47,16 @@ export const FIELD_ALIASES: Record<CanonicalFieldKey, string[]> = {
     'expected salary', 'expected compensation', 'desired salary', 'salary expectation',
     'expected annual compensation', 'expected annual ctc', 'expected annual salary',
     'current annual ctc', 'ctc', 'expected ctc', 'desired compensation', 'current compensation',
+    'compensation expectation',
   ],
-  'preferences.preferredLocation': ['preferred location', 'preferred city', 'location preference', 'job location', 'preferred work location'],
+  'preferences.preferredLocation': [
+    'preferred location', 'preferred city', 'location preference', 'job location',
+    'preferred work location', 'where would you like to work', 'where would you like to work at',
+  ],
   'preferences.noticePeriod': [
     'notice period', 'expected notice period', 'availability notice period',
     'availability / notice period', 'how soon can you join', 'joining time',
+    'notice duration', 'joining notice', 'availability',
   ],
   'preferences.workMode': ['work mode', 'work type', 'preferred work mode'],
   'preferences.workAuthorization': [

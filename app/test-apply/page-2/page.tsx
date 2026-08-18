@@ -41,7 +41,7 @@ export default function TestApplyPage2() {
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     sessionStorage.setItem('careerai_test_page2', JSON.stringify(form));
-    router.push('/test-apply/review');
+    router.push('/test-apply/page-3');
   };
 
   return (

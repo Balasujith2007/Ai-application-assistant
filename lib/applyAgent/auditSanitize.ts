@@ -14,11 +14,29 @@ const ALLOWED_STATUS = new Set([
   'DETECTED', 'MAPPED', 'FILLED', 'SKIPPED', 'MISSING', 'FAILED', 'USER_PROVIDED',
   'CAPTCHA_PAUSED', 'RESUMED', 'REVIEW_READY', 'SUBMITTED', 'ERROR', 'DRY_RUN',
   'UNDO', 'AUTH_EXPIRED', 'NETWORK_ERROR',
+  'FIELD_DETECTED', 'FIELD_AUTOFILLED', 'MISSING_FIELD', 'FIELD_SAVED',
+  'FIELD_USE_ONCE', 'FIELD_CONFLICT', 'CAPTCHA_WAIT', 'HUMAN_INTERVENTION',
+  'PAGE_CHANGED', 'FINAL_REVIEW', 'FILL_FAILED',
 ]);
 
+const STATUS_ALIASES: Record<string, string> = {
+  FIELD_DETECTED: 'DETECTED',
+  FIELD_AUTOFILLED: 'FILLED',
+  MISSING_FIELD: 'MISSING',
+  FIELD_SAVED: 'USER_PROVIDED',
+  FIELD_USE_ONCE: 'USER_PROVIDED',
+  FIELD_CONFLICT: 'USER_PROVIDED',
+  CAPTCHA_WAIT: 'CAPTCHA_PAUSED',
+  HUMAN_INTERVENTION: 'CAPTCHA_PAUSED',
+  PAGE_CHANGED: 'DETECTED',
+  FINAL_REVIEW: 'REVIEW_READY',
+  FILL_FAILED: 'FAILED',
+};
+
 export function sanitizeAuditEvent(input: AuditEventInput): AuditEventInput | null {
-  const status = String(input.status || '').toUpperCase();
-  if (!ALLOWED_STATUS.has(status)) return null;
+  const raw = String(input.status || '').toUpperCase();
+  if (!ALLOWED_STATUS.has(raw)) return null;
+  const status = STATUS_ALIASES[raw] || raw;
 
   const fieldKey = input.fieldKey ? String(input.fieldKey).slice(0, 120) : undefined;
   const fieldLabel = input.fieldLabel ? String(input.fieldLabel).slice(0, 160) : undefined;

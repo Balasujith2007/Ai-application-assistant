@@ -1,11 +1,31 @@
 "use strict";
 (() => {
   // src/browser/browser-api.ts
+  function hasRuntimeSendMessage(api) {
+    try {
+      if (!api || typeof api !== "object") return false;
+      const runtime = api.runtime;
+      return typeof runtime?.sendMessage === "function";
+    } catch {
+      return false;
+    }
+  }
+  function pickExtensionApi(root) {
+    if (hasRuntimeSendMessage(root.chrome)) return root.chrome;
+    if (hasRuntimeSendMessage(root.browser)) return root.browser;
+    return null;
+  }
+  function mapRuntimeError(err) {
+    const msg = String(err?.message || err || "");
+    if (!msg || /sendMessage/i.test(msg) || /cannot read propert/i.test(msg) || /undefined/i.test(msg) && /runtime/i.test(msg) || /context invalidated/i.test(msg) || /receiving end does not exist/i.test(msg) || /message port closed/i.test(msg) || /EXTENSION_RUNTIME/i.test(msg)) {
+      return "Could not reach the CareerAI extension. Reload the extension, refresh this page, then click Connect again.";
+    }
+    return msg;
+  }
   function getApi() {
-    const root = globalThis;
-    const api = root.browser || root.chrome;
-    if (!api) {
-      throw new Error("This script must run inside a browser extension.");
+    const api = pickExtensionApi(globalThis);
+    if (!api?.runtime) {
+      throw new Error("EXTENSION_RUNTIME_UNAVAILABLE");
     }
     return api;
   }
@@ -13,45 +33,71 @@
     runtime: {
       sendMessage(message) {
         const api = getApi();
+        const runtime = api.runtime;
         return new Promise((resolve, reject) => {
+          let settled = false;
+          const done = (err, value) => {
+            if (settled) return;
+            settled = true;
+            if (err) reject(new Error(mapRuntimeError(err)));
+            else resolve(value);
+          };
           try {
-            api.runtime.sendMessage(message, (response) => {
-              const err = api.runtime.lastError;
-              if (err) reject(new Error(err.message));
-              else resolve(response);
+            const result = runtime.sendMessage(message, (response) => {
+              const last = runtime.lastError;
+              if (last?.message) done(new Error(last.message));
+              else done(null, response);
             });
+            if (result && typeof result.then === "function") {
+              result.then(
+                (value) => done(null, value),
+                (err) => done(err instanceof Error ? err : new Error(String(err)))
+              );
+            }
           } catch (e) {
-            reject(e);
+            done(e instanceof Error ? e : new Error(String(e)));
           }
         });
       },
       onMessage: {
         addListener(fn) {
-          getApi().runtime.onMessage.addListener(fn);
+          getApi().runtime?.onMessage?.addListener(fn);
         }
       },
       getURL(path) {
-        return getApi().runtime.getURL(path);
+        return getApi().runtime?.getURL?.(path) || path;
       }
     },
     storage: {
       local: {
         async get(keys) {
           const api = getApi();
-          return new Promise((resolve) => {
-            api.storage.local.get(keys ?? null, (items) => resolve(items));
+          return new Promise((resolve, reject) => {
+            try {
+              api.storage.local.get(keys ?? null, (items) => resolve(items));
+            } catch (e) {
+              reject(e);
+            }
           });
         },
         async set(items) {
           const api = getApi();
-          return new Promise((resolve) => {
-            api.storage.local.set(items, () => resolve());
+          return new Promise((resolve, reject) => {
+            try {
+              api.storage.local.set(items, () => resolve());
+            } catch (e) {
+              reject(e);
+            }
           });
         },
         async remove(keys) {
           const api = getApi();
-          return new Promise((resolve) => {
-            api.storage.local.remove(keys, () => resolve());
+          return new Promise((resolve, reject) => {
+            try {
+              api.storage.local.remove(keys, () => resolve());
+            } catch (e) {
+              reject(e);
+            }
           });
         }
       }
@@ -59,8 +105,12 @@
     tabs: {
       async query(info) {
         const api = getApi();
-        return new Promise((resolve) => {
-          api.tabs.query(info, (tabs) => resolve(tabs));
+        return new Promise((resolve, reject) => {
+          try {
+            api.tabs.query(info, (tabs) => resolve(tabs));
+          } catch (e) {
+            reject(e);
+          }
         });
       }
     }

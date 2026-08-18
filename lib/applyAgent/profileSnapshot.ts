@@ -104,6 +104,11 @@ export async function buildExtensionProfile(userId: string): Promise<ExtensionPr
         'existing-profile',
         { label: 'Expected Salary', category: 'preferences' },
       ),
+      noticePeriod: meta(
+        typeof prefs.noticePeriod === 'string' ? prefs.noticePeriod : '',
+        'existing-profile',
+        { label: 'Notice Period', category: 'preferences' },
+      ),
       preferredLocation: meta(
         Array.isArray(prefs.locations) ? (prefs.locations as string[]).join(', ') : '',
         'existing-profile',

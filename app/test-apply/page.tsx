@@ -20,6 +20,15 @@ export default function TestApplyLanding() {
       </ol>
       <Link
         href="/test-apply/verify"
+        onClick={() => {
+          try {
+            sessionStorage.removeItem('careerai_test_page1');
+            sessionStorage.removeItem('careerai_test_page2');
+            sessionStorage.removeItem('careerai_test_submitted');
+          } catch {
+            /* ignore */
+          }
+        }}
         className="inline-flex rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
       >
         Start application

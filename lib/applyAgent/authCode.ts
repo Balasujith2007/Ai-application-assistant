@@ -29,3 +29,20 @@ export function isCodeExpired(expiresAt: Date, now = new Date()): boolean {
 export function isCodeConsumed(usedAt: Date | null | undefined): boolean {
   return !!usedAt;
 }
+
+export function isCodeStateValid(expectedState: string, providedState: string): boolean {
+  return !!expectedState && expectedState === providedState;
+}
+
+export function evaluateAuthCode(input: {
+  expectedState: string;
+  providedState: string;
+  expiresAt: Date;
+  usedAt?: Date | null;
+  now?: Date;
+}): 'OK' | 'INVALID_STATE' | 'CONSUMED' | 'EXPIRED' {
+  if (!isCodeStateValid(input.expectedState, input.providedState)) return 'INVALID_STATE';
+  if (isCodeConsumed(input.usedAt)) return 'CONSUMED';
+  if (isCodeExpired(input.expiresAt, input.now)) return 'EXPIRED';
+  return 'OK';
+}
