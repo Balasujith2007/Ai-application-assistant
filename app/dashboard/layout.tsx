@@ -65,6 +65,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { name: 'Resumes', href: '/dashboard/mentor/resumes', icon: FileText },
       { name: 'Tasks', href: '/dashboard/mentor/tasks', icon: CheckSquare },
       { name: 'Student Progress', href: '/dashboard/mentor/progress', icon: PieChart },
+      { name: 'Reports', href: '/dashboard/mentor/reports', icon: FileText },
     ];
   } else if (user?.role === 'HOD') {
     mainLinks = [
@@ -78,6 +79,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { name: 'Tasks', href: '/dashboard/hod/tasks', icon: CheckSquare },
       { name: 'Announcements', href: '/dashboard/hod/announcements', icon: Bell },
       { name: 'Reports', href: '/dashboard/hod/reports', icon: FileText },
+      { name: 'Forms', href: '/dashboard/hod/forms', icon: CheckSquare },
     ];
   } else {
     // Placement cell / ADMIN

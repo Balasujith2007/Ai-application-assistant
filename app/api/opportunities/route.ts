@@ -75,7 +75,7 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' }
     });
 
-    const formatted = opportunities.map((opp) => {
+    const formatted = opportunities.map((opp: any) => {
       const userRegistration = user.role === 'STUDENT' && opp.registrations.length > 0 ? opp.registrations[0] : null;
       const isRegistered = userRegistration ? userRegistration.status === 'REGISTERED' : false;
 
@@ -219,7 +219,7 @@ export async function POST(req: Request) {
         select: { id: true }
       });
 
-      const uniqueUserIds = Array.from(new Set(targetUsers.map((u) => u.id)));
+      const uniqueUserIds: string[] = Array.from(new Set(targetUsers.map((u: { id: string }) => u.id)));
 
       if (uniqueUserIds.length > 0) {
         sendOpportunityNotification({
