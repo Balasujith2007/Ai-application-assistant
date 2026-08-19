@@ -95,6 +95,9 @@ export function Sidebar({ className }: SidebarProps) {
               { label: 'Tasks', href: '/dashboard/mentor/tasks', icon: CheckSquare },
               { label: 'Student Progress', href: '/dashboard/mentor/progress', icon: Laptop },
               { label: 'Reports', href: '/dashboard/mentor/reports', icon: FileText },
+              { label: 'Forms', href: '/dashboard/mentor/forms', icon: CheckSquare },
+              { label: 'Notifications', href: '/dashboard/mentor/notifications', icon: Bell },
+              { label: 'Settings', href: '/settings', icon: Settings },
             ];
           } else if (user?.role === 'HOD') {
             items = [

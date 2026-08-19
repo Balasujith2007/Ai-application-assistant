@@ -635,23 +635,30 @@ enum FormStatus {
   CLOSED
 }
 
+enum FormAudienceType {
+  HOD_DEPARTMENT
+  MENTOR_ASSIGNED_STUDENTS
+}
+
 model Form {
-  id                        String         @id @default(cuid())
+  id                        String           @id @default(cuid())
   title                     String
   description               String?
   instructions              String?
-  status                    FormStatus     @default(DRAFT)
+  status                    FormStatus       @default(DRAFT)
   createdBy                 String
-  allowMultipleSubmissions  Boolean        @default(false)
-  allowEditing              Boolean        @default(false)
-  confirmationMessage       String?        @default("Your response has been submitted successfully.")
+  ownerRole                 Role             @default(HOD)
+  audienceType              FormAudienceType @default(HOD_DEPARTMENT)
+  allowMultipleSubmissions  Boolean          @default(false)
+  allowEditing              Boolean          @default(false)
+  confirmationMessage       String?          @default("Your response has been submitted successfully.")
   redirectUrl               String?
   publishedAt               DateTime?
   closedAt                  DateTime?
-  createdAt                 DateTime       @default(now())
-  updatedAt                 DateTime       @updatedAt
+  createdAt                 DateTime         @default(now())
+  updatedAt                 DateTime         @updatedAt
 
-  creator                   User           @relation("FormCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  creator                   User             @relation("FormCreator", fields: [createdBy], references: [id], onDelete: Cascade)
   fields                    FormField[]
   responses                 FormResponse[]
 

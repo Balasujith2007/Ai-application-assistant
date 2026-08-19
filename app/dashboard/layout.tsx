@@ -66,6 +66,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { name: 'Tasks', href: '/dashboard/mentor/tasks', icon: CheckSquare },
       { name: 'Student Progress', href: '/dashboard/mentor/progress', icon: PieChart },
       { name: 'Reports', href: '/dashboard/mentor/reports', icon: FileText },
+      { name: 'Forms', href: '/dashboard/mentor/forms', icon: CheckSquare },
     ];
   } else if (user?.role === 'HOD') {
     mainLinks = [

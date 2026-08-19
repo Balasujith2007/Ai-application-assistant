@@ -101,7 +101,7 @@ export async function GET(req: Request) {
     let studentsWithoutResume = 0;
     let studentsNeedingAttention = 0;
 
-    assignedStudents.forEach((student) => {
+    assignedStudents.forEach((student: any) => {
       const hasResume = student.resumes.length > 0;
       if (hasResume) {
         studentsWithResume++;
@@ -116,15 +116,15 @@ export async function GET(req: Request) {
         studentsNeedingAttention++;
       }
 
-      student.registrations.forEach((reg) => {
+      student.registrations.forEach((reg: any) => {
         const type = reg.opportunity?.type || 'OTHER';
         if (type === 'INTERNSHIP') totalInternshipRegistrations++;
         if (type === 'HACKATHON') totalHackathonRegistrations++;
       });
 
-      student.applications.forEach((app) => {
+      student.applications.forEach((app: any) => {
         const type = app.applicationType || app.opportunity?.type || 'OTHER';
-        const existsInReg = student.registrations.some((r) => r.opportunityId === app.opportunityId);
+        const existsInReg = student.registrations.some((r: any) => r.opportunityId === app.opportunityId);
         if (!existsInReg) {
           if (type === 'INTERNSHIP') totalInternshipRegistrations++;
           if (type === 'HACKATHON') totalHackathonRegistrations++;
@@ -137,7 +137,7 @@ export async function GET(req: Request) {
     if (reportType === 'assigned-career') {
       // REPORT 1 — Assigned Student Career Report
       reportData = assignedStudents
-        .map((s) => {
+        .map((s: any) => {
           const activeResume = s.resumes[0];
           const rawResumeStatus = activeResume ? activeResume.reviewStatus || 'PENDING_REVIEW' : 'NOT_UPLOADED';
 
@@ -155,20 +155,20 @@ export async function GET(req: Request) {
           let studentRegs = s.registrations;
 
           if (opportunityTypeFilter !== 'ALL') {
-            studentApps = studentApps.filter((a) => (a.applicationType || a.opportunity?.type) === opportunityTypeFilter);
-            studentRegs = studentRegs.filter((r) => (r.opportunity?.type) === opportunityTypeFilter);
+            studentApps = studentApps.filter((a: any) => (a.applicationType || a.opportunity?.type) === opportunityTypeFilter);
+            studentRegs = studentRegs.filter((r: any) => (r.opportunity?.type) === opportunityTypeFilter);
           }
 
           if (registrationStatusFilter !== 'ALL') {
-            studentApps = studentApps.filter((a) => a.status === registrationStatusFilter);
-            studentRegs = studentRegs.filter((r) => r.status === registrationStatusFilter);
+            studentApps = studentApps.filter((a: any) => a.status === registrationStatusFilter);
+            studentRegs = studentRegs.filter((r: any) => r.status === registrationStatusFilter);
           }
 
           const skillsList = s.profile?.skills?.map((sk: any) => sk.skill.name) || [];
-          const internshipCount = studentRegs.filter((r) => r.opportunity?.type === 'INTERNSHIP').length +
-            studentApps.filter((a) => (a.applicationType || a.opportunity?.type) === 'INTERNSHIP').length;
-          const hackathonCount = studentRegs.filter((r) => r.opportunity?.type === 'HACKATHON').length +
-            studentApps.filter((a) => (a.applicationType || a.opportunity?.type) === 'HACKATHON').length;
+          const internshipCount = studentRegs.filter((r: any) => r.opportunity?.type === 'INTERNSHIP').length +
+            studentApps.filter((a: any) => (a.applicationType || a.opportunity?.type) === 'INTERNSHIP').length;
+          const hackathonCount = studentRegs.filter((r: any) => r.opportunity?.type === 'HACKATHON').length +
+            studentApps.filter((a: any) => (a.applicationType || a.opportunity?.type) === 'HACKATHON').length;
 
           const completion = calculateProfileCompletion(s);
           const needsAttn = !activeResume || rawResumeStatus === 'PENDING_REVIEW' || (s.applications.length === 0 && s.registrations.length === 0);
@@ -198,7 +198,7 @@ export async function GET(req: Request) {
       // REPORT 2 — Internship & Hackathon Report
       const rows: any[] = [];
 
-      assignedStudents.forEach((s) => {
+      assignedStudents.forEach((s: any) => {
         const activeResume = s.resumes[0];
         const resStatus = activeResume ? activeResume.reviewStatus || 'PENDING_REVIEW' : 'NOT_UPLOADED';
 
@@ -210,14 +210,14 @@ export async function GET(req: Request) {
           }
         }
 
-        s.registrations.forEach((reg) => {
+        s.registrations.forEach((reg: any) => {
           const type = reg.opportunity?.type || 'INTERNSHIP';
           if (type !== 'INTERNSHIP' && type !== 'HACKATHON') return;
 
           if (opportunityTypeFilter !== 'ALL' && type !== opportunityTypeFilter) return;
           if (registrationStatusFilter !== 'ALL' && reg.status !== registrationStatusFilter) return;
 
-          const matchedApp = s.applications.find((app) => app.opportunityId === reg.opportunityId);
+          const matchedApp = s.applications.find((app: any) => app.opportunityId === reg.opportunityId);
 
           rows.push({
             id: reg.id,
@@ -236,14 +236,14 @@ export async function GET(req: Request) {
           });
         });
 
-        s.applications.forEach((app) => {
+        s.applications.forEach((app: any) => {
           const type = app.applicationType || app.opportunity?.type || 'INTERNSHIP';
           if (type !== 'INTERNSHIP' && type !== 'HACKATHON') return;
 
           if (opportunityTypeFilter !== 'ALL' && type !== opportunityTypeFilter) return;
           if (registrationStatusFilter !== 'ALL' && app.status !== registrationStatusFilter) return;
 
-          const alreadyAdded = s.registrations.some((r) => r.opportunityId === app.opportunityId);
+          const alreadyAdded = s.registrations.some((r: any) => r.opportunityId === app.opportunityId);
           if (!alreadyAdded) {
             rows.push({
               id: app.id,
@@ -269,7 +269,7 @@ export async function GET(req: Request) {
       // REPORT 3 — Student Application & Placement Report
       const rows: any[] = [];
 
-      assignedStudents.forEach((s) => {
+      assignedStudents.forEach((s: any) => {
         const activeResume = s.resumes[0];
         const resStatus = activeResume ? activeResume.reviewStatus || 'PENDING_REVIEW' : 'NOT_UPLOADED';
 
@@ -281,14 +281,14 @@ export async function GET(req: Request) {
           }
         }
 
-        s.applications.forEach((app) => {
+        s.applications.forEach((app: any) => {
           const type = app.applicationType || app.opportunity?.type || 'INTERNSHIP';
 
           if (opportunityTypeFilter !== 'ALL' && type !== opportunityTypeFilter) return;
           if (registrationStatusFilter !== 'ALL' && app.status !== registrationStatusFilter) return;
 
-          const matchedReg = s.registrations.find((r) => r.opportunityId === app.opportunityId);
-          const matchedInterview = s.interviews.find((i) => i.companyName.toLowerCase() === app.companyName.toLowerCase());
+          const matchedReg = s.registrations.find((r: any) => r.opportunityId === app.opportunityId);
+          const matchedInterview = s.interviews.find((i: any) => i.companyName.toLowerCase() === app.companyName.toLowerCase());
 
           rows.push({
             id: app.id,
@@ -314,7 +314,7 @@ export async function GET(req: Request) {
     } else if (reportType === 'resume-readiness') {
       // REPORT 4 — Resume & Student Readiness Report
       reportData = assignedStudents
-        .map((s) => {
+        .map((s: any) => {
           const activeResume = s.resumes[0];
           const rawResumeStatus = activeResume ? activeResume.reviewStatus || 'PENDING_REVIEW' : 'NOT_UPLOADED';
 

@@ -65,9 +65,24 @@ export async function GET(
       return NextResponse.json({ message: 'Form not found' }, { status: 404 });
     }
 
-    const isCreator = user && (user.role === 'ADMIN' || (user.role === 'HOD' && form.createdBy === user.id));
+    const isCreator = user && (user.role === 'ADMIN' || form.createdBy === user.id);
     if (!isCreator && form.status === 'DRAFT') {
       return NextResponse.json({ message: 'Form is not yet published.' }, { status: 403 });
+    }
+
+    // Audience targeting check for Mentor forms: ONLY assigned students can access
+    if (form.audienceType === 'MENTOR_ASSIGNED_STUDENTS' || form.ownerRole === 'MENTOR') {
+      if (!user) {
+        return NextResponse.json({ message: 'Unauthorized. Please log in to view this form.' }, { status: 401 });
+      }
+      if (!isCreator) {
+        if (user.role !== 'STUDENT' || user.mentorId !== form.createdBy) {
+          return NextResponse.json(
+            { message: 'Forbidden: This form is only accessible to students assigned to this mentor.' },
+            { status: 403 }
+          );
+        }
+      }
     }
 
     let existingResponse = null;
@@ -152,6 +167,17 @@ export async function POST(
 
     if (form.status === 'CLOSED') {
       return NextResponse.json({ message: 'This form is closed and no longer accepting responses.' }, { status: 400 });
+    }
+
+    // Audience targeting check for Mentor forms: ONLY assigned students can submit
+    if (form.audienceType === 'MENTOR_ASSIGNED_STUDENTS' || form.ownerRole === 'MENTOR') {
+      const isCreator = user.role === 'ADMIN' || form.createdBy === user.id;
+      if (!isCreator && (user.role !== 'STUDENT' || user.mentorId !== form.createdBy)) {
+        return NextResponse.json(
+          { message: 'Forbidden: You are not assigned to the mentor who created this form.' },
+          { status: 403 }
+        );
+      }
     }
 
     if (!form.allowMultipleSubmissions) {
