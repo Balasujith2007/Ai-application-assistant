@@ -47,7 +47,7 @@ describe('website bridge must not assume chrome.runtime', () => {
       source: globalThis,
       origin: 'https://evil.example',
       data: { source: 'careerai-extension', type: 'CAREERAI_PONG' },
-    } as MessageEvent;
+    } as unknown as MessageEvent;
     expect(isTrustedExtensionMessage(event, 'http://localhost:3000')).toBe(false);
   });
 
@@ -56,7 +56,7 @@ describe('website bridge must not assume chrome.runtime', () => {
       source: undefined,
       origin: 'http://localhost:3000',
       data: { source: 'careerai-extension', type: 'CAREERAI_CONNECTED', ok: true },
-    } as MessageEvent;
+    } as unknown as MessageEvent;
     expect(isTrustedExtensionMessage(event, 'http://localhost:3000')).toBe(true);
   });
 

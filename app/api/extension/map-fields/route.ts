@@ -30,7 +30,7 @@ export async function POST(req: Request) {
   const memoryRows = await prisma.fieldMappingMemory.findMany({
     where: { OR: [{ userId }, { userId: '' }] },
   });
-  const memory: StoredMapping[] = memoryRows.map((m) => ({
+  const memory: StoredMapping[] = memoryRows.map((m: { fieldPattern: string; mappedField: string; confidence: number; verified: boolean; siteHost?: string | null }) => ({
     fieldPattern: m.fieldPattern,
     mappedField: m.mappedField,
     confidence: m.confidence,

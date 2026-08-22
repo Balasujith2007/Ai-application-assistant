@@ -26,7 +26,7 @@ function waitForExtensionEvent<T extends { type: string }>(
       if (!types.includes(event.data.type)) return;
       window.clearTimeout(timer);
       window.removeEventListener('message', onMsg);
-      resolve(event.data as T);
+      resolve(event.data as unknown as T);
     }
     window.addEventListener('message', onMsg);
   });
