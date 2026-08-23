@@ -28,7 +28,7 @@ export async function GET(req: Request) {
       },
       select: { id: true },
     });
-    const studentIds = assignedStudents.map((s) => s.id);
+    const studentIds = assignedStudents.map((s: any) => s.id);
 
     // Build status filter
     let statusFilter: Prisma.ResumeWhereInput = {};
@@ -88,20 +88,20 @@ export async function GET(req: Request) {
     });
 
     const pendingCount = allAssignedResumes.filter(
-      (r) => !r.reviewStatus || r.reviewStatus === 'PENDING_REVIEW'
+      (r: any) => !r.reviewStatus || r.reviewStatus === 'PENDING_REVIEW'
     ).length;
     const reviewedCount = allAssignedResumes.filter(
-      (r) => r.reviewStatus === 'REVIEWED'
+      (r: any) => r.reviewStatus === 'REVIEWED'
     ).length;
     const changesRequestedCount = allAssignedResumes.filter(
-      (r) => r.reviewStatus === 'CHANGES_REQUESTED'
+      (r: any) => r.reviewStatus === 'CHANGES_REQUESTED'
     ).length;
 
     const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
     const token = authHeader?.replace('Bearer ', '') || '';
     const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : '';
 
-    const formattedData = resumes.map((r) => ({
+    const formattedData = resumes.map((r: any) => ({
       id: r.id,
       fileName: r.fileName,
       originalName: r.originalName || r.fileName,

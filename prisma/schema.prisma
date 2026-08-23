@@ -110,6 +110,8 @@ model User {
   applicationDrafts    ApplicationDraftAnswer[]
   extensionAuthCodes   ExtensionAuthCode[]
   autofillAuditEvents  AutofillAuditEvent[]
+  createdForms         Form[]                 @relation("FormCreator")
+  formResponses        FormResponse[]
 
   // Mentor-Student relationship
   mentorId      String?
@@ -621,4 +623,92 @@ model AutofillAuditEvent {
 
   @@index([userId, createdAt])
   @@map("autofill_audit_events")
+}
+
+// ============================================================
+// FORM BUILDER
+// ============================================================
+
+enum FormStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum FormAudienceType {
+  HOD_DEPARTMENT
+  MENTOR_ASSIGNED_STUDENTS
+}
+
+model Form {
+  id                        String           @id @default(cuid())
+  title                     String
+  description               String?
+  instructions              String?
+  status                    FormStatus       @default(DRAFT)
+  createdBy                 String
+  ownerRole                 Role             @default(HOD)
+  audienceType              FormAudienceType @default(HOD_DEPARTMENT)
+  allowMultipleSubmissions  Boolean          @default(false)
+  allowEditing              Boolean          @default(false)
+  confirmationMessage       String?          @default("Your response has been submitted successfully.")
+  redirectUrl               String?
+  publishedAt               DateTime?
+  closedAt                  DateTime?
+  createdAt                 DateTime         @default(now())
+  updatedAt                 DateTime         @updatedAt
+
+  creator                   User             @relation("FormCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  fields                    FormField[]
+  responses                 FormResponse[]
+
+  @@map("forms")
+}
+
+model FormField {
+  id          String   @id @default(cuid())
+  formId      String
+  fieldId     String   // Stable client-side field ID (e.g. field_8f91c2)
+  type        String   // short-text, long-text, email, phone, number, date, dropdown, radio, checkbox, file, url, rating, yesno, section, paragraph, profile-field
+  label       String
+  description String?
+  placeholder String?
+  required    Boolean  @default(false)
+  order       Int      @default(0)
+  config      Json?    // options, min, max, allowedFileTypes, maxFileSize, profileKey, isReadOnly, etc.
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  form        Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  answers     FormResponseAnswer[]
+
+  @@unique([formId, fieldId])
+  @@map("form_fields")
+}
+
+model FormResponse {
+  id          String               @id @default(cuid())
+  formId      String
+  studentId   String
+  submittedAt DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  form        Form                 @relation(fields: [formId], references: [id], onDelete: Cascade)
+  student     User                 @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  answers     FormResponseAnswer[]
+
+  @@map("form_responses")
+}
+
+model FormResponseAnswer {
+  id          String       @id @default(cuid())
+  responseId  String
+  fieldId     String
+  value       String?      // Simple string or JSON string for multi-values / files
+  createdAt   DateTime     @default(now())
+
+  response    FormResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  field       FormField    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@map("form_response_answers")
 }

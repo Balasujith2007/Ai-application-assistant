@@ -9,7 +9,10 @@
     "lint": "eslint",
     "agent:install": "npm install --prefix application-auto-agent",
     "agent:build": "npm run build --prefix application-auto-agent",
-    "agent:test": "npm test --prefix application-auto-agent"
+    "agent:test": "npm test --prefix application-auto-agent",
+    "agent:watch": "npm run watch --prefix application-auto-agent",
+    "build:all": "npm run build && npm run agent:build",
+    "test:all": "npm run agent:test"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",

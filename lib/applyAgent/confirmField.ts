@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import { classifyField, defaultFillPolicy, isReusableClassification } from './classifier';
 import { customKeyFromLabel } from './mapper';
+import type { Prisma } from '@prisma/client';
 
 export type SaveMode = 'SAVE' | 'USE_ONCE';
 
@@ -76,7 +77,7 @@ const PROFILE_COLUMN_SYNC: Record<string, (userId: string, value: string) => Pro
 async function syncCareerPreference(userId: string, patch: Record<string, unknown>) {
   const profile = await prisma.profile.findUnique({ where: { userId } });
   const current = ((profile?.careerPreferences || {}) as Record<string, unknown>);
-  const next = { ...current, ...patch };
+  const next = { ...current, ...patch } as Prisma.InputJsonValue;
   await prisma.profile.upsert({
     where: { userId },
     create: { userId, careerPreferences: next },

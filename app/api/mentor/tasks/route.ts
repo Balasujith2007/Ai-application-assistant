@@ -28,7 +28,7 @@ export async function GET(req: Request) {
       where: mentorStudentsWhere,
       select: { id: true },
     });
-    const studentIds = students.map((s) => s.id);
+    const studentIds = students.map((s: any) => s.id);
 
     const tasks = await prisma.task.findMany({
       where: { userId: { in: studentIds } },

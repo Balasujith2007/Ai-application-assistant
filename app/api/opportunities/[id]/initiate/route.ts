@@ -30,10 +30,10 @@ async function getStudentProfileData(userId: string) {
   if (!user) return null;
 
   const profile = user.profile;
-  const verifiedMap = new Map(user.verifiedProfiles.map((vp) => [vp.platform, vp]));
+  const verifiedMap = new Map<string, any>(user.verifiedProfiles.map((vp: any) => [vp.platform, vp]));
   const activeResume = user.resumes[0] || null;
 
-  const skillsList = profile?.skills?.map((s) => s.skill.name) || [];
+  const skillsList = profile?.skills?.map((s: any) => s.skill.name) || [];
 
   return {
     userId: user.id,

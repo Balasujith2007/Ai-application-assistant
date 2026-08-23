@@ -71,7 +71,9 @@ export async function buildExtensionProfile(userId: string): Promise<ExtensionPr
   const profile = user.profile;
   const prefs = (profile?.careerPreferences || {}) as Record<string, unknown>;
   const { first, last } = splitName(user.name);
-  const verifiedMap = new Map(user.verifiedProfiles.map((vp) => [vp.platform, vp]));
+  const verifiedMap = new Map<string, { platform: string; profileUrl: string }>(
+    user.verifiedProfiles.map((vp: { platform: string; profileUrl: string }) => [vp.platform, vp])
+  );
   const activeResume = user.resumes[0] || null;
   const edu = profile?.education?.[0];
 
@@ -127,13 +129,13 @@ export async function buildExtensionProfile(userId: string): Promise<ExtensionPr
       }),
       resumeUrl: meta(activeResume?.fileUrl, 'existing-profile', { label: 'Resume URL', category: 'documents' }),
     },
-    skills: profile?.skills?.map((s) => s.skill.name) || [],
-    experience: (profile?.experiences || []).map((e) => ({
+    skills: profile?.skills?.map((s: { skill: { name: string } }) => s.skill.name) || [],
+    experience: (profile?.experiences || []).map((e: { company: string; role: string; description?: string | null }) => ({
       company: e.company,
       role: e.role,
       description: e.description,
     })),
-    projects: (profile?.projects || []).map((p) => ({
+    projects: (profile?.projects || []).map((p: { title: string; description?: string | null; technologies: string[] }) => ({
       title: p.title,
       description: p.description,
       technologies: p.technologies,

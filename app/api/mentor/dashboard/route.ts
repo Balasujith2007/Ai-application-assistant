@@ -35,7 +35,7 @@ export async function GET(req: Request) {
     let rawSec = null;
 
     if (mentor.students.length > 0) {
-      const assignedWithProf = mentor.students.find((s) => s.profile);
+      const assignedWithProf = mentor.students.find((s: any) => s.profile);
       if (assignedWithProf?.profile) {
         rawDept = assignedWithProf.profile.department;
         rawYear = assignedWithProf.profile.year;
@@ -56,13 +56,13 @@ export async function GET(req: Request) {
       select: { profile: { select: { department: true, year: true, section: true } } },
     });
 
-    const normalizedStatsStudents = allStudentsForStats.map((s) => ({
+    const normalizedStatsStudents = allStudentsForStats.map((s: any) => ({
       normDept: normalizeDepartment(s.profile?.department),
       normYear: normalizeYear(s.profile?.year),
       normSec: normalizeSection(s.profile?.section),
     }));
 
-    let matchedStats = normalizedStatsStudents.filter((ns) => {
+    let matchedStats = normalizedStatsStudents.filter((ns: any) => {
       const deptMatch = !mentorNormDept || ns.normDept === mentorNormDept;
       const yearMatch = mentorNormYear === null || ns.normYear === mentorNormYear;
       const secMatch = !mentorNormSec || ns.normSec === mentorNormSec;
@@ -74,7 +74,7 @@ export async function GET(req: Request) {
       if (!mentorNormYear) mentorNormYear = 2;
       if (!mentorNormSec) mentorNormSec = 'A';
 
-      matchedStats = normalizedStatsStudents.filter((ns) => {
+      matchedStats = normalizedStatsStudents.filter((ns: any) => {
         const deptMatch = ns.normDept === mentorNormDept;
         const yearMatch = ns.normYear === mentorNormYear;
         const secMatch = ns.normSec === mentorNormSec;
@@ -98,7 +98,7 @@ export async function GET(req: Request) {
       },
     });
 
-    const studentIds = students.map((s) => s.id);
+    const studentIds = students.map((s: any) => s.id);
 
     // Registration Analytics - Unique student counts using OpportunityRegistration with status === 'REGISTERED' ONLY
     const registrations = await prisma.opportunityRegistration.findMany({
@@ -127,7 +127,7 @@ export async function GET(req: Request) {
       }
     }
 
-    const recentRegistrations = registrations.map((r) => ({
+    const recentRegistrations = registrations.map((r: any) => ({
       id: r.id,
       studentName: r.student.name,
       opportunityTitle: r.opportunity.title,
@@ -153,12 +153,12 @@ export async function GET(req: Request) {
     });
 
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const attentionStudents = students.filter((s) => {
+    const attentionStudents = students.filter((s: any) => {
       const hasResume = s.resumes.length > 0;
       const hasRecentActivity =
         s.activities.length > 0 && new Date(s.activities[0].createdAt) > thirtyDaysAgo;
       return !hasResume || !hasRecentActivity;
-    }).slice(0, 5).map((s) => ({
+    }).slice(0, 5).map((s: any) => ({
       id: s.id,
       name: s.name,
       email: s.email,
@@ -200,7 +200,7 @@ export async function GET(req: Request) {
         },
         recentRegistrations,
         attentionStudents,
-        upcomingInterviews: upcomingInterviewsList.map((i) => ({
+        upcomingInterviews: upcomingInterviewsList.map((i: any) => ({
           id: i.id,
           student: i.user.name,
           company: i.companyName,
@@ -210,7 +210,7 @@ export async function GET(req: Request) {
           type: i.type,
         })),
         notifications,
-        recentActivities: recentActivities.map((a) => ({
+        recentActivities: recentActivities.map((a: any) => ({
           id: a.id,
           title: a.title,
           student: a.user.name,

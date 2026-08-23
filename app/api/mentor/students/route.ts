@@ -52,7 +52,7 @@ export async function GET(req: Request) {
       orderBy: { name: 'asc' },
     });
 
-    const data = students.map((s) => ({
+    const data = students.map((s: any) => ({
       id: s.id,
       userId: s.id,
       name: s.name,
