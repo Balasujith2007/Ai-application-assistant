@@ -52,13 +52,19 @@ describe('fill decision', () => {
     })).toBe('FILE');
   });
 
-  it('treats application-specific questions as ask + use once', () => {
+  it('treats application-specific questions as ask when empty, fill when saved', () => {
     expect(decideFieldAction({
       classification: 'APPLICATION_SPECIFIC_FIELD',
       policy: 'ASK',
       hasValue: false,
       confidence: 0.5,
     })).toBe('ASK');
+    expect(decideFieldAction({
+      classification: 'APPLICATION_SPECIFIC_FIELD',
+      policy: 'ASK',
+      hasValue: true,
+      confidence: 0.9,
+    })).toBe('FILL');
     expect(defaultSaveMode('APPLICATION_SPECIFIC_FIELD')).toBe('USE_ONCE');
     expect(defaultSaveMode('SENSITIVE_FIELD')).toBe('USE_ONCE');
     expect(defaultSaveMode('REUSABLE_PROFILE_FIELD')).toBe('SAVE');
@@ -126,10 +132,16 @@ describe('sensitive, legal, documents, application-specific', () => {
     })).toBe('SKIP');
   });
 
-  it('asks for application-specific essays and does not default to save', () => {
+  it('asks for application-specific essays by default, but allows reuse when a value was saved', () => {
     expect(classifyField('Why do you want to join this company?')).toBe('APPLICATION_SPECIFIC_FIELD');
     expect(classifyField('Tell us about a time you demonstrated leadership.')).toBe('APPLICATION_SPECIFIC_FIELD');
     expect(defaultSaveMode('APPLICATION_SPECIFIC_FIELD')).toBe('USE_ONCE');
+    expect(decideFieldAction({
+      classification: 'APPLICATION_SPECIFIC_FIELD',
+      policy: 'ASK',
+      hasValue: true,
+      confidence: 1,
+    })).toBe('FILL');
   });
 
   it('treats resume uploads as documents', () => {

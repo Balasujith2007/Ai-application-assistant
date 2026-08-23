@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import fs from 'fs';
-import path from 'path';
+import { loadActiveResumeFile, resumeDownloadHeaders } from '@/lib/applyAgent/resumeFile';
 
 export async function GET(req: Request) {
   try {
@@ -14,45 +13,21 @@ export async function GET(req: Request) {
 
     const session = await prisma.autofillSession.findUnique({
       where: { sessionToken: sessionId },
-      include: {
-        student: {
-          include: {
-            resumes: {
-              where: { isActive: true },
-              orderBy: { uploadedAt: 'desc' },
-              take: 1
-            }
-          }
-        }
-      }
     });
 
     if (!session || new Date() > new Date(session.expiresAt)) {
       return NextResponse.json({ success: false, error: 'Session expired or invalid.' }, { status: 401 });
     }
 
-    const activeResume = session.student.resumes[0];
-    if (!activeResume) {
+    const file = await loadActiveResumeFile(session.studentId);
+    if (!file) {
       return NextResponse.json({ success: false, error: 'No active resume found.' }, { status: 404 });
     }
 
-    // If activeResume.fileUrl is local upload path, read buffer from filesystem
-    const relativeFilePath = activeResume.fileUrl.startsWith('/') ? activeResume.fileUrl : `/${activeResume.fileUrl}`;
-    const fullPath = path.join(process.cwd(), 'public', relativeFilePath);
-
-    if (fs.existsSync(fullPath)) {
-      const fileBuffer = fs.readFileSync(fullPath);
-      return new NextResponse(fileBuffer, {
-        headers: {
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `inline; filename="${activeResume.originalName || 'resume.pdf'}"`
-        }
-      });
-    }
-
-    // Otherwise redirect to stored URL
-    return NextResponse.redirect(activeResume.fileUrl);
-
+    return new NextResponse(new Uint8Array(file.buffer), {
+      status: 200,
+      headers: resumeDownloadHeaders(file),
+    });
   } catch (error: unknown) {
     console.error('Error downloading agent resume:', error);
     const message = (error as Error)?.message || 'Failed to download resume.';

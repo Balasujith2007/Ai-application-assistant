@@ -16,7 +16,9 @@ export type BgRequest =
   | { type: 'SAVE_MAPPING'; payload: Record<string, unknown> }
   | { type: 'MAP_FIELDS'; fields: unknown[]; siteHost: string }
   | { type: 'REPORT_SESSION'; payload: Record<string, unknown> }
-  | { type: 'REPORT_AUDIT'; payload: Record<string, unknown> };
+  | { type: 'REPORT_AUDIT'; payload: Record<string, unknown> }
+  | { type: 'DOWNLOAD_RESUME'; downloadUrl?: string }
+  | { type: 'UPLOAD_RESUME'; fileName: string; mimeType?: string; base64: string };
 
 export async function bg<T = unknown>(message: BgRequest): Promise<T> {
   return ext.runtime.sendMessage<T>(message);

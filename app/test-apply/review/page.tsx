@@ -9,7 +9,8 @@ function readAll(): Record<string, string> {
     const p1 = JSON.parse(sessionStorage.getItem('careerai_test_page1') || '{}');
     const p2 = JSON.parse(sessionStorage.getItem('careerai_test_page2') || '{}');
     const p3 = JSON.parse(sessionStorage.getItem('careerai_test_page3') || '{}');
-    const merged = { ...p1, ...p2, ...p3 };
+    const resumeName = sessionStorage.getItem('careerai_test_resume') || '';
+    const merged = { ...p1, ...p2, ...p3, ...(resumeName ? { resume: resumeName } : {}) };
     return Object.fromEntries(Object.entries(merged).map(([k, v]) => [k, String(v ?? '')]));
   } catch {
     return {};

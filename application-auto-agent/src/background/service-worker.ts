@@ -40,7 +40,20 @@ async function handle(message: BgRequest): Promise<unknown> {
       if (message.sessionId) {
         const res = await timedFetch(`${apiBase}/api/agent/autofill-payload?sessionId=${encodeURIComponent(message.sessionId)}`);
         const json = await safeJson(res);
-        if (json.success) return json;
+        if (json.success) {
+          // Session payload may omit resume even when THIS account already stored one via JWT upload.
+          // Merge authenticated extension resume so future applications auto-attach without re-asking.
+          if (!json.resume) {
+            const ext = await authFetch(
+              apiBase,
+              `/api/extension/profile${message.categories ? `?categories=${encodeURIComponent(message.categories)}` : ''}`,
+            ) as { success?: boolean; resume?: unknown; userId?: string };
+            if (ext?.success && ext.resume) {
+              return { ...json, resume: ext.resume, userId: ext.userId || json.userId };
+            }
+          }
+          return json;
+        }
         if (!res.ok && res.status !== 401) return { success: false, error: json.error || 'CareerAI connection unavailable.', network: true };
       }
       return authFetch(apiBase, `/api/extension/profile${message.categories ? `?categories=${encodeURIComponent(message.categories)}` : ''}`);
@@ -81,8 +94,113 @@ async function handle(message: BgRequest): Promise<unknown> {
         method: 'POST',
         body: JSON.stringify(message.payload),
       }, true);
+    case 'DOWNLOAD_RESUME':
+      return downloadResume(apiBase, message.downloadUrl);
+    case 'UPLOAD_RESUME':
+      return uploadResume(apiBase, message.fileName, message.mimeType, message.base64);
     default:
       return { success: false, error: 'Unknown message' };
+  }
+}
+
+async function downloadResume(apiBase: string, downloadUrl?: string) {
+  const auth = await storage.getAuth();
+  // Only allow session-scoped agent download OR authenticated extension download for THIS user.
+  // Never hit a generic "latest resume" endpoint.
+  const path = downloadUrl || '/api/extension/resume/download';
+  const url = path.startsWith('http') ? path : `${apiBase}${path.startsWith('/') ? path : `/${path}`}`;
+  const isSessionScoped = /[?&]sessionId=/.test(url);
+  const isExtensionScoped = url.includes('/api/extension/resume/download');
+  if (!isSessionScoped && !isExtensionScoped) {
+    return { ok: false, error: 'Refusing non-user-scoped resume download URL.' };
+  }
+  if (!isSessionScoped && !auth?.token) {
+    return { ok: false, error: 'Not signed in', authExpired: true };
+  }
+  try {
+    const res = await timedFetch(url, {
+      headers: !isSessionScoped && auth?.token ? { Authorization: `Bearer ${auth.token}` } : {},
+    });
+    if (res.status === 401) {
+      if (!isSessionScoped) await storage.clearAuth();
+      return { ok: false, error: 'CareerAI connection expired.', authExpired: !isSessionScoped };
+    }
+    if (res.status === 404) return { ok: false, error: 'No active resume found for this account.', missing: true };
+    if (!res.ok) return { ok: false, error: `Resume download failed (${res.status})` };
+
+    const ownerHeader = res.headers.get('X-CareerAI-Resume-Owner');
+    if (ownerHeader && auth?.user?.id && ownerHeader !== auth.user.id) {
+      return { ok: false, error: 'Resume ownership mismatch — refusing to attach another user\'s file.' };
+    }
+
+    const buf = await res.arrayBuffer();
+    if (!buf.byteLength) return { ok: false, error: 'Resume file was empty.' };
+
+    const bytes = new Uint8Array(buf);
+    let binary = '';
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+    }
+    const base64 = btoa(binary);
+    const cd = res.headers.get('Content-Disposition') || '';
+    const nameMatch = /filename\*?=(?:UTF-8''|")?([^";]+)"?/i.exec(cd);
+    const headerName = nameMatch?.[1] ? decodeURIComponent(nameMatch[1].replace(/"/g, '')) : '';
+    return {
+      ok: true,
+      base64,
+      byteLength: bytes.length,
+      fileName: headerName || 'resume.pdf',
+      mimeType: (res.headers.get('Content-Type') || 'application/pdf').split(';')[0].trim(),
+      ownerUserId: ownerHeader || auth?.user?.id || null,
+    };
+  } catch {
+    return { ok: false, error: 'CareerAI connection unavailable.', network: true };
+  }
+}
+
+async function uploadResume(apiBase: string, fileName: string, mimeType: string | undefined, base64: string) {
+  const auth = await storage.getAuth();
+  if (!auth?.token) return { ok: false, error: 'Not signed in', authExpired: true };
+  if (!base64) return { ok: false, error: 'Empty file payload' };
+  try {
+    // JSON base64 is more reliable from MV3 service workers than FormData/Blob.
+    const res = await timedFetch(`${apiBase}/api/extension/resume/upload`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${auth.token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        fileName: fileName || 'resume.pdf',
+        mimeType: mimeType || 'application/pdf',
+        base64,
+      }),
+    });
+    if (res.status === 401) {
+      await storage.clearAuth();
+      return { ok: false, error: 'CareerAI connection expired.', authExpired: true };
+    }
+    const json = await safeJson(res);
+    if (!res.ok || !json.success) {
+      return { ok: false, error: (json.error as string) || `Upload failed (${res.status})` };
+    }
+    if (json.userId && auth.user?.id && json.userId !== auth.user.id) {
+      return { ok: false, error: 'Ownership mismatch after upload.' };
+    }
+    const resume = (json.resume || {}) as { fileName?: string; mimeType?: string; downloadUrl?: string; id?: string };
+    return {
+      ok: true,
+      userId: json.userId || auth.user?.id,
+      resume: {
+        id: resume.id,
+        fileName: resume.fileName || fileName,
+        mimeType: resume.mimeType || mimeType || 'application/pdf',
+        downloadUrl: resume.downloadUrl || '/api/extension/resume/download',
+      },
+    };
+  } catch {
+    return { ok: false, error: 'CareerAI connection unavailable.', network: true };
   }
 }
 

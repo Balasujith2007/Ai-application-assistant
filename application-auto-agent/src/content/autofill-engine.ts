@@ -124,24 +124,83 @@ export function highlight(el: HTMLElement, kind: 'filled' | 'ask' | 'skip' | 'fi
   el.style.outlineOffset = '2px';
 }
 
-export async function tryAttachResume(
-  input: HTMLInputElement,
-  resume?: { fileName?: string; downloadUrl?: string } | null,
-  apiBase?: string,
-): Promise<boolean> {
-  if (!resume?.downloadUrl) return false;
+export type ResumeAttachMeta = {
+  fileName?: string;
+  downloadUrl?: string;
+  mimeType?: string;
+};
+
+export type ResumeBytes = {
+  bytes: ArrayBuffer;
+  fileName: string;
+  mimeType: string;
+};
+
+/** Assign a File to an <input type="file"> and fire events React/vanilla listeners expect. */
+export function assignFileToInput(input: HTMLInputElement, file: File): boolean {
+  if (!input || input.type !== 'file') return false;
   try {
-    const url = resume.downloadUrl.startsWith('http') ? resume.downloadUrl : `${apiBase || ''}${resume.downloadUrl}`;
-    const res = await fetch(url);
-    if (!res.ok) return false;
-    const blob = await res.blob();
-    const file = new File([blob], resume.fileName || 'resume.pdf', { type: blob.type || 'application/pdf' });
     const dt = new DataTransfer();
     dt.items.add(file);
-    input.files = dt.files;
+    // Prefer the DataTransfer FileList assignment (works in extension content scripts).
+    try {
+      input.files = dt.files;
+    } catch {
+      // Some environments throw on direct assignment; try defineProperty.
+      Object.defineProperty(input, 'files', { value: dt.files, configurable: true });
+    }
     input.dispatchEvent(new Event('input', { bubbles: true }));
     input.dispatchEvent(new Event('change', { bubbles: true }));
-    return true;
+    const ok = !!(input.files && input.files.length > 0 && input.files[0].name === file.name);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+export function fileFromResumeBytes(data: ResumeBytes): File {
+  return new File([data.bytes], data.fileName || 'resume.pdf', {
+    type: data.mimeType || 'application/pdf',
+  });
+}
+
+/**
+ * Attach a CareerAI resume to a file input.
+ * Prefer an authenticated `fetchResume` (service worker) so JWT download works.
+ * Falls back to plain fetch for sessionId-based URLs.
+ * Returns false when no resume / download fails / browser blocks FileList assignment.
+ */
+export async function tryAttachResume(
+  input: HTMLInputElement,
+  resume?: ResumeAttachMeta | null,
+  apiBase?: string,
+  fetchResume?: (resume: ResumeAttachMeta, apiBase?: string) => Promise<ResumeBytes | null>,
+): Promise<boolean> {
+  // Require explicit per-user resume metadata — never invent or fetch a generic resume.
+  if (!resume?.downloadUrl) return false;
+  try {
+    let data: ResumeBytes | null = null;
+    if (fetchResume) {
+      data = await fetchResume(resume, apiBase);
+    } else {
+      const url = resume.downloadUrl.startsWith('http')
+        ? resume.downloadUrl
+        : `${apiBase || ''}${resume.downloadUrl}`;
+      const res = await fetch(url);
+      if (!res.ok) return false;
+      const buf = await res.arrayBuffer();
+      if (!buf.byteLength) return false;
+      const cd = res.headers.get('Content-Disposition') || '';
+      const nameMatch = /filename\*?=(?:UTF-8''|")?([^";]+)"?/i.exec(cd);
+      const headerName = nameMatch?.[1] ? decodeURIComponent(nameMatch[1].replace(/"/g, '')) : '';
+      data = {
+        bytes: buf,
+        fileName: resume.fileName || headerName || 'resume.pdf',
+        mimeType: resume.mimeType || res.headers.get('Content-Type') || 'application/pdf',
+      };
+    }
+    if (!data || !data.bytes.byteLength) return false;
+    return assignFileToInput(input, fileFromResumeBytes(data));
   } catch {
     return false;
   }

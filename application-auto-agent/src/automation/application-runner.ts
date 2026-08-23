@@ -15,6 +15,7 @@ import { currentEpoch, isStale } from './nav-state';
 import { applyLog } from '../debug';
 import { rememberSessionAnswer, getSessionAnswer, clearSessionAnswers } from './session-answers';
 import { decideFieldAction } from './fill-decision';
+import { RESUME_AUDIT, decideResumeAction } from './resume-flow';
 
 interface ProfileFlat {
   flat?: Record<string, string>;
@@ -88,7 +89,7 @@ export async function runApplicationAgent() {
       success: boolean;
       profile?: ProfileFlat;
       student?: Record<string, string>;
-      resume?: { fileName: string; downloadUrl: string };
+      resume?: { fileName: string; downloadUrl: string; mimeType?: string };
       error?: string;
       authExpired?: boolean;
       network?: boolean;
@@ -171,7 +172,11 @@ export async function runApplicationAgent() {
         const signalBlob = [label, field.name, field.id, field.placeholder].filter(Boolean).join(' ');
         const hit = matchField(field, memory, siteHost);
         const classification = hit?.classification || classifyField(signalBlob);
-        const key = hit?.key || (isReusable(classification) ? `custom.${customKeyFromLabel(label)}` : `application.${customKeyFromLabel(label)}`);
+        const key = hit?.key || (
+          isReusable(classification) || classification === 'APPLICATION_SPECIFIC_FIELD'
+            ? `custom.${customKeyFromLabel(label)}`
+            : `application.${customKeyFromLabel(label)}`
+        );
         const policy = resolvePolicy(key, classification, settings.fillPolicies);
         const confidence = hit?.confidence ?? (classification === 'REUSABLE_PROFILE_FIELD' ? 0.85 : 0.4);
         const value = lookup(flat, key);
@@ -188,16 +193,50 @@ export async function runApplicationAgent() {
             dryRows.push({ label, key, confidence: 0.7, action: 'WOULD ASK (file)' });
             continue;
           }
-          const attached = await tryAttachResume(field.element as HTMLInputElement, profileRes.resume, settings.apiBase);
-          if (attached) {
+          // Only auto-attach when THIS authenticated user already has a stored profile file.
+          // Never download a generic/other-user file.
+          const fileInput = field.element as HTMLInputElement;
+          const hasStored = !!(profileRes.resume?.downloadUrl);
+          applyLog('Resume', hasStored ? 'RESUME_PROFILE_RETURNED' : 'RESUME_NOT_FOUND');
+          let attached = false;
+          let attachAttempts = 0;
+          if (hasStored && profileRes.resume) {
+            const fetchResume = makeResumeFetcher();
+            // Retry once on attach failure before asking the user to re-select.
+            for (let attempt = 1; attempt <= 2 && !attached; attempt++) {
+              attachAttempts = attempt;
+              applyLog('Resume', `RESUME_DOWNLOAD_STARTED attempt=${attempt}`);
+              attached = await tryAttachResume(
+                fileInput,
+                profileRes.resume,
+                settings.apiBase,
+                fetchResume,
+              );
+              applyLog('Resume', attached ? 'RESUME_ATTACH_SUCCESS' : 'RESUME_ATTACH_FAILED');
+              if (!attached && attempt < 2) await wait(350);
+            }
+          }
+          const decision = decideResumeAction({
+            hasStoredResume: hasStored,
+            attachSucceeded: attached,
+            attachAttempts,
+          });
+          if (attached || decision === 'ATTACH_STORED') {
             filled += 1;
-            reviewItems.push(`${label} (resume attached)`);
-            highlight(field.element, 'file');
-            audit('FILLED', { fieldKey: key, fieldLabel: label, detail: 'resume' });
+            reviewItems.push(`${label} (attached from your profile)`);
+            highlight(fileInput, 'file');
+            audit('FILLED', { fieldKey: key, fieldLabel: label, detail: RESUME_AUDIT.ATTACH_SUCCESS });
           } else {
-            pendingFiles.push(field.element as HTMLInputElement);
-            highlight(field.element, 'file');
-            audit('MISSING', { fieldKey: key, fieldLabel: label, detail: 'file' });
+            pendingFiles.push(fileInput);
+            highlight(fileInput, 'file');
+            audit('MISSING', {
+              fieldKey: key,
+              fieldLabel: label,
+              detail: hasStored ? RESUME_AUDIT.ATTACH_FAILED : RESUME_AUDIT.NOT_FOUND,
+            });
+            if (hasStored && !attached) {
+              ui.toast('Could not attach your saved resume. You may need to select it again.');
+            }
           }
           continue;
         }
@@ -255,7 +294,7 @@ export async function runApplicationAgent() {
           classification,
           required: field.required || classification === 'SENSITIVE_FIELD',
           placeholder: classification === 'APPLICATION_SPECIFIC_FIELD'
-            ? 'Write your answer for this application only'
+            ? 'Write your answer — choose Use for next time if you want to reuse it'
             : classification === 'SENSITIVE_FIELD'
               ? (key.includes('workAuthorization') || /authorization|visa|citizen/i.test(label)
                 ? 'Please select your work authorization (Yes or No)'
@@ -302,18 +341,26 @@ export async function runApplicationAgent() {
             }
           }
 
-          rememberSessionAnswer(ans.key, ans.value);
-          flat[ans.key] = ans.value;
-          const short = ans.key.split('.').pop();
-          if (short) flat[short] = ans.value;
-
           let saveMode = ans.saveMode;
-          if (ans.classification === 'APPLICATION_SPECIFIC_FIELD' || ans.classification === 'LEGAL_FIELD') {
+          // Legal confirmations are never persisted. Application essays may be saved when the user chooses "Use for next time".
+          if (ans.classification === 'LEGAL_FIELD') {
             saveMode = 'USE_ONCE';
           }
 
-          if (saveMode === 'SAVE' && !isReusable(ans.classification) && ans.classification !== 'UNKNOWN_FIELD') {
-            audit('USER_PROVIDED', { fieldKey: ans.key, fieldLabel: ans.label, detail: 'application-specific' });
+          // Persist SAVE answers (including application-specific) as custom profile fields for this user.
+          const persistKey = ans.key.startsWith('application.')
+            ? `custom.${ans.key.slice('application.'.length)}`
+            : ans.key;
+
+          rememberSessionAnswer(ans.key, ans.value);
+          rememberSessionAnswer(persistKey, ans.value);
+          flat[ans.key] = ans.value;
+          flat[persistKey] = ans.value;
+          const short = ans.key.split('.').pop();
+          if (short) flat[short] = ans.value;
+
+          if (saveMode === 'SAVE' && ans.classification === 'LEGAL_FIELD') {
+            audit('USER_PROVIDED', { fieldKey: ans.key, fieldLabel: ans.label, detail: 'legal-never-saved' });
             continue;
           }
 
@@ -330,7 +377,7 @@ export async function runApplicationAgent() {
           }>({
             type: 'CONFIRM_FIELD',
             payload: {
-              key: ans.key.startsWith('application.') ? undefined : ans.key,
+              key: persistKey.startsWith('application.') ? undefined : persistKey,
               label: ans.label,
               value: ans.value,
               saveMode,
@@ -360,7 +407,7 @@ export async function runApplicationAgent() {
               const saved = await bg<{ saved?: boolean; network?: boolean; ok?: boolean }>({
                 type: 'CONFIRM_FIELD',
                 payload: {
-                  key: ans.key,
+                  key: persistKey,
                   label: ans.label,
                   value: ans.value,
                   saveMode: 'SAVE',
@@ -371,40 +418,99 @@ export async function runApplicationAgent() {
                   sessionToken: sessionId,
                 },
               });
-              if (saved?.saved) savedToProfile += 1;
-              else ui.toast('Could not save this information. It will be used once.');
+              if (saved?.saved) {
+                savedToProfile += 1;
+                ui.toast('Saved for next time.');
+              } else ui.toast('Could not save this information. It will be used once.');
             } else if (choice === 'CANCEL') {
               if (target) await fillWithRetry(target.element, confirm.current);
               rememberSessionAnswer(ans.key, confirm.current);
+              rememberSessionAnswer(persistKey, confirm.current);
               flat[ans.key] = confirm.current;
+              flat[persistKey] = confirm.current;
             }
           } else if (confirm?.saved) {
             savedToProfile += 1;
+            if (ans.classification === 'APPLICATION_SPECIFIC_FIELD') {
+              ui.toast('Saved for next applications.');
+            }
           }
-          audit('USER_PROVIDED', { fieldKey: ans.key, fieldLabel: ans.label, detail: saveMode });
+          audit('USER_PROVIDED', { fieldKey: persistKey, fieldLabel: ans.label, detail: saveMode });
         }
         machine.resume();
       }
 
       if (pendingFiles.length) {
-        machine.pause('FILE_SELECTION', 'Please select your resume file. Browsers block silent file uploads.');
+        const hadStoredButFailed = !!(profileRes.resume?.downloadUrl);
+        machine.pause(
+          'FILE_SELECTION',
+          hadStoredButFailed
+            ? 'Saved resume could not be attached — please select your resume file.'
+            : 'Please select your CareerAI resume for this account (saved once for future applications).',
+        );
         for (const input of pendingFiles) {
           highlight(input, 'file');
-          await Promise.race([
-            waitForFile(input),
-            ui.waitForHuman('Resume', 'Please select your resume file, then continue. We will not bypass browser security.'),
-          ]);
-          if (!input.files || input.files.length === 0) {
+          // Dedicated picker: "Save & continue" stays disabled until a real File is chosen.
+          // Generic waitForHuman previously let users continue with FILE_NOT_SELECTED → never persisted.
+          const pick = await ui.askResumeFile(input, {
+            mode: hadStoredButFailed ? 'RETRY_OR_REPLACE' : 'SELECT_NEW',
+            allowSkip: false,
+            detail: hadStoredButFailed
+              ? 'Your profile already has a resume, but attachment failed. Choose the file again so we can replace/re-save it for this account.'
+              : 'Select your resume PDF once. We will save it to your CareerAI profile and reuse it automatically next time.',
+          });
+          const selected = pick.file;
+          if (!selected) {
             reviewItems.push('Resume — please select your file');
             failed += 1;
-            audit('MISSING', { fieldLabel: 'Resume', detail: 'file not selected' });
-          } else {
-            filled += 1;
-            reviewItems.push('Resume (selected by you)');
+            audit('MISSING', { fieldLabel: 'Resume', detail: RESUME_AUDIT.FILE_NOT_SELECTED });
+            applyLog('Resume', 'RESUME_NOT_FOUND (user cancelled picker)');
+            continue;
           }
+          applyLog('Resume', 'RESUME_SELECTION_RECEIVED');
+          audit('USER_PROVIDED', { fieldLabel: 'Resume', detail: RESUME_AUDIT.SELECTION_RECEIVED });
+          filled += 1;
+
+          applyLog('Resume', 'RESUME_UPLOAD_STARTED');
+          audit('USER_PROVIDED', { fieldLabel: 'Resume', detail: RESUME_AUDIT.UPLOAD_STARTED });
+          const saved = await persistSelectedResumeToProfile(selected);
+          applyLog(
+            'Resume',
+            saved?.ok ? 'RESUME_UPLOAD_SUCCESS' : `RESUME_UPLOAD_FAILED (${saved?.error || 'unknown'})`,
+          );
+
+          if (saved?.ok && saved.resume?.downloadUrl) {
+            profileRes.resume = {
+              fileName: saved.resume.fileName,
+              downloadUrl: saved.resume.downloadUrl,
+              mimeType: saved.resume.mimeType,
+            };
+            // Confirm profile API returns the stored resume for THIS user before claiming success.
+            const verified = await verifyProfileHasResume();
+            if (verified) {
+              applyLog('Resume', 'RESUME_DB_PERSISTED');
+              audit('USER_PROVIDED', { fieldLabel: 'Resume', detail: RESUME_AUDIT.UPLOAD_SUCCESS });
+              reviewItems.push(`Resume saved to your profile (${saved.resume.fileName})`);
+              ui.toast('Resume saved to your CareerAI profile for future applications.');
+            } else {
+              applyLog('Resume', 'RESUME_UPLOAD_SUCCESS but profile verify missed resume');
+              reviewItems.push(`Resume uploaded (${saved.resume.fileName}) — profile verify pending`);
+              ui.toast('Resume uploaded. If the next application asks again, reconnect and retry.');
+              audit('USER_PROVIDED', { fieldLabel: 'Resume', detail: RESUME_AUDIT.UPLOAD_SUCCESS });
+            }
+          } else {
+            reviewItems.push(`Resume (selected for this form: ${selected.name})`);
+            ui.toast(saved?.error
+              ? `Could not save to profile (${saved.error}). File is attached to this form only.`
+              : 'Could not save resume to profile. It was still attached to this form.');
+            audit('USER_PROVIDED', { fieldLabel: 'Resume', detail: RESUME_AUDIT.UPLOAD_FAILED });
+          }
+          try {
+            sessionStorage.setItem('careerai_test_resume', selected.name);
+          } catch { /* ignore */ }
         }
         machine.resume();
-        audit('USER_PROVIDED', { detail: 'file' });
+        audit('USER_PROVIDED', { detail: 'FILE_FLOW_DONE' });
       }
 
       if (hasCustomDropdown || legalLabels.length) {
@@ -604,6 +710,88 @@ function waitForFile(input: HTMLInputElement): Promise<void> {
     };
     input.addEventListener('change', onChange);
   });
+}
+
+type ResumeMeta = { fileName: string; downloadUrl: string; mimeType?: string };
+
+function makeResumeFetcher() {
+  return async (resumeMeta: { fileName?: string; downloadUrl: string; mimeType?: string }) => {
+    applyLog('Resume', 'RESUME_DOWNLOAD_STARTED');
+    const res = await bg<{
+      ok?: boolean;
+      base64?: string;
+      fileName?: string;
+      mimeType?: string;
+      missing?: boolean;
+      error?: string;
+      byteLength?: number;
+    }>({
+      type: 'DOWNLOAD_RESUME',
+      downloadUrl: resumeMeta.downloadUrl,
+    });
+    if (!res?.ok || !res.base64) {
+      applyLog(
+        'Resume',
+        `RESUME_DOWNLOAD_FAILED (${res?.missing ? 'missing' : res?.error || 'error'})`,
+      );
+      return null;
+    }
+    applyLog('Resume', `RESUME_DOWNLOAD_SUCCESS bytes=${res.byteLength || 0}`);
+    const binary = atob(res.base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return {
+      bytes: bytes.buffer,
+      fileName: res.fileName || resumeMeta.fileName || 'document.pdf',
+      mimeType: res.mimeType || resumeMeta.mimeType || 'application/pdf',
+    };
+  };
+}
+
+/** Re-fetch profile and confirm THIS account still exposes an active resume. */
+async function verifyProfileHasResume(): Promise<boolean> {
+  try {
+    // Prefer authenticated extension profile (JWT-scoped) — source of truth for persistence.
+    const res = await bg<{
+      success?: boolean;
+      resume?: ResumeMeta | null;
+    }>({ type: 'GET_PROFILE' });
+    const has = !!(res?.success && res.resume?.downloadUrl);
+    applyLog('Resume', has ? 'RESUME_PROFILE_RETURNED' : 'RESUME_NOT_FOUND after upload');
+    return has;
+  } catch {
+    return false;
+  }
+}
+
+/** Upload the user-selected file into THIS account's CareerAI resume storage. */
+async function persistSelectedResumeToProfile(file: File): Promise<{
+  ok?: boolean;
+  error?: string;
+  resume?: ResumeMeta;
+}> {
+  try {
+    const buf = await file.arrayBuffer();
+    if (!buf.byteLength) return { ok: false, error: 'empty file' };
+    const bytes = new Uint8Array(buf);
+    let binary = '';
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+    }
+    return await bg<{
+      ok?: boolean;
+      error?: string;
+      resume?: ResumeMeta;
+    }>({
+      type: 'UPLOAD_RESUME',
+      fileName: file.name || 'document.pdf',
+      mimeType: file.type || 'application/pdf',
+      base64: btoa(binary),
+    });
+  } catch (err) {
+    return { ok: false, error: (err as Error)?.message || 'upload failed' };
+  }
 }
 
 /**

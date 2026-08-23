@@ -52,6 +52,13 @@ type OverlayApi = {
   askStartAssistant: (score: number, reasons: string[]) => Promise<boolean>;
   showReconnect: (message: string) => Promise<'retry' | 'close'>;
   waitForHuman: (reason: string, detail: string) => Promise<void>;
+  /** Dedicated resume picker — Continue disabled until a file is chosen (or user skips). */
+  askResumeFile: (input: HTMLInputElement, opts?: {
+    title?: string;
+    detail?: string;
+    allowSkip?: boolean;
+    mode?: 'SELECT_NEW' | 'RETRY_OR_REPLACE';
+  }) => Promise<{ file: File | null; skipped: boolean }>;
   setUndoHandler: (fn: (() => void) | null) => void;
   toast: (msg: string) => void;
 };
@@ -155,31 +162,33 @@ function mountOverlay() {
             <p>${questions.length} field${questions.length === 1 ? '' : 's'} are not in your CareerAI profile. We will not invent answers.</p>
             <form id="mf">
               ${questions.map((q) => {
-                const lockedOnce = q.classification === 'APPLICATION_SPECIFIC_FIELD' || q.classification === 'LEGAL_FIELD';
-                const isLong = q.classification === 'APPLICATION_SPECIFIC_FIELD' || (q.label + (q.hint || '')).length > 80;
+                const lockedOnce = q.classification === 'LEGAL_FIELD';
+                const isAppSpecific = q.classification === 'APPLICATION_SPECIFIC_FIELD';
+                const isLong = isAppSpecific || (q.label + (q.hint || '')).length > 80;
+                const defaultOnce = isAppSpecific || q.classification === 'SENSITIVE_FIELD';
                 return `
                 <div class="q">
                   <label>
                     ${escapeHtml(q.label)}${q.required ? ' *' : ''}
                     ${q.hint ? `<br><small>${escapeHtml(q.hint)}</small>` : ''}
                     ${q.classification === 'SENSITIVE_FIELD' ? '<br><small>Sensitive — you must answer this yourself. Saving is optional.</small>' : ''}
-                    ${q.classification === 'APPLICATION_SPECIFIC_FIELD' ? '<br><small>Application-specific — used for this application only.</small>' : ''}
+                    ${isAppSpecific ? '<br><small>Choose whether to reuse this answer on future applications.</small>' : ''}
                     ${isLong
                       ? `<textarea name="${escapeHtml(q.id)}" placeholder="${escapeHtml(q.placeholder || '')}" ${q.required ? 'required' : ''}>${escapeHtml(q.currentValue || '')}</textarea>`
                       : `<input type="text" name="${escapeHtml(q.id)}" placeholder="${escapeHtml(q.placeholder || '')}" value="${escapeHtml(q.currentValue || '')}" ${q.required ? 'required' : ''} />`
                     }
                   </label>
                   ${lockedOnce
-                    ? '<p class="hint" style="margin:6px 0 0;font-size:12px;color:#64748b">Use once — not saved to your profile.</p>'
+                    ? '<p class="hint" style="margin:6px 0 0;font-size:12px;color:#64748b">Legal confirmation — not saved to your profile.</p>'
                     : `<div class="save-row">
-                        <label><input type="radio" name="save-${escapeHtml(q.id)}" value="SAVE" ${q.classification === 'SENSITIVE_FIELD' ? '' : 'checked'} /> Save for future</label>
-                        <label><input type="radio" name="save-${escapeHtml(q.id)}" value="USE_ONCE" ${q.classification === 'SENSITIVE_FIELD' ? 'checked' : ''} /> Use once</label>
+                        <label><input type="radio" name="save-${escapeHtml(q.id)}" value="SAVE" ${defaultOnce ? '' : 'checked'} /> Use for next time</label>
+                        <label><input type="radio" name="save-${escapeHtml(q.id)}" value="USE_ONCE" ${defaultOnce ? 'checked' : ''} /> Use once</label>
                       </div>`}
                 </div>`;
               }).join('')}
               <div class="actions" style="flex-wrap:wrap">
                 <button type="button" class="ghost" id="once-all">Use once</button>
-                <button type="button" class="ghost" id="save-all">Save selected</button>
+                <button type="button" class="ghost" id="save-all">Use for next time</button>
                 <button type="submit" class="primary">Continue</button>
               </div>
             </form>
@@ -198,10 +207,11 @@ function mountOverlay() {
         const form = e.target as HTMLFormElement;
         const fd = new FormData(form);
         const answers = questions.map((q) => {
-          const lockedOnce = q.classification === 'APPLICATION_SPECIFIC_FIELD' || q.classification === 'LEGAL_FIELD';
+          const lockedOnce = q.classification === 'LEGAL_FIELD';
+          const defaultOnce = q.classification === 'APPLICATION_SPECIFIC_FIELD' || q.classification === 'SENSITIVE_FIELD';
           const saveMode: 'SAVE' | 'USE_ONCE' = lockedOnce
             ? 'USE_ONCE'
-            : (String(fd.get(`save-${q.id}`) || 'SAVE') === 'USE_ONCE' ? 'USE_ONCE' : 'SAVE');
+            : (String(fd.get(`save-${q.id}`) || (defaultOnce ? 'USE_ONCE' : 'SAVE')) === 'USE_ONCE' ? 'USE_ONCE' : 'SAVE');
           return {
             id: q.id,
             key: q.key,
@@ -330,6 +340,97 @@ function mountOverlay() {
       extra.querySelector('#resume')?.addEventListener('click', () => { extra.innerHTML = ''; resolve(); });
     });
   }
+
+  /**
+   * Resume picker that cannot succeed without a real File on the target input.
+   * "Save & continue" stays disabled until a file is chosen.
+   */
+  function askResumeFile(
+    input: HTMLInputElement,
+    opts?: {
+      title?: string;
+      detail?: string;
+      allowSkip?: boolean;
+      mode?: 'SELECT_NEW' | 'RETRY_OR_REPLACE';
+    },
+  ): Promise<{ file: File | null; skipped: boolean }> {
+    return new Promise((resolve) => {
+      const title = opts?.title || (opts?.mode === 'RETRY_OR_REPLACE'
+        ? 'Could not attach your saved resume'
+        : 'Resume required');
+      const detail = opts?.detail
+        || (opts?.mode === 'RETRY_OR_REPLACE'
+          ? 'Your CareerAI profile has a resume, but it could not be attached. Choose the file again to replace it, or cancel.'
+          : 'Select your resume PDF once. We save it to your CareerAI profile and reuse it on future applications.');
+      const allowSkip = opts?.allowSkip === true;
+      extra.innerHTML = `
+        <div class="modal-backdrop">
+          <div class="modal">
+            <h3>${escapeHtml(title)}</h3>
+            <p>${escapeHtml(detail)}</p>
+            <p id="careerai-resume-name" style="font-size:13px;opacity:.85">No file selected yet.</p>
+            <div class="actions">
+              <button class="primary" id="pick">Choose file</button>
+              <button class="primary" id="save" disabled>Save to profile &amp; continue</button>
+              ${allowSkip ? '<button class="ghost" id="skip">Skip for now</button>' : ''}
+              <button class="ghost" id="cancel">Cancel</button>
+            </div>
+          </div>
+        </div>`;
+
+      const nameEl = extra.querySelector('#careerai-resume-name') as HTMLElement | null;
+      const saveBtn = extra.querySelector('#save') as HTMLButtonElement | null;
+      let chosen: File | null = null;
+      let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+      const syncFromInput = () => {
+        const f = input.files && input.files.length > 0 ? input.files[0] : null;
+        chosen = f;
+        if (nameEl) {
+          nameEl.textContent = f
+            ? `Selected: ${f.name} (${Math.max(1, Math.round(f.size / 1024))} KB)`
+            : 'No file selected yet.';
+        }
+        if (saveBtn) saveBtn.disabled = !f;
+      };
+
+      const onChange = () => syncFromInput();
+      input.addEventListener('change', onChange);
+      pollTimer = setInterval(syncFromInput, 400);
+      syncFromInput();
+
+      const cleanup = () => {
+        input.removeEventListener('change', onChange);
+        if (pollTimer) clearInterval(pollTimer);
+        pollTimer = null;
+        extra.innerHTML = '';
+      };
+
+      extra.querySelector('#pick')?.addEventListener('click', () => {
+        try {
+          input.click();
+        } catch {
+          /* ignore */
+        }
+      });
+      extra.querySelector('#save')?.addEventListener('click', () => {
+        syncFromInput();
+        if (!chosen) return;
+        const file = chosen;
+        cleanup();
+        resolve({ file, skipped: false });
+      });
+      extra.querySelector('#skip')?.addEventListener('click', () => {
+        cleanup();
+        resolve({ file: null, skipped: true });
+      });
+      extra.querySelector('#cancel')?.addEventListener('click', () => {
+        cleanup();
+        resolve({ file: null, skipped: false });
+      });
+    });
+  }
+
   function setUndoHandler(fn: (() => void) | null) {
     undoHandler = fn;
     undoBtn.style.display = fn ? 'inline-block' : 'none';
@@ -364,7 +465,7 @@ function mountOverlay() {
 
   return {
     renderState, askMissing, askConflict, showCaptcha, hideCaptcha, confirmCaptchaDone,
-    showReview, showDryRun, askStartAssistant, showReconnect, waitForHuman, setUndoHandler, toast,
+    showReview, showDryRun, askStartAssistant, showReconnect, waitForHuman, askResumeFile, setUndoHandler, toast,
     dismissTransient,
   };
 }

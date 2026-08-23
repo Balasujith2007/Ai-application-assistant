@@ -75,7 +75,18 @@ export default function TestApplyPage1() {
 
       <div>
         <label className="text-sm font-medium" htmlFor="resume">Resume</label>
-        <input id="resume" name="resume" type="file" accept=".pdf,.doc,.docx" className="mt-1 block w-full text-sm" />
+        <input
+          id="resume"
+          name="resume"
+          type="file"
+          accept=".pdf,.doc,.docx"
+          className="mt-1 block w-full text-sm"
+          onChange={(e) => {
+            const name = e.target.files?.[0]?.name || '';
+            if (name) sessionStorage.setItem('careerai_test_resume', name);
+            else sessionStorage.removeItem('careerai_test_resume');
+          }}
+        />
       </div>
 
       <button type="submit" className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white">

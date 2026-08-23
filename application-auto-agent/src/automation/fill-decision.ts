@@ -8,13 +8,13 @@ export function decideFieldAction(input: {
 }): FillDecision {
   if (input.classification === 'LEGAL_FIELD' || input.policy === 'NEVER') return 'SKIP';
   if (input.classification === 'DOCUMENT_FIELD') return 'FILE';
-  if (
-    input.classification === 'SENSITIVE_FIELD'
-    || input.classification === 'APPLICATION_SPECIFIC_FIELD'
-    || input.policy === 'ASK'
-  ) {
-    return 'ASK';
+  // Sensitive answers always require the user to confirm.
+  if (input.classification === 'SENSITIVE_FIELD') return 'ASK';
+  // Application essays: reuse when the user previously chose "Save for future".
+  if (input.classification === 'APPLICATION_SPECIFIC_FIELD') {
+    return input.hasValue ? 'FILL' : 'ASK';
   }
+  if (input.policy === 'ASK') return 'ASK';
   if (input.hasValue && input.confidence >= 0.8) return 'FILL';
   if (!input.hasValue) return 'ASK';
   return 'FILL';

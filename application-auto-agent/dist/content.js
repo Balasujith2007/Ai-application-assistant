@@ -634,20 +634,52 @@
     el.style.outline = `2px solid ${colors[kind]}`;
     el.style.outlineOffset = "2px";
   }
-  async function tryAttachResume(input, resume, apiBase) {
-    if (!resume?.downloadUrl) return false;
+  function assignFileToInput(input, file) {
+    if (!input || input.type !== "file") return false;
     try {
-      const url = resume.downloadUrl.startsWith("http") ? resume.downloadUrl : `${apiBase || ""}${resume.downloadUrl}`;
-      const res = await fetch(url);
-      if (!res.ok) return false;
-      const blob = await res.blob();
-      const file = new File([blob], resume.fileName || "resume.pdf", { type: blob.type || "application/pdf" });
       const dt = new DataTransfer();
       dt.items.add(file);
-      input.files = dt.files;
+      try {
+        input.files = dt.files;
+      } catch {
+        Object.defineProperty(input, "files", { value: dt.files, configurable: true });
+      }
       input.dispatchEvent(new Event("input", { bubbles: true }));
       input.dispatchEvent(new Event("change", { bubbles: true }));
-      return true;
+      const ok = !!(input.files && input.files.length > 0 && input.files[0].name === file.name);
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+  function fileFromResumeBytes(data) {
+    return new File([data.bytes], data.fileName || "resume.pdf", {
+      type: data.mimeType || "application/pdf"
+    });
+  }
+  async function tryAttachResume(input, resume, apiBase, fetchResume) {
+    if (!resume?.downloadUrl) return false;
+    try {
+      let data = null;
+      if (fetchResume) {
+        data = await fetchResume(resume, apiBase);
+      } else {
+        const url = resume.downloadUrl.startsWith("http") ? resume.downloadUrl : `${apiBase || ""}${resume.downloadUrl}`;
+        const res = await fetch(url);
+        if (!res.ok) return false;
+        const buf = await res.arrayBuffer();
+        if (!buf.byteLength) return false;
+        const cd = res.headers.get("Content-Disposition") || "";
+        const nameMatch = /filename\*?=(?:UTF-8''|")?([^";]+)"?/i.exec(cd);
+        const headerName = nameMatch?.[1] ? decodeURIComponent(nameMatch[1].replace(/"/g, "")) : "";
+        data = {
+          bytes: buf,
+          fileName: resume.fileName || headerName || "resume.pdf",
+          mimeType: resume.mimeType || res.headers.get("Content-Type") || "application/pdf"
+        };
+      }
+      if (!data || !data.bytes.byteLength) return false;
+      return assignFileToInput(input, fileFromResumeBytes(data));
     } catch {
       return false;
     }
@@ -958,26 +990,28 @@
             <p>${questions.length} field${questions.length === 1 ? "" : "s"} are not in your CareerAI profile. We will not invent answers.</p>
             <form id="mf">
               ${questions.map((q) => {
-          const lockedOnce = q.classification === "APPLICATION_SPECIFIC_FIELD" || q.classification === "LEGAL_FIELD";
-          const isLong = q.classification === "APPLICATION_SPECIFIC_FIELD" || (q.label + (q.hint || "")).length > 80;
+          const lockedOnce = q.classification === "LEGAL_FIELD";
+          const isAppSpecific = q.classification === "APPLICATION_SPECIFIC_FIELD";
+          const isLong = isAppSpecific || (q.label + (q.hint || "")).length > 80;
+          const defaultOnce = isAppSpecific || q.classification === "SENSITIVE_FIELD";
           return `
                 <div class="q">
                   <label>
                     ${escapeHtml(q.label)}${q.required ? " *" : ""}
                     ${q.hint ? `<br><small>${escapeHtml(q.hint)}</small>` : ""}
                     ${q.classification === "SENSITIVE_FIELD" ? "<br><small>Sensitive \u2014 you must answer this yourself. Saving is optional.</small>" : ""}
-                    ${q.classification === "APPLICATION_SPECIFIC_FIELD" ? "<br><small>Application-specific \u2014 used for this application only.</small>" : ""}
+                    ${isAppSpecific ? "<br><small>Choose whether to reuse this answer on future applications.</small>" : ""}
                     ${isLong ? `<textarea name="${escapeHtml(q.id)}" placeholder="${escapeHtml(q.placeholder || "")}" ${q.required ? "required" : ""}>${escapeHtml(q.currentValue || "")}</textarea>` : `<input type="text" name="${escapeHtml(q.id)}" placeholder="${escapeHtml(q.placeholder || "")}" value="${escapeHtml(q.currentValue || "")}" ${q.required ? "required" : ""} />`}
                   </label>
-                  ${lockedOnce ? '<p class="hint" style="margin:6px 0 0;font-size:12px;color:#64748b">Use once \u2014 not saved to your profile.</p>' : `<div class="save-row">
-                        <label><input type="radio" name="save-${escapeHtml(q.id)}" value="SAVE" ${q.classification === "SENSITIVE_FIELD" ? "" : "checked"} /> Save for future</label>
-                        <label><input type="radio" name="save-${escapeHtml(q.id)}" value="USE_ONCE" ${q.classification === "SENSITIVE_FIELD" ? "checked" : ""} /> Use once</label>
+                  ${lockedOnce ? '<p class="hint" style="margin:6px 0 0;font-size:12px;color:#64748b">Legal confirmation \u2014 not saved to your profile.</p>' : `<div class="save-row">
+                        <label><input type="radio" name="save-${escapeHtml(q.id)}" value="SAVE" ${defaultOnce ? "" : "checked"} /> Use for next time</label>
+                        <label><input type="radio" name="save-${escapeHtml(q.id)}" value="USE_ONCE" ${defaultOnce ? "checked" : ""} /> Use once</label>
                       </div>`}
                 </div>`;
         }).join("")}
               <div class="actions" style="flex-wrap:wrap">
                 <button type="button" class="ghost" id="once-all">Use once</button>
-                <button type="button" class="ghost" id="save-all">Save selected</button>
+                <button type="button" class="ghost" id="save-all">Use for next time</button>
                 <button type="submit" class="primary">Continue</button>
               </div>
             </form>
@@ -1000,8 +1034,9 @@
           const form = e.target;
           const fd = new FormData(form);
           const answers2 = questions.map((q) => {
-            const lockedOnce = q.classification === "APPLICATION_SPECIFIC_FIELD" || q.classification === "LEGAL_FIELD";
-            const saveMode = lockedOnce ? "USE_ONCE" : String(fd.get(`save-${q.id}`) || "SAVE") === "USE_ONCE" ? "USE_ONCE" : "SAVE";
+            const lockedOnce = q.classification === "LEGAL_FIELD";
+            const defaultOnce = q.classification === "APPLICATION_SPECIFIC_FIELD" || q.classification === "SENSITIVE_FIELD";
+            const saveMode = lockedOnce ? "USE_ONCE" : String(fd.get(`save-${q.id}`) || (defaultOnce ? "USE_ONCE" : "SAVE")) === "USE_ONCE" ? "USE_ONCE" : "SAVE";
             return {
               id: q.id,
               key: q.key,
@@ -1164,6 +1199,70 @@
         });
       });
     }
+    function askResumeFile(input, opts) {
+      return new Promise((resolve) => {
+        const title = opts?.title || (opts?.mode === "RETRY_OR_REPLACE" ? "Could not attach your saved resume" : "Resume required");
+        const detail = opts?.detail || (opts?.mode === "RETRY_OR_REPLACE" ? "Your CareerAI profile has a resume, but it could not be attached. Choose the file again to replace it, or cancel." : "Select your resume PDF once. We save it to your CareerAI profile and reuse it on future applications.");
+        const allowSkip = opts?.allowSkip === true;
+        extra.innerHTML = `
+        <div class="modal-backdrop">
+          <div class="modal">
+            <h3>${escapeHtml(title)}</h3>
+            <p>${escapeHtml(detail)}</p>
+            <p id="careerai-resume-name" style="font-size:13px;opacity:.85">No file selected yet.</p>
+            <div class="actions">
+              <button class="primary" id="pick">Choose file</button>
+              <button class="primary" id="save" disabled>Save to profile &amp; continue</button>
+              ${allowSkip ? '<button class="ghost" id="skip">Skip for now</button>' : ""}
+              <button class="ghost" id="cancel">Cancel</button>
+            </div>
+          </div>
+        </div>`;
+        const nameEl = extra.querySelector("#careerai-resume-name");
+        const saveBtn = extra.querySelector("#save");
+        let chosen = null;
+        let pollTimer = null;
+        const syncFromInput = () => {
+          const f = input.files && input.files.length > 0 ? input.files[0] : null;
+          chosen = f;
+          if (nameEl) {
+            nameEl.textContent = f ? `Selected: ${f.name} (${Math.max(1, Math.round(f.size / 1024))} KB)` : "No file selected yet.";
+          }
+          if (saveBtn) saveBtn.disabled = !f;
+        };
+        const onChange = () => syncFromInput();
+        input.addEventListener("change", onChange);
+        pollTimer = setInterval(syncFromInput, 400);
+        syncFromInput();
+        const cleanup = () => {
+          input.removeEventListener("change", onChange);
+          if (pollTimer) clearInterval(pollTimer);
+          pollTimer = null;
+          extra.innerHTML = "";
+        };
+        extra.querySelector("#pick")?.addEventListener("click", () => {
+          try {
+            input.click();
+          } catch {
+          }
+        });
+        extra.querySelector("#save")?.addEventListener("click", () => {
+          syncFromInput();
+          if (!chosen) return;
+          const file = chosen;
+          cleanup();
+          resolve({ file, skipped: false });
+        });
+        extra.querySelector("#skip")?.addEventListener("click", () => {
+          cleanup();
+          resolve({ file: null, skipped: true });
+        });
+        extra.querySelector("#cancel")?.addEventListener("click", () => {
+          cleanup();
+          resolve({ file: null, skipped: false });
+        });
+      });
+    }
     function setUndoHandler(fn) {
       undoHandler = fn;
       undoBtn.style.display = fn ? "inline-block" : "none";
@@ -1208,6 +1307,7 @@
       askStartAssistant,
       showReconnect,
       waitForHuman,
+      askResumeFile,
       setUndoHandler,
       toast,
       dismissTransient
@@ -1350,13 +1450,40 @@
   function decideFieldAction(input) {
     if (input.classification === "LEGAL_FIELD" || input.policy === "NEVER") return "SKIP";
     if (input.classification === "DOCUMENT_FIELD") return "FILE";
-    if (input.classification === "SENSITIVE_FIELD" || input.classification === "APPLICATION_SPECIFIC_FIELD" || input.policy === "ASK") {
-      return "ASK";
+    if (input.classification === "SENSITIVE_FIELD") return "ASK";
+    if (input.classification === "APPLICATION_SPECIFIC_FIELD") {
+      return input.hasValue ? "FILL" : "ASK";
     }
+    if (input.policy === "ASK") return "ASK";
     if (input.hasValue && input.confidence >= 0.8) return "FILL";
     if (!input.hasValue) return "ASK";
     return "FILL";
   }
+
+  // src/automation/resume-flow.ts
+  function decideResumeAction(input) {
+    if (input.hasStoredResume) {
+      if (input.attachSucceeded) return "ATTACH_STORED";
+      if (input.attachAttempts < 2) return "REPORT_ATTACH_FAILURE";
+      return "ASK_USER_TO_SELECT";
+    }
+    return "ASK_USER_TO_SELECT";
+  }
+  var RESUME_AUDIT = {
+    NOT_FOUND: "NO_STORED_FILE",
+    SELECTION_RECEIVED: "FILE_SELECTED",
+    UPLOAD_STARTED: "UPLOAD_STARTED",
+    UPLOAD_SUCCESS: "PROFILE_FILE_SAVED",
+    UPLOAD_FAILED: "UPLOAD_FAILED",
+    DB_PERSISTED: "DB_PERSISTED",
+    PROFILE_RETURNED: "PROFILE_HAS_FILE",
+    DOWNLOAD_STARTED: "DOWNLOAD_STARTED",
+    DOWNLOAD_SUCCESS: "DOWNLOAD_OK",
+    DOWNLOAD_FAILED: "DOWNLOAD_FAILED",
+    ATTACH_SUCCESS: "PROFILE_FILE_ATTACHED",
+    ATTACH_FAILED: "ATTACH_FAILED",
+    FILE_NOT_SELECTED: "FILE_NOT_SELECTED"
+  };
 
   // src/automation/application-runner.ts
   function asFormEl(el) {
@@ -1468,7 +1595,7 @@
           const signalBlob = [label, field.name, field.id, field.placeholder].filter(Boolean).join(" ");
           const hit = matchField(field, memory, siteHost);
           const classification = hit?.classification || classifyField(signalBlob);
-          const key = hit?.key || (isReusable(classification) ? `custom.${customKeyFromLabel(label)}` : `application.${customKeyFromLabel(label)}`);
+          const key = hit?.key || (isReusable(classification) || classification === "APPLICATION_SPECIFIC_FIELD" ? `custom.${customKeyFromLabel(label)}` : `application.${customKeyFromLabel(label)}`);
           const policy = resolvePolicy(key, classification, settings.fillPolicies);
           const confidence = hit?.confidence ?? (classification === "REUSABLE_PROFILE_FIELD" ? 0.85 : 0.4);
           const value = lookup(flat, key);
@@ -1484,16 +1611,47 @@
               dryRows.push({ label, key, confidence: 0.7, action: "WOULD ASK (file)" });
               continue;
             }
-            const attached = await tryAttachResume(field.element, profileRes.resume, settings.apiBase);
-            if (attached) {
+            const fileInput = field.element;
+            const hasStored = !!profileRes.resume?.downloadUrl;
+            applyLog("Resume", hasStored ? "RESUME_PROFILE_RETURNED" : "RESUME_NOT_FOUND");
+            let attached = false;
+            let attachAttempts = 0;
+            if (hasStored && profileRes.resume) {
+              const fetchResume = makeResumeFetcher();
+              for (let attempt = 1; attempt <= 2 && !attached; attempt++) {
+                attachAttempts = attempt;
+                applyLog("Resume", `RESUME_DOWNLOAD_STARTED attempt=${attempt}`);
+                attached = await tryAttachResume(
+                  fileInput,
+                  profileRes.resume,
+                  settings.apiBase,
+                  fetchResume
+                );
+                applyLog("Resume", attached ? "RESUME_ATTACH_SUCCESS" : "RESUME_ATTACH_FAILED");
+                if (!attached && attempt < 2) await wait(350);
+              }
+            }
+            const decision = decideResumeAction({
+              hasStoredResume: hasStored,
+              attachSucceeded: attached,
+              attachAttempts
+            });
+            if (attached || decision === "ATTACH_STORED") {
               filled += 1;
-              reviewItems.push(`${label} (resume attached)`);
-              highlight(field.element, "file");
-              audit("FILLED", { fieldKey: key, fieldLabel: label, detail: "resume" });
+              reviewItems.push(`${label} (attached from your profile)`);
+              highlight(fileInput, "file");
+              audit("FILLED", { fieldKey: key, fieldLabel: label, detail: RESUME_AUDIT.ATTACH_SUCCESS });
             } else {
-              pendingFiles.push(field.element);
-              highlight(field.element, "file");
-              audit("MISSING", { fieldKey: key, fieldLabel: label, detail: "file" });
+              pendingFiles.push(fileInput);
+              highlight(fileInput, "file");
+              audit("MISSING", {
+                fieldKey: key,
+                fieldLabel: label,
+                detail: hasStored ? RESUME_AUDIT.ATTACH_FAILED : RESUME_AUDIT.NOT_FOUND
+              });
+              if (hasStored && !attached) {
+                ui.toast("Could not attach your saved resume. You may need to select it again.");
+              }
             }
             continue;
           }
@@ -1546,7 +1704,7 @@
             key,
             classification,
             required: field.required || classification === "SENSITIVE_FIELD",
-            placeholder: classification === "APPLICATION_SPECIFIC_FIELD" ? "Write your answer for this application only" : classification === "SENSITIVE_FIELD" ? key.includes("workAuthorization") || /authorization|visa|citizen/i.test(label) ? "Please select your work authorization (Yes or No)" : "Please answer this yourself. We will not guess." : "Enter value",
+            placeholder: classification === "APPLICATION_SPECIFIC_FIELD" ? "Write your answer \u2014 choose Use for next time if you want to reuse it" : classification === "SENSITIVE_FIELD" ? key.includes("workAuthorization") || /authorization|visa|citizen/i.test(label) ? "Please select your work authorization (Yes or No)" : "Please answer this yourself. We will not guess." : "Enter value",
             currentValue: value || "",
             hint: classification === "SENSITIVE_FIELD" && value ? "Saved value is on file \u2014 confirm or replace. We will not guess." : void 0
           });
@@ -1580,22 +1738,25 @@
                 audit("FAILED", { fieldKey: ans.key, fieldLabel: ans.label });
               }
             }
-            rememberSessionAnswer(ans.key, ans.value);
-            flat[ans.key] = ans.value;
-            const short = ans.key.split(".").pop();
-            if (short) flat[short] = ans.value;
             let saveMode = ans.saveMode;
-            if (ans.classification === "APPLICATION_SPECIFIC_FIELD" || ans.classification === "LEGAL_FIELD") {
+            if (ans.classification === "LEGAL_FIELD") {
               saveMode = "USE_ONCE";
             }
-            if (saveMode === "SAVE" && !isReusable(ans.classification) && ans.classification !== "UNKNOWN_FIELD") {
-              audit("USER_PROVIDED", { fieldKey: ans.key, fieldLabel: ans.label, detail: "application-specific" });
+            const persistKey = ans.key.startsWith("application.") ? `custom.${ans.key.slice("application.".length)}` : ans.key;
+            rememberSessionAnswer(ans.key, ans.value);
+            rememberSessionAnswer(persistKey, ans.value);
+            flat[ans.key] = ans.value;
+            flat[persistKey] = ans.value;
+            const short = ans.key.split(".").pop();
+            if (short) flat[short] = ans.value;
+            if (saveMode === "SAVE" && ans.classification === "LEGAL_FIELD") {
+              audit("USER_PROVIDED", { fieldKey: ans.key, fieldLabel: ans.label, detail: "legal-never-saved" });
               continue;
             }
             const confirm = await bg({
               type: "CONFIRM_FIELD",
               payload: {
-                key: ans.key.startsWith("application.") ? void 0 : ans.key,
+                key: persistKey.startsWith("application.") ? void 0 : persistKey,
                 label: ans.label,
                 value: ans.value,
                 saveMode,
@@ -1622,7 +1783,7 @@
                 const saved = await bg({
                   type: "CONFIRM_FIELD",
                   payload: {
-                    key: ans.key,
+                    key: persistKey,
                     label: ans.label,
                     value: ans.value,
                     saveMode: "SAVE",
@@ -1633,39 +1794,88 @@
                     sessionToken: sessionId
                   }
                 });
-                if (saved?.saved) savedToProfile += 1;
-                else ui.toast("Could not save this information. It will be used once.");
+                if (saved?.saved) {
+                  savedToProfile += 1;
+                  ui.toast("Saved for next time.");
+                } else ui.toast("Could not save this information. It will be used once.");
               } else if (choice === "CANCEL") {
                 if (target) await fillWithRetry(target.element, confirm.current);
                 rememberSessionAnswer(ans.key, confirm.current);
+                rememberSessionAnswer(persistKey, confirm.current);
                 flat[ans.key] = confirm.current;
+                flat[persistKey] = confirm.current;
               }
             } else if (confirm?.saved) {
               savedToProfile += 1;
+              if (ans.classification === "APPLICATION_SPECIFIC_FIELD") {
+                ui.toast("Saved for next applications.");
+              }
             }
-            audit("USER_PROVIDED", { fieldKey: ans.key, fieldLabel: ans.label, detail: saveMode });
+            audit("USER_PROVIDED", { fieldKey: persistKey, fieldLabel: ans.label, detail: saveMode });
           }
           machine.resume();
         }
         if (pendingFiles.length) {
-          machine.pause("FILE_SELECTION", "Please select your resume file. Browsers block silent file uploads.");
+          const hadStoredButFailed = !!profileRes.resume?.downloadUrl;
+          machine.pause(
+            "FILE_SELECTION",
+            hadStoredButFailed ? "Saved resume could not be attached \u2014 please select your resume file." : "Please select your CareerAI resume for this account (saved once for future applications)."
+          );
           for (const input of pendingFiles) {
             highlight(input, "file");
-            await Promise.race([
-              waitForFile(input),
-              ui.waitForHuman("Resume", "Please select your resume file, then continue. We will not bypass browser security.")
-            ]);
-            if (!input.files || input.files.length === 0) {
+            const pick = await ui.askResumeFile(input, {
+              mode: hadStoredButFailed ? "RETRY_OR_REPLACE" : "SELECT_NEW",
+              allowSkip: false,
+              detail: hadStoredButFailed ? "Your profile already has a resume, but attachment failed. Choose the file again so we can replace/re-save it for this account." : "Select your resume PDF once. We will save it to your CareerAI profile and reuse it automatically next time."
+            });
+            const selected = pick.file;
+            if (!selected) {
               reviewItems.push("Resume \u2014 please select your file");
               failed += 1;
-              audit("MISSING", { fieldLabel: "Resume", detail: "file not selected" });
+              audit("MISSING", { fieldLabel: "Resume", detail: RESUME_AUDIT.FILE_NOT_SELECTED });
+              applyLog("Resume", "RESUME_NOT_FOUND (user cancelled picker)");
+              continue;
+            }
+            applyLog("Resume", "RESUME_SELECTION_RECEIVED");
+            audit("USER_PROVIDED", { fieldLabel: "Resume", detail: RESUME_AUDIT.SELECTION_RECEIVED });
+            filled += 1;
+            applyLog("Resume", "RESUME_UPLOAD_STARTED");
+            audit("USER_PROVIDED", { fieldLabel: "Resume", detail: RESUME_AUDIT.UPLOAD_STARTED });
+            const saved = await persistSelectedResumeToProfile(selected);
+            applyLog(
+              "Resume",
+              saved?.ok ? "RESUME_UPLOAD_SUCCESS" : `RESUME_UPLOAD_FAILED (${saved?.error || "unknown"})`
+            );
+            if (saved?.ok && saved.resume?.downloadUrl) {
+              profileRes.resume = {
+                fileName: saved.resume.fileName,
+                downloadUrl: saved.resume.downloadUrl,
+                mimeType: saved.resume.mimeType
+              };
+              const verified = await verifyProfileHasResume();
+              if (verified) {
+                applyLog("Resume", "RESUME_DB_PERSISTED");
+                audit("USER_PROVIDED", { fieldLabel: "Resume", detail: RESUME_AUDIT.UPLOAD_SUCCESS });
+                reviewItems.push(`Resume saved to your profile (${saved.resume.fileName})`);
+                ui.toast("Resume saved to your CareerAI profile for future applications.");
+              } else {
+                applyLog("Resume", "RESUME_UPLOAD_SUCCESS but profile verify missed resume");
+                reviewItems.push(`Resume uploaded (${saved.resume.fileName}) \u2014 profile verify pending`);
+                ui.toast("Resume uploaded. If the next application asks again, reconnect and retry.");
+                audit("USER_PROVIDED", { fieldLabel: "Resume", detail: RESUME_AUDIT.UPLOAD_SUCCESS });
+              }
             } else {
-              filled += 1;
-              reviewItems.push("Resume (selected by you)");
+              reviewItems.push(`Resume (selected for this form: ${selected.name})`);
+              ui.toast(saved?.error ? `Could not save to profile (${saved.error}). File is attached to this form only.` : "Could not save resume to profile. It was still attached to this form.");
+              audit("USER_PROVIDED", { fieldLabel: "Resume", detail: RESUME_AUDIT.UPLOAD_FAILED });
+            }
+            try {
+              sessionStorage.setItem("careerai_test_resume", selected.name);
+            } catch {
             }
           }
           machine.resume();
-          audit("USER_PROVIDED", { detail: "file" });
+          audit("USER_PROVIDED", { detail: "FILE_FLOW_DONE" });
         }
         if (hasCustomDropdown || legalLabels.length) {
           const parts = [
@@ -1827,16 +2037,60 @@
     }
     return "";
   }
-  function waitForFile(input) {
-    return new Promise((resolve) => {
-      const onChange = () => {
-        if (input.files && input.files.length > 0) {
-          input.removeEventListener("change", onChange);
-          resolve();
-        }
+  function makeResumeFetcher() {
+    return async (resumeMeta) => {
+      applyLog("Resume", "RESUME_DOWNLOAD_STARTED");
+      const res = await bg({
+        type: "DOWNLOAD_RESUME",
+        downloadUrl: resumeMeta.downloadUrl
+      });
+      if (!res?.ok || !res.base64) {
+        applyLog(
+          "Resume",
+          `RESUME_DOWNLOAD_FAILED (${res?.missing ? "missing" : res?.error || "error"})`
+        );
+        return null;
+      }
+      applyLog("Resume", `RESUME_DOWNLOAD_SUCCESS bytes=${res.byteLength || 0}`);
+      const binary = atob(res.base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return {
+        bytes: bytes.buffer,
+        fileName: res.fileName || resumeMeta.fileName || "document.pdf",
+        mimeType: res.mimeType || resumeMeta.mimeType || "application/pdf"
       };
-      input.addEventListener("change", onChange);
-    });
+    };
+  }
+  async function verifyProfileHasResume() {
+    try {
+      const res = await bg({ type: "GET_PROFILE" });
+      const has = !!(res?.success && res.resume?.downloadUrl);
+      applyLog("Resume", has ? "RESUME_PROFILE_RETURNED" : "RESUME_NOT_FOUND after upload");
+      return has;
+    } catch {
+      return false;
+    }
+  }
+  async function persistSelectedResumeToProfile(file) {
+    try {
+      const buf = await file.arrayBuffer();
+      if (!buf.byteLength) return { ok: false, error: "empty file" };
+      const bytes = new Uint8Array(buf);
+      let binary = "";
+      const chunk = 32768;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+      }
+      return await bg({
+        type: "UPLOAD_RESUME",
+        fileName: file.name || "document.pdf",
+        mimeType: file.type || "application/pdf",
+        base64: btoa(binary)
+      });
+    } catch (err) {
+      return { ok: false, error: err?.message || "upload failed" };
+    }
   }
   function detectValidationErrors() {
     const errors = [];

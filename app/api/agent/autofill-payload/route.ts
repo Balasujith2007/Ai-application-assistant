@@ -56,8 +56,9 @@ export async function GET(req: Request) {
       profile: snapshot,
       resume: activeResume ? {
         id: activeResume.id,
-        fileName: activeResume.fileName,
+        fileName: activeResume.originalName || activeResume.fileName,
         originalName: activeResume.originalName,
+        mimeType: activeResume.mimeType || 'application/pdf',
         downloadUrl: `/api/agent/resume-download?sessionId=${session.sessionToken}`
       } : null,
       opportunity: session.opportunity ? {

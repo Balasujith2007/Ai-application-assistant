@@ -89,7 +89,7 @@ export async function confirmField(userId: string, input: ConfirmFieldInput) {
   const value = String(input.value || '').trim();
   if (!value) return { ok: false, error: 'Value is required.' };
 
-  if (input.saveMode === 'USE_ONCE' || classification === 'APPLICATION_SPECIFIC_FIELD' || classification === 'LEGAL_FIELD') {
+  if (input.saveMode === 'USE_ONCE' || classification === 'LEGAL_FIELD') {
     await prisma.applicationDraftAnswer.create({
       data: {
         userId,
@@ -105,12 +105,14 @@ export async function confirmField(userId: string, input: ConfirmFieldInput) {
       saved: false,
       useOnce: true,
       classification,
-      message: classification === 'APPLICATION_SPECIFIC_FIELD'
-        ? 'Answer used for this application only.'
-        : 'Value will be used once and not saved to your profile.',
+      message: classification === 'LEGAL_FIELD'
+        ? 'Value will be used once and not saved to your profile.'
+        : 'Answer used for this application only.',
     };
   }
 
+  // APPLICATION_SPECIFIC_FIELD may be saved when the user explicitly chose SAVE
+  // (e.g. reusable essay answers they want on future applications).
   if (!isReusableClassification(classification) && classification === 'UNKNOWN_FIELD' && !input.key) {
     // Unknown fields can still be saved as custom if user explicitly chose SAVE
   }

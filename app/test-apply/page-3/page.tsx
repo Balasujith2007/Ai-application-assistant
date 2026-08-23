@@ -122,7 +122,12 @@ export default function TestApplyPage3() {
           type="file"
           accept=".pdf,.doc,.docx"
           ref={resumeRef}
-          onChange={(e) => setResumeName(e.target.files?.[0]?.name || '')}
+          onChange={(e) => {
+            const name = e.target.files?.[0]?.name || '';
+            setResumeName(name);
+            if (name) sessionStorage.setItem('careerai_test_resume', name);
+            else sessionStorage.removeItem('careerai_test_resume');
+          }}
           className="mt-1 block w-full text-sm"
         />
         {resumeName && (
