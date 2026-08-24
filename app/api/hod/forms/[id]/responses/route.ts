@@ -2,24 +2,26 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
 
-async function getHOD(req: Request) {
+async function getHODUser(req: Request) {
   const userId = getUserIdFromRequest(req);
-  if (userId) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, name: true, email: true, role: true },
-    });
-    if (user && (user.role === 'HOD' || user.role === 'ADMIN')) {
-      return user;
-    }
+  if (!userId) {
+    return { error: 'Unauthorized: Missing or invalid authentication token.', status: 401, user: null };
   }
 
-  const fallbackHOD = await prisma.user.findFirst({
-    where: { role: { in: ['HOD', 'ADMIN'] } },
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
     select: { id: true, name: true, email: true, role: true },
   });
 
-  return fallbackHOD;
+  if (!user) {
+    return { error: 'Unauthorized: User not found.', status: 401, user: null };
+  }
+
+  if (user.role !== 'HOD' && user.role !== 'ADMIN') {
+    return { error: 'Forbidden: HOD access required.', status: 403, user: null };
+  }
+
+  return { error: null, status: 200, user };
 }
 
 export async function GET(
@@ -27,9 +29,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const hod = await getHOD(req);
-    if (!hod) {
-      return NextResponse.json({ message: 'Unauthorized: HOD user not found' }, { status: 401 });
+    const { user: hod, error, status } = await getHODUser(req);
+    if (error || !hod) {
+      return NextResponse.json({ message: error }, { status: status || 401 });
     }
 
     const { id } = await params;

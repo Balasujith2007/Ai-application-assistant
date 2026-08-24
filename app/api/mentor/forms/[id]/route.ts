@@ -2,24 +2,26 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
 
-async function getMentor(req: Request) {
+async function getMentorUser(req: Request) {
   const userId = getUserIdFromRequest(req);
-  if (userId) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, name: true, email: true, role: true },
-    });
-    if (user && (user.role === 'MENTOR' || user.role === 'ADMIN')) {
-      return user;
-    }
+  if (!userId) {
+    return { error: 'Unauthorized: Missing or invalid authentication token.', status: 401, user: null };
   }
 
-  const fallbackMentor = await prisma.user.findFirst({
-    where: { role: { in: ['MENTOR', 'ADMIN'] } },
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
     select: { id: true, name: true, email: true, role: true },
   });
 
-  return fallbackMentor;
+  if (!user) {
+    return { error: 'Unauthorized: User not found.', status: 401, user: null };
+  }
+
+  if (user.role !== 'MENTOR' && user.role !== 'ADMIN') {
+    return { error: 'Forbidden: Mentor access required.', status: 403, user: null };
+  }
+
+  return { error: null, status: 200, user };
 }
 
 export async function GET(
@@ -27,9 +29,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const mentor = await getMentor(req);
-    if (!mentor) {
-      return NextResponse.json({ message: 'Unauthorized: Mentor user not found' }, { status: 401 });
+    const { user: mentor, error, status } = await getMentorUser(req);
+    if (error || !mentor) {
+      return NextResponse.json({ message: error }, { status: status || 401 });
     }
 
     const { id } = await params;
@@ -73,9 +75,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const mentor = await getMentor(req);
-    if (!mentor) {
-      return NextResponse.json({ message: 'Unauthorized: Mentor user not found' }, { status: 401 });
+    const { user: mentor, error, status } = await getMentorUser(req);
+    if (error || !mentor) {
+      return NextResponse.json({ message: error }, { status: status || 401 });
     }
 
     const { id } = await params;
@@ -148,9 +150,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const mentor = await getMentor(req);
-    if (!mentor) {
-      return NextResponse.json({ message: 'Unauthorized: Mentor user not found' }, { status: 401 });
+    const { user: mentor, error, status } = await getMentorUser(req);
+    if (error || !mentor) {
+      return NextResponse.json({ message: error }, { status: status || 401 });
     }
 
     const { id } = await params;
