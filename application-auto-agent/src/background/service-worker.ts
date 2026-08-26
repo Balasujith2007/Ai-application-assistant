@@ -277,7 +277,7 @@ async function timedFetch(url: string, init: RequestInit = {}, timeoutMs = 15000
   }
 }
 
-async function safeJson(res: Response): Promise<Record<string, never> & Record<string, unknown>> {
+async function safeJson(res: Response): Promise<any> {
   try {
     return await res.json();
   } catch {

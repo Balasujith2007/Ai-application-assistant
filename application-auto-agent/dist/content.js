@@ -24,6 +24,9 @@
   // src/content/field-extractor.ts
   function visible(el) {
     if (el.getAttribute("type") === "hidden") return false;
+    if (el instanceof HTMLInputElement && el.type === "file") {
+      return true;
+    }
     const style = window.getComputedStyle(el);
     if (style.display === "none" || style.visibility === "hidden") return false;
     const rect = el.getBoundingClientRect();
@@ -275,7 +278,7 @@
       reasons.push("CareerAI apply session");
     }
     const href = (input.href || "").toLowerCase();
-    if (/careers|jobs|apply|internship|hackathon|scholarship|greenhouse|lever\.co|workday|myworkday|unstop|dare2compete|smartrecruiters|icims|taleo|successfactors|jobvite|breezy\.hr|recruitee|ashby|rippling|bamboohr|ats\.|recruit\./.test(href)) {
+    if (/careers|jobs|apply|internship|hackathon|scholarship|greenhouse|lever\.co|workday|myworkday|unstop|hiretoday|dare2compete|smartrecruiters|icims|taleo|successfactors|jobvite|breezy\.hr|recruitee|ashby|rippling|bamboohr|ats\.|recruit\./.test(href)) {
       score += 18;
       reasons.push("career URL pattern");
     }
@@ -587,7 +590,8 @@
         const yes = ["yes", "true", "y", "authorized", "eligible"].some((w) => needle.includes(w));
         const no = ["no", "false", "n"].includes(needle);
         if (element.type === "checkbox") {
-          return false;
+          const checkIt = ["yes", "true", "checked", "agree", "y", "1"].some((w) => needle.includes(w)) || needle === "true" || needle === "yes" || needle === "1";
+          setNativeChecked(element, checkIt);
         } else {
           const group = document.querySelectorAll(`input[type="radio"][name="${CSS.escape(element.name)}"]`);
           let matched = null;
@@ -2039,6 +2043,7 @@
   }
   function makeResumeFetcher() {
     return async (resumeMeta) => {
+      if (!resumeMeta.downloadUrl) return null;
       applyLog("Resume", "RESUME_DOWNLOAD_STARTED");
       const res = await bg({
         type: "DOWNLOAD_RESUME",

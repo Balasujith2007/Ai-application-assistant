@@ -13,6 +13,11 @@ export interface ExtractedField {
 
 function visible(el: HTMLElement): boolean {
   if (el.getAttribute('type') === 'hidden') return false;
+  if (el instanceof HTMLInputElement && el.type === 'file') {
+    // Custom-styled file upload inputs are often hidden with display:none or 0 width/height.
+    // Extract them anyway so the agent can autofill / attach the file.
+    return true;
+  }
   const style = window.getComputedStyle(el);
   if (style.display === 'none' || style.visibility === 'hidden') return false;
   const rect = el.getBoundingClientRect();

@@ -72,8 +72,8 @@ export function nativeSetValue(element: HTMLInputElement | HTMLTextAreaElement |
       const yes = ['yes', 'true', 'y', 'authorized', 'eligible'].some((w) => needle.includes(w));
       const no = ['no', 'false', 'n'].includes(needle);
       if (element.type === 'checkbox') {
-        // Never blindly tick checkboxes (terms / marketing / legal handled upstream).
-        return false;
+        const checkIt = ['yes', 'true', 'checked', 'agree', 'y', '1'].some((w) => needle.includes(w)) || needle === 'true' || needle === 'yes' || needle === '1';
+        setNativeChecked(element, checkIt);
       } else {
         const group = document.querySelectorAll<HTMLInputElement>(`input[type="radio"][name="${CSS.escape(element.name)}"]`);
         let matched: HTMLInputElement | null = null;

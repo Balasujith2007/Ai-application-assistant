@@ -1,7 +1,7 @@
 import { AgentStateMachine } from './state-machine';
 import { waitForCaptchaClear, evaluateCaptcha, markCurrentCaptchaCompleted } from '../content/captcha-detector';
 import { getExtractedFields, scoreApplicationPage } from '../content/form-detector';
-import { highlight, fillAndVerify, tryAttachResume } from '../content/autofill-engine';
+import { highlight, fillAndVerify, tryAttachResume, ResumeAttachMeta, ResumeBytes } from '../content/autofill-engine';
 import { clickNext, findSubmitButton, findNextButton } from '../content/multi-page-manager';
 import { getSessionIdFromPage, wait } from '../content/dom-utils';
 import { matchField, StoredMapping, customKeyFromLabel } from '../ai/semantic-mapper';
@@ -715,7 +715,8 @@ function waitForFile(input: HTMLInputElement): Promise<void> {
 type ResumeMeta = { fileName: string; downloadUrl: string; mimeType?: string };
 
 function makeResumeFetcher() {
-  return async (resumeMeta: { fileName?: string; downloadUrl: string; mimeType?: string }) => {
+  return async (resumeMeta: ResumeAttachMeta): Promise<ResumeBytes | null> => {
+    if (!resumeMeta.downloadUrl) return null;
     applyLog('Resume', 'RESUME_DOWNLOAD_STARTED');
     const res = await bg<{
       ok?: boolean;

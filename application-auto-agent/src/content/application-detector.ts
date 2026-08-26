@@ -65,7 +65,7 @@ export function scoreFromSignals(input: {
   }
 
   const href = (input.href || '').toLowerCase();
-  if (/careers|jobs|apply|internship|hackathon|scholarship|greenhouse|lever\.co|workday|myworkday|unstop|dare2compete|smartrecruiters|icims|taleo|successfactors|jobvite|breezy\.hr|recruitee|ashby|rippling|bamboohr|ats\.|recruit\./.test(href)) {
+  if (/careers|jobs|apply|internship|hackathon|scholarship|greenhouse|lever\.co|workday|myworkday|unstop|hiretoday|dare2compete|smartrecruiters|icims|taleo|successfactors|jobvite|breezy\.hr|recruitee|ashby|rippling|bamboohr|ats\.|recruit\./.test(href)) {
     score += 18;
     reasons.push('career URL pattern');
   }
