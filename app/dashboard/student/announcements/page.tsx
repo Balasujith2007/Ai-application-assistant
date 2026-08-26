@@ -39,7 +39,7 @@ export default function StudentAnnouncementsPage() {
     return (
       <DashboardLayout title="Announcements" subtitle="Loading department notices...">
         <div className="flex h-[60vh] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
         </div>
       </DashboardLayout>
     );
@@ -50,7 +50,7 @@ export default function StudentAnnouncementsPage() {
       <div className="space-y-6 pb-12">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
-            <Megaphone className="h-7 w-7 text-indigo-600" /> Department Announcements & Reminders
+            <Megaphone className="h-7 w-7 text-kit-600" /> Department Announcements & Reminders
           </h1>
           <p className="text-sm font-medium text-gray-500 mt-1">
             Official announcements broadcasted by HODs, Placement Coordinators, and your assigned Mentor.
@@ -70,11 +70,11 @@ export default function StudentAnnouncementsPage() {
                 key={item.id}
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm hover:border-indigo-200 transition-colors space-y-3"
+                className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm hover:border-kit-200 transition-colors space-y-3"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 font-bold">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-kit-50 text-kit-600 font-bold">
                       <Bell className="h-4 w-4" />
                     </span>
                     <h3 className="font-bold text-gray-900 text-base">{item.title}</h3>
@@ -88,7 +88,7 @@ export default function StudentAnnouncementsPage() {
                 <p className="text-sm text-gray-700 leading-relaxed font-normal">{item.message}</p>
 
                 <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-xs text-gray-400 font-medium">
-                  <span className="flex items-center gap-1 text-indigo-600 font-semibold">
+                  <span className="flex items-center gap-1 text-kit-600 font-semibold">
                     <User className="h-3.5 w-3.5" />
                     HOD / Mentor Announcement
                   </span>

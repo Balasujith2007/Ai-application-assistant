@@ -123,7 +123,7 @@ export default function ConnectExtensionPage() {
   return (
     <div className="mx-auto max-w-lg px-6 py-16">
       <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-wider text-indigo-600">CareerAI Apply Agent</p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-kit-600">CareerAI Apply Agent</p>
         <h1 className="mt-2 text-2xl font-bold text-slate-900">Connect the browser extension</h1>
         <p className="mt-3 text-sm text-slate-600">
           This page issues a one-time authorization code. The extension exchanges it for a short-lived token.
@@ -132,7 +132,7 @@ export default function ConnectExtensionPage() {
 
         {!isAuthenticated ? (
           <p className="mt-6 text-sm">
-            Please <Link href="/login" className="font-semibold text-indigo-700 underline">log in</Link> first.
+            Please <Link href="/login" className="font-semibold text-kit-700 underline">log in</Link> first.
           </p>
         ) : (
           <div className="mt-6 space-y-3">
@@ -140,7 +140,7 @@ export default function ConnectExtensionPage() {
             <button
               onClick={() => void connect()}
               disabled={status === 'waiting'}
-              className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+              className="rounded-xl bg-kit-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
             >
               {status === 'waiting' ? 'Connecting…' : 'Connect extension'}
             </button>

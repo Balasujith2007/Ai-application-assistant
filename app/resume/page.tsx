@@ -82,8 +82,8 @@ export default function ResumePage() {
           onClick={() => fileInputRef.current?.click()}
           className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12 text-center transition-all ${
             dragActive
-              ? 'border-indigo-500 bg-indigo-50'
-              : 'border-gray-300 bg-white hover:border-indigo-400 hover:bg-indigo-50'
+              ? 'border-kit-500 bg-kit-50'
+              : 'border-gray-300 bg-white hover:border-kit-400 hover:bg-kit-50'
           }`}
         >
           <input
@@ -101,8 +101,8 @@ export default function ResumePage() {
             <LoadingSpinner size="lg" />
           ) : (
             <>
-              <div className="mb-4 rounded-2xl bg-indigo-100 p-5">
-                <Upload className="h-8 w-8 text-indigo-600" />
+              <div className="mb-4 rounded-2xl bg-kit-100 p-5">
+                <Upload className="h-8 w-8 text-kit-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900">
                 {dragActive ? 'Drop your resume here' : 'Drag & drop or click to upload'}
@@ -131,19 +131,19 @@ export default function ResumePage() {
                 key={resume.id}
                 className={`flex items-center gap-4 rounded-xl border p-4 transition-all ${
                   resume.isActive
-                    ? 'border-indigo-200 bg-indigo-50'
-                    : 'border-gray-200 bg-white hover:border-indigo-200'
+                    ? 'border-kit-200 bg-kit-50'
+                    : 'border-gray-200 bg-white hover:border-kit-200'
                 }`}
               >
-                <div className={`rounded-xl p-3 ${resume.isActive ? 'bg-indigo-100' : 'bg-gray-100'}`}>
-                  <FileText className={`h-6 w-6 ${resume.isActive ? 'text-indigo-600' : 'text-gray-500'}`} />
+                <div className={`rounded-xl p-3 ${resume.isActive ? 'bg-kit-100' : 'bg-gray-100'}`}>
+                  <FileText className={`h-6 w-6 ${resume.isActive ? 'text-kit-600' : 'text-gray-500'}`} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-900 truncate">{resume.originalName}</p>
                   <p className="text-sm text-gray-500">
                     {formatDate(resume.uploadedAt)} · {formatFileSize(resume.fileSize)}
                     {resume.isActive && (
-                      <span className="ml-2 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                      <span className="ml-2 rounded-full bg-kit-100 px-2 py-0.5 text-xs font-medium text-kit-700">
                         Active
                       </span>
                     )}

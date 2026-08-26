@@ -41,7 +41,7 @@ export default function StudentFormFillPage() {
   if (loading) {
     return (
       <div className="py-20 text-center text-gray-400">
-        <Loader2 className="h-8 w-8 animate-spin mx-auto text-indigo-600" />
+        <Loader2 className="h-8 w-8 animate-spin mx-auto text-kit-600" />
         <p className="text-xs font-semibold mt-2">Loading form…</p>
       </div>
     );
@@ -56,7 +56,7 @@ export default function StudentFormFillPage() {
           <p className="text-xs text-rose-700">{error || 'Form not found or has been closed.'}</p>
           <button
             onClick={() => router.push('/dashboard/student')}
-            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors mt-2"
+            className="inline-flex items-center gap-2 rounded-xl bg-kit-600 px-4 py-2 text-xs font-semibold text-white hover:bg-kit-700 transition-colors mt-2"
           >
             <ArrowLeft className="h-3.5 w-3.5" /> Back to Dashboard
           </button>
@@ -68,15 +68,15 @@ export default function StudentFormFillPage() {
   if (form.hasSubmitted && !form.allowMultipleSubmissions) {
     return (
       <div className="mx-auto max-w-xl py-16">
-        <div className="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-8 text-center space-y-3">
-          <CheckCircle2 className="h-10 w-10 text-indigo-600 mx-auto" />
-          <h2 className="text-lg font-bold text-indigo-950">Response Already Submitted</h2>
-          <p className="text-xs text-indigo-700">
+        <div className="rounded-2xl border border-kit-200 bg-kit-50/70 p-8 text-center space-y-3">
+          <CheckCircle2 className="h-10 w-10 text-kit-600 mx-auto" />
+          <h2 className="text-lg font-bold text-kit-900">Response Already Submitted</h2>
+          <p className="text-xs text-kit-700">
             You have already submitted a response for "{form.title}". This form does not allow multiple submissions.
           </p>
           <button
             onClick={() => router.push('/dashboard/student')}
-            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors mt-2"
+            className="inline-flex items-center gap-2 rounded-xl bg-kit-600 px-4 py-2 text-xs font-semibold text-white hover:bg-kit-700 transition-colors mt-2"
           >
             <ArrowLeft className="h-3.5 w-3.5" /> Back to Dashboard
           </button>

@@ -26,7 +26,7 @@ export default function FacultyDashboard() {
               <p className="font-medium text-gray-800">{year}</p>
               <p className="text-sm text-gray-500">{students} students · {placed} internships/placements</p>
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-200">
-                <div className="h-full rounded-full bg-indigo-500" style={{ width: `${(placed / students) * 100}%` }} />
+                <div className="h-full rounded-full bg-kit-500" style={{ width: `${(placed / students) * 100}%` }} />
               </div>
             </div>
           ))}

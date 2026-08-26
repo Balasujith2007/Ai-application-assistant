@@ -177,22 +177,22 @@ export default function ApplicationDetailPage() {
                           isRejected && isCurrent
                             ? 'border-red-400 bg-red-50'
                             : isCompleted
-                            ? 'border-indigo-500 bg-indigo-50'
+                            ? 'border-kit-500 bg-kit-50'
                             : 'border-gray-300 bg-white'
                         }`}
                       >
                         {isCompleted ? (
-                          <CheckCircle className={`h-4 w-4 ${isRejected && isCurrent ? 'text-red-500' : 'text-indigo-600'}`} />
+                          <CheckCircle className={`h-4 w-4 ${isRejected && isCurrent ? 'text-red-500' : 'text-kit-600'}`} />
                         ) : (
                           <Circle className="h-4 w-4 text-gray-300" />
                         )}
                       </div>
                       {index < STATUS_TIMELINE.length - 1 && (
-                        <div className={`mt-1 w-0.5 flex-1 ${isCompleted ? 'bg-indigo-200' : 'bg-gray-200'}`} style={{ minHeight: '24px' }} />
+                        <div className={`mt-1 w-0.5 flex-1 ${isCompleted ? 'bg-kit-200' : 'bg-gray-200'}`} style={{ minHeight: '24px' }} />
                       )}
                     </div>
                     <div className="pb-1 pt-1">
-                      <p className={`text-sm font-medium ${isCurrent ? 'text-indigo-700' : isCompleted ? 'text-gray-700' : 'text-gray-400'}`}>
+                      <p className={`text-sm font-medium ${isCurrent ? 'text-kit-700' : isCompleted ? 'text-gray-700' : 'text-gray-400'}`}>
                         {status.charAt(0) + status.slice(1).toLowerCase()}
                       </p>
                     </div>
@@ -215,8 +215,8 @@ export default function ApplicationDetailPage() {
                   disabled={updatingStatus || app.status === status}
                   className={`w-full rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-all ${
                     app.status === status
-                      ? 'border-indigo-300 bg-indigo-50 text-indigo-700'
-                      : 'border-gray-200 text-gray-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700'
+                      ? 'border-kit-300 bg-kit-50 text-kit-700'
+                      : 'border-gray-200 text-gray-600 hover:border-kit-200 hover:bg-kit-50 hover:text-kit-700'
                   }`}
                 >
                   {app.status === status && <span className="mr-2">✓</span>}

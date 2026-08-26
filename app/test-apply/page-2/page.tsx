@@ -137,7 +137,7 @@ export default function TestApplyPage2() {
       </label>
       <p className="text-xs text-slate-500">Legal declaration — agent must never auto-tick.</p>
 
-      <button type="submit" className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white">
+      <button type="submit" className="rounded-xl bg-kit-600 px-5 py-2.5 text-sm font-semibold text-white">
         Continue
       </button>
     </form>

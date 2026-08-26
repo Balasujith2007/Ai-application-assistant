@@ -54,14 +54,14 @@ const offerDistribution = [
   { name: 'Dream (5L - 10L)', value: 350 },
   { name: 'Core (3L - 5L)', value: 500 },
 ];
-const PIE_COLORS = ['#4f46e5', '#0ea5e9', '#10b981'];
+const PIE_COLORS = ['#A30D2D', '#0ea5e9', '#10b981'];
 
 export default function PlacementDashboard() {
   const stats = [
-    { label: 'Total Students', value: '1,550', icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+    { label: 'Total Students', value: '1,550', icon: Users, color: 'text-kit-600', bg: 'bg-kit-50' },
     { label: 'Placed Students', value: '1,270', icon: Award, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Placement %', value: '82%', icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Partner Companies', value: '145', icon: Building2, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { label: 'Partner Companies', value: '145', icon: Building2, color: 'text-kit-600', bg: 'bg-kit-50' },
     { label: 'Highest Package', value: '₹ 42 LPA', icon: Banknote, color: 'text-rose-600', bg: 'bg-rose-50' },
     { label: 'Average Package', value: '₹ 6.5 LPA', icon: Banknote, color: 'text-orange-600', bg: 'bg-orange-50' },
     { label: 'Offers Released', value: '1,890', icon: Briefcase, color: 'text-teal-600', bg: 'bg-teal-50' },
@@ -151,7 +151,7 @@ export default function PlacementDashboard() {
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} />
                 <RechartsTooltip cursor={{ fill: '#f9fafb' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Bar dataKey="placed" name="Placed Students" fill="#4f46e5" radius={[4, 4, 0, 0]} barSize={32} />
+                <Bar dataKey="placed" name="Placed Students" fill="#A30D2D" radius={[4, 4, 0, 0]} barSize={32} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -191,7 +191,7 @@ export default function PlacementDashboard() {
           >
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">Recent Placement Drives</h2>
-              <button className="text-sm font-medium text-indigo-600 hover:text-indigo-700">View All →</button>
+              <button className="text-sm font-medium text-kit-600 hover:text-kit-700">View All →</button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
@@ -235,7 +235,7 @@ export default function PlacementDashboard() {
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">Student Overview</h2>
               <div className="flex gap-2">
-                <input type="text" placeholder="Search student..." className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-indigo-500" />
+                <input type="text" placeholder="Search student..." className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-kit-500" />
                 <button className="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200">Filter</button>
               </div>
             </div>
@@ -296,10 +296,10 @@ export default function PlacementDashboard() {
               {quickActions.map((action, idx) => (
                 <button
                   key={idx}
-                  className="flex flex-col items-center justify-center gap-2 rounded-xl border border-gray-100 bg-gray-50 p-4 text-center transition-all hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 group"
+                  className="flex flex-col items-center justify-center gap-2 rounded-xl border border-gray-100 bg-gray-50 p-4 text-center transition-all hover:border-kit-200 hover:bg-kit-50 hover:text-kit-600 group"
                 >
-                  <action.icon className="h-5 w-5 text-gray-400 transition-colors group-hover:text-indigo-600" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 group-hover:text-indigo-700">{action.title}</span>
+                  <action.icon className="h-5 w-5 text-gray-400 transition-colors group-hover:text-kit-600" />
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 group-hover:text-kit-700">{action.title}</span>
                 </button>
               ))}
             </div>
@@ -314,12 +314,12 @@ export default function PlacementDashboard() {
           >
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">Upcoming Drives</h2>
-              <button className="text-sm font-medium text-indigo-600 hover:text-indigo-700">See Calendar</button>
+              <button className="text-sm font-medium text-kit-600 hover:text-kit-700">See Calendar</button>
             </div>
             <div className="space-y-4">
               {upcomingDrives.map((drive, idx) => (
-                <div key={idx} className="flex items-start gap-4 rounded-xl border border-gray-100 p-4 transition-colors hover:border-indigo-50 hover:bg-indigo-50/30">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                <div key={idx} className="flex items-start gap-4 rounded-xl border border-gray-100 p-4 transition-colors hover:border-kit-50 hover:bg-kit-50/30">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-kit-50 text-kit-600">
                     <Building2 className="h-5 w-5" />
                   </div>
                   <div className="flex-1">
@@ -328,7 +328,7 @@ export default function PlacementDashboard() {
                       <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded">{drive.package}</span>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">{drive.eligibility}</p>
-                    <p className="text-xs font-medium text-indigo-600 mt-1">{drive.date}</p>
+                    <p className="text-xs font-medium text-kit-600 mt-1">{drive.date}</p>
                   </div>
                 </div>
               ))}

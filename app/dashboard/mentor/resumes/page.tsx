@@ -93,16 +93,16 @@ function ReviewModal({ resume, onClose, onSaved }: ReviewModalProps) {
         </div>
         <div className="p-6 space-y-5">
           {/* Student Info */}
-          <div className="rounded-xl bg-indigo-50/50 border border-indigo-100 p-4 space-y-1">
+          <div className="rounded-xl bg-kit-50/50 border border-kit-100 p-4 space-y-1">
             <p className="font-bold text-gray-900">{resume.user.name}</p>
-            <p className="text-xs font-mono font-semibold text-indigo-700">Reg No: {resume.user.registerNo}</p>
+            <p className="text-xs font-mono font-semibold text-kit-700">Reg No: {resume.user.registerNo}</p>
             <p className="text-xs text-gray-500">{resume.user.email} · {resume.user.department} (Year {resume.user.year} - Sec {resume.user.section})</p>
           </div>
 
           {/* Resume File */}
           <div className="flex items-center gap-3 rounded-xl border border-gray-200 p-3 bg-white">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-100">
-              <FileText className="h-5 w-5 text-indigo-600" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-kit-100">
+              <FileText className="h-5 w-5 text-kit-600" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-900 truncate">{resume.originalName}</p>
@@ -121,7 +121,7 @@ function ReviewModal({ resume, onClose, onSaved }: ReviewModalProps) {
               {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
                 <button key={key} type="button"
                   onClick={() => setStatus(key)}
-                  className={`rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all ${status === key ? cfg.color + ' ring-2 ring-indigo-500 ring-offset-1' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
+                  className={`rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all ${status === key ? cfg.color + ' ring-2 ring-kit-500 ring-offset-1' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
                   {cfg.label}
                 </button>
               ))}
@@ -136,7 +136,7 @@ function ReviewModal({ resume, onClose, onSaved }: ReviewModalProps) {
               onChange={(e) => setFeedback(e.target.value)}
               placeholder="Provide constructive feedback for the student..."
               rows={4}
-              className="w-full rounded-xl border border-gray-200 p-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100 resize-none"
+              className="w-full rounded-xl border border-gray-200 p-3 text-sm focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-100 resize-none"
             />
           </div>
 
@@ -147,7 +147,7 @@ function ReviewModal({ resume, onClose, onSaved }: ReviewModalProps) {
               Cancel
             </button>
             <button onClick={handleSave} disabled={saving}
-              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60 shadow-sm">
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-kit-600 py-2.5 text-sm font-semibold text-white hover:bg-kit-700 disabled:opacity-60 shadow-sm">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
               Submit Review
             </button>
@@ -208,7 +208,7 @@ export default function MentorResumesPage() {
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <FileText className="h-6 w-6 text-indigo-600" /> Student Resume Reviews
+            <FileText className="h-6 w-6 text-kit-600" /> Student Resume Reviews
           </h1>
           <p className="text-sm text-gray-500 mt-1">Review and approve resumes submitted by your assigned students</p>
         </div>
@@ -255,7 +255,7 @@ export default function MentorResumesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by student name, register number, or resume file..."
-            className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-4 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-4 text-sm focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-100"
           />
         </div>
         <select
@@ -264,14 +264,14 @@ export default function MentorResumesPage() {
             setStatusFilter(e.target.value);
             fetchResumes(search, e.target.value);
           }}
-          className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 focus:border-indigo-500 focus:outline-none"
+          className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 focus:border-kit-500 focus:outline-none"
         >
           <option value="">All Statuses</option>
           <option value="PENDING_REVIEW">Pending Review</option>
           <option value="REVIEWED">Reviewed</option>
           <option value="CHANGES_REQUESTED">Changes Requested</option>
         </select>
-        <button type="submit" className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm">
+        <button type="submit" className="rounded-xl bg-kit-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-kit-700 transition-colors shadow-sm">
           Search
         </button>
       </form>
@@ -279,7 +279,7 @@ export default function MentorResumesPage() {
       {/* Resumes Grid */}
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
         </div>
       ) : error ? (
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
@@ -302,12 +302,12 @@ export default function MentorResumesPage() {
                 <div>
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-700">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-kit-100 text-sm font-bold text-kit-700">
                         {r.user.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0">
                         <p className="font-bold text-gray-900 text-sm truncate">{r.user.name}</p>
-                        <p className="text-xs font-mono font-semibold text-indigo-600">{r.user.registerNo}</p>
+                        <p className="text-xs font-mono font-semibold text-kit-600">{r.user.registerNo}</p>
                       </div>
                     </div>
                     <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold shrink-0 ${cfg.color}`}>
@@ -316,12 +316,12 @@ export default function MentorResumesPage() {
                   </div>
 
                   <div className="flex items-center gap-2 rounded-xl border border-gray-100 bg-gray-50/80 p-3">
-                    <FileText className="h-4 w-4 text-indigo-600 shrink-0" />
+                    <FileText className="h-4 w-4 text-kit-600 shrink-0" />
                     <span className="text-xs font-medium text-gray-800 truncate">{r.originalName}</span>
                   </div>
 
                   {r.reviewFeedback && (
-                    <div className="mt-3 rounded-lg border-l-2 border-indigo-400 bg-indigo-50/30 p-2 text-xs text-gray-700 italic line-clamp-2">
+                    <div className="mt-3 rounded-lg border-l-2 border-kit-400 bg-kit-50/30 p-2 text-xs text-gray-700 italic line-clamp-2">
                       "{r.reviewFeedback}"
                     </div>
                   )}
@@ -342,7 +342,7 @@ export default function MentorResumesPage() {
                   </a>
                   <button
                     onClick={() => setSelectedResume(r)}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm"
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-kit-600 py-2 text-xs font-semibold text-white hover:bg-kit-700 transition-colors shadow-sm"
                   >
                     <CheckCircle className="h-3.5 w-3.5" /> Review Action
                   </button>

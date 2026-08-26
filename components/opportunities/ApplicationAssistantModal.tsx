@@ -261,9 +261,9 @@ export function ApplicationAssistantModal({
           className="relative flex flex-col w-full max-w-2xl max-h-[90vh] rounded-2xl bg-white shadow-2xl overflow-hidden border border-gray-100"
         >
           {/* Fixed Header */}
-          <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 bg-gradient-to-r from-indigo-50/50 via-white to-purple-50/30">
+          <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 bg-gradient-to-r from-kit-50/50 via-white to-kit-50/30">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white font-bold shadow-xs">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-kit-600 text-white font-bold shadow-xs">
                 <Sparkles className="h-5 w-5" />
               </div>
               <div>
@@ -292,7 +292,7 @@ export function ApplicationAssistantModal({
 
             {loading ? (
               <div className="flex py-12 flex-col items-center justify-center gap-3">
-                <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+                <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
                 <p className="text-sm font-medium text-gray-500">Preparing application data...</p>
               </div>
             ) : step === 'EXPIRED' ? (
@@ -317,7 +317,7 @@ export function ApplicationAssistantModal({
               </div>
             ) : step === 'ALREADY_EXISTS' ? (
               <div className="py-6 space-y-4 text-center">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-kit-100 text-kit-600">
                   <CheckCircle2 className="h-6 w-6" />
                 </div>
                 <div>
@@ -331,7 +331,7 @@ export function ApplicationAssistantModal({
                   <Link
                     href="/applications"
                     onClick={onClose}
-                    className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-indigo-600 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-colors"
+                    className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-kit-600 border border-kit-200 rounded-xl hover:bg-kit-50 transition-colors"
                   >
                     View Application
                   </Link>
@@ -341,7 +341,7 @@ export function ApplicationAssistantModal({
                         window.open(effectiveUrl, '_blank', 'noopener,noreferrer');
                         setStep('STARTED');
                       }}
-                      className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
+                      className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-white bg-kit-600 rounded-xl hover:bg-kit-700 transition-colors flex items-center justify-center gap-2"
                     >
                       Continue Application <ExternalLink className="h-3.5 w-3.5" />
                     </button>
@@ -350,13 +350,13 @@ export function ApplicationAssistantModal({
               </div>
             ) : step === 'STARTED' ? (
               <div className="py-6 space-y-5">
-                <div className="flex items-center gap-3 rounded-2xl bg-indigo-50/80 border border-indigo-100 p-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white font-bold">
+                <div className="flex items-center gap-3 rounded-2xl bg-kit-50/80 border border-kit-100 p-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-kit-600 text-white font-bold">
                     <ExternalLink className="h-5 w-5" />
                   </div>
                   <div>
-                    <h4 className="text-base font-bold text-indigo-950">Application Started ✓</h4>
-                    <p className="text-xs text-indigo-700 mt-0.5">
+                    <h4 className="text-base font-bold text-kit-900">Application Started ✓</h4>
+                    <p className="text-xs text-kit-700 mt-0.5">
                       The official registration page has been opened in a new tab.
                     </p>
                   </div>
@@ -370,7 +370,7 @@ export function ApplicationAssistantModal({
                     <li>Return here and click <strong>&quot;I Completed My Registration&quot;</strong>.</li>
                   </ol>
                   <p className="pt-1">
-                    No extension yet? Open <a href="/connect-extension" className="font-semibold text-indigo-700 underline">/connect-extension</a> after loading <code>application-auto-agent/dist</code>.
+                    No extension yet? Open <a href="/connect-extension" className="font-semibold text-kit-700 underline">/connect-extension</a> after loading <code>application-auto-agent/dist</code>.
                   </p>
                 </div>
               </div>
@@ -396,7 +396,7 @@ export function ApplicationAssistantModal({
                     href={effectiveUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="font-mono text-indigo-600 hover:underline truncate max-w-xs flex items-center gap-1 font-semibold"
+                    className="font-mono text-kit-600 hover:underline truncate max-w-xs flex items-center gap-1 font-semibold"
                   >
                     {effectiveUrl} <ExternalLink className="h-3 w-3 shrink-0" />
                   </a>
@@ -433,7 +433,7 @@ export function ApplicationAssistantModal({
                     </h4>
                     <Link
                       href="/profile"
-                      className="text-xs font-semibold text-indigo-600 hover:text-indigo-700"
+                      className="text-xs font-semibold text-kit-600 hover:text-kit-700"
                     >
                       Edit Main Profile ↗
                     </Link>
@@ -460,7 +460,7 @@ export function ApplicationAssistantModal({
                             <button
                               type="button"
                               onClick={() => navigator.clipboard.writeText(field.val || '')}
-                              className="text-[10px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded transition-colors"
+                              className="text-[10px] font-bold text-kit-600 bg-kit-50 hover:bg-kit-100 px-2 py-0.5 rounded transition-colors"
                             >
                               Copy
                             </button>
@@ -512,7 +512,7 @@ export function ApplicationAssistantModal({
                       <span className="text-gray-500">Active Resume</span>
                       <span className="font-semibold text-gray-900 flex items-center gap-1">
                         {studentData?.resumeName ? (
-                          <span className="text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md font-bold text-[11px] truncate max-w-[200px]">
+                          <span className="text-kit-700 bg-kit-50 px-2 py-0.5 rounded-md font-bold text-[11px] truncate max-w-[200px]">
                             📄 {studentData.resumeName} Attached ✓
                           </span>
                         ) : (
@@ -545,7 +545,7 @@ export function ApplicationAssistantModal({
                             placeholder="+91 9876543210"
                             value={missingFields.phone}
                             onChange={(e) => setMissingFields({ ...missingFields, phone: e.target.value })}
-                            className="w-full rounded-lg border border-gray-300 px-3 py-1.5 focus:border-indigo-500 focus:outline-none bg-white"
+                            className="w-full rounded-lg border border-gray-300 px-3 py-1.5 focus:border-kit-500 focus:outline-none bg-white"
                           />
                         </div>
                       )}
@@ -557,7 +557,7 @@ export function ApplicationAssistantModal({
                             placeholder="Computer Science / AI"
                             value={missingFields.department}
                             onChange={(e) => setMissingFields({ ...missingFields, department: e.target.value })}
-                            className="w-full rounded-lg border border-gray-300 px-3 py-1.5 focus:border-indigo-500 focus:outline-none bg-white"
+                            className="w-full rounded-lg border border-gray-300 px-3 py-1.5 focus:border-kit-500 focus:outline-none bg-white"
                           />
                         </div>
                       )}
@@ -569,7 +569,7 @@ export function ApplicationAssistantModal({
                             placeholder="College Name"
                             value={missingFields.college}
                             onChange={(e) => setMissingFields({ ...missingFields, college: e.target.value })}
-                            className="w-full rounded-lg border border-gray-300 px-3 py-1.5 focus:border-indigo-500 focus:outline-none bg-white sm:col-span-2"
+                            className="w-full rounded-lg border border-gray-300 px-3 py-1.5 focus:border-kit-500 focus:outline-none bg-white sm:col-span-2"
                           />
                         </div>
                       )}
@@ -581,7 +581,7 @@ export function ApplicationAssistantModal({
                         id="saveToProfile"
                         checked={saveToProfile}
                         onChange={(e) => setSaveToProfile(e.target.checked)}
-                        className="rounded text-indigo-600 focus:ring-indigo-500"
+                        className="rounded text-kit-600 focus:ring-kit-500"
                       />
                       <label htmlFor="saveToProfile" className="text-xs text-gray-700 cursor-pointer font-medium">
                         Save these details to my main CareerAI profile
@@ -632,7 +632,7 @@ export function ApplicationAssistantModal({
               <div className="flex items-center justify-end w-full">
                 <button
                   onClick={onClose}
-                  className="rounded-xl bg-indigo-600 px-6 py-2.5 text-xs font-bold text-white hover:bg-indigo-700 transition-colors"
+                  className="rounded-xl bg-kit-600 px-6 py-2.5 text-xs font-bold text-white hover:bg-kit-700 transition-colors"
                 >
                   Close
                 </button>
@@ -659,7 +659,7 @@ export function ApplicationAssistantModal({
                   <button
                     onClick={handleContinueToApplication}
                     disabled={actionLoading || loading}
-                    className="rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                    className="rounded-xl bg-kit-600 px-5 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-kit-700 transition-colors flex items-center gap-2 disabled:opacity-50"
                   >
                     {actionLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />

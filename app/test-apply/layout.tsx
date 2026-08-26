@@ -8,7 +8,7 @@ export default function TestApplyLayout({ children }: { children: React.ReactNod
       <header className="border-b border-slate-200 bg-white px-6 py-4">
         <div className="mx-auto flex max-w-3xl items-center justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-indigo-600">CareerAI lab</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-kit-600">CareerAI lab</p>
             <h1 className="text-lg font-bold">Acme Internship Application</h1>
           </div>
           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">Test site — not a real employer</span>

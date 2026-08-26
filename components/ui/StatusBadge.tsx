@@ -15,7 +15,7 @@ const STATUS_CONFIG: Record<
   },
   APPLIED: {
     label: 'Applied',
-    className: 'bg-blue-50 text-blue-700 border-blue-200',
+    className: 'bg-kit-50 text-kit-700 border-kit-200',
   },
   SHORTLISTED: {
     label: 'Shortlisted',
@@ -23,7 +23,7 @@ const STATUS_CONFIG: Record<
   },
   INTERVIEW: {
     label: 'Interview',
-    className: 'bg-purple-50 text-purple-700 border-purple-200',
+    className: 'bg-kit-50 text-kit-700 border-kit-200',
   },
   SELECTED: {
     label: 'Selected',
@@ -45,7 +45,7 @@ const TYPE_CONFIG: Record<
 > = {
   INTERNSHIP: {
     label: 'Internship',
-    className: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    className: 'bg-kit-50 text-kit-700 border-kit-200',
   },
   JOB: {
     label: 'Full-time',

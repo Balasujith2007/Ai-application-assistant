@@ -86,7 +86,7 @@ export default function OpportunityHistoryPage() {
   const getTypeBadge = (type: string) => {
     switch (type) {
       case 'HACKATHON':
-        return <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-bold text-purple-700">Hackathon 🚀</span>;
+        return <span className="rounded-full bg-kit-100 px-3 py-1 text-xs font-bold text-kit-700">Hackathon 🚀</span>;
       case 'INTERNSHIP':
         return <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">Internship 💼</span>;
       case 'JOB':
@@ -95,7 +95,7 @@ export default function OpportunityHistoryPage() {
       case 'COMPETITION':
         return <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">Competition 🏆</span>;
       case 'WORKSHOP':
-        return <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-bold text-indigo-700">Workshop 📚</span>;
+        return <span className="rounded-full bg-kit-100 px-3 py-1 text-xs font-bold text-kit-700">Workshop 📚</span>;
       default:
         return <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-700">{type}</span>;
     }
@@ -108,7 +108,7 @@ export default function OpportunityHistoryPage() {
       case 'ONGOING':
         return <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800 border border-amber-200"><Clock className="h-3.5 w-3.5" /> Ongoing</span>;
       case 'REGISTERED':
-        return <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-3 py-1 text-xs font-bold text-indigo-800 border border-indigo-200">Registered ✓</span>;
+        return <span className="inline-flex items-center gap-1 rounded-full bg-kit-100 px-3 py-1 text-xs font-bold text-kit-800 border border-kit-200">Registered ✓</span>;
       case 'SHORTLISTED':
         return <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-800 border border-blue-200">Shortlisted ✓</span>;
       case 'SELECTED':
@@ -158,7 +158,7 @@ export default function OpportunityHistoryPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
                   activeTab === tab.id
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                    ? 'bg-kit-600 text-white shadow-md shadow-kit-500/20'
                     : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                 }`}
               >
@@ -174,7 +174,7 @@ export default function OpportunityHistoryPage() {
               placeholder="Search history by title, org..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              className="w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kit-500/20"
             />
           </div>
         </div>
@@ -182,7 +182,7 @@ export default function OpportunityHistoryPage() {
         {/* History Grid */}
         {loading ? (
           <div className="flex h-64 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+            <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
           </div>
         ) : filteredHistory.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-white py-16 px-4 text-center">
@@ -193,7 +193,7 @@ export default function OpportunityHistoryPage() {
             </p>
             <Link
               href="/dashboard/student/opportunities"
-              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 transition-colors"
+              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-kit-600 px-4 py-2 text-xs font-bold text-white hover:bg-kit-700 transition-colors"
             >
               Explore Campus Opportunities
             </Link>
@@ -205,12 +205,12 @@ export default function OpportunityHistoryPage() {
                 key={item.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="group flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-all hover:border-indigo-200"
+                className="group flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-all hover:border-kit-200"
               >
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <h3 className="text-base font-bold text-gray-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">
+                      <h3 className="text-base font-bold text-gray-900 line-clamp-1 group-hover:text-kit-600 transition-colors">
                         {item.title}
                       </h3>
                       <p className="text-xs font-semibold text-gray-500 flex items-center gap-1.5 mt-0.5">
@@ -221,7 +221,7 @@ export default function OpportunityHistoryPage() {
                   </div>
 
                   {item.role && (
-                    <p className="text-xs font-medium text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-md inline-block">
+                    <p className="text-xs font-medium text-kit-700 bg-kit-50 px-2.5 py-1 rounded-md inline-block">
                       Role: {item.role}
                     </p>
                   )}
@@ -266,7 +266,7 @@ export default function OpportunityHistoryPage() {
                             href={item.certificateUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="font-bold text-indigo-600 hover:underline flex items-center gap-1"
+                            className="font-bold text-kit-600 hover:underline flex items-center gap-1"
                           >
                             View Certificate <ExternalLink className="h-3 w-3" />
                           </a>
@@ -309,7 +309,7 @@ export default function OpportunityHistoryPage() {
                   {item.status === 'COMPLETED' && (
                     <Link
                       href="/resume"
-                      className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition-colors"
+                      className="rounded-xl border border-kit-200 bg-kit-50 px-3 py-1.5 text-xs font-bold text-kit-700 hover:bg-kit-100 transition-colors"
                     >
                       + Add to Resume
                     </Link>

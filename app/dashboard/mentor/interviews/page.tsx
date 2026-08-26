@@ -65,7 +65,7 @@ function FeedbackModal({ interview, onClose, onSaved }: FeedbackModalProps) {
         <div className="p-6 space-y-5">
           <div className="rounded-xl bg-gray-50 p-4 space-y-1">
             <p className="font-semibold text-gray-900">{interview.user.name}</p>
-            <p className="text-sm text-indigo-600 font-medium">{interview.companyName} — {interview.role}</p>
+            <p className="text-sm text-kit-600 font-medium">{interview.companyName} — {interview.role}</p>
             <p className="text-xs text-gray-400">{new Date(interview.date).toLocaleDateString()} · {interview.type.replace('_', ' ')}</p>
           </div>
 
@@ -76,7 +76,7 @@ function FeedbackModal({ interview, onClose, onSaved }: FeedbackModalProps) {
               onChange={(e) => setFeedback(e.target.value)}
               placeholder="Add feedback, strengths, areas for improvement, and recommendations..."
               rows={6}
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 resize-none"
+              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200 resize-none"
             />
           </div>
 
@@ -87,7 +87,7 @@ function FeedbackModal({ interview, onClose, onSaved }: FeedbackModalProps) {
               Cancel
             </button>
             <button onClick={handleSave} disabled={saving || !feedback.trim()}
-              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60">
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-kit-600 py-2.5 text-sm font-semibold text-white hover:bg-kit-700 disabled:opacity-60">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
               Save Feedback
             </button>
@@ -125,7 +125,7 @@ export default function MentorInterviewsPage() {
     <div className="space-y-6 pb-12">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Calendar className="h-6 w-6 text-indigo-600" /> Interviews
+          <Calendar className="h-6 w-6 text-kit-600" /> Interviews
         </h1>
         <p className="text-sm text-gray-500 mt-1">Track and provide feedback on your students' interviews</p>
       </motion.div>
@@ -135,7 +135,7 @@ export default function MentorInterviewsPage() {
         {INTERVIEW_TABS.map((t) => (
           <button key={t.key}
             onClick={() => setActiveTab(t.key)}
-            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${activeTab === t.key ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}>
+            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${activeTab === t.key ? 'bg-kit-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}>
             {t.label}
           </button>
         ))}
@@ -144,7 +144,7 @@ export default function MentorInterviewsPage() {
       {/* Content */}
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
         </div>
       ) : error ? (
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
@@ -166,8 +166,8 @@ export default function MentorInterviewsPage() {
                 className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-4 flex-1">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-100">
-                      <Calendar className="h-5 w-5 text-indigo-600" />
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-kit-100">
+                      <Calendar className="h-5 w-5 text-kit-600" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -193,9 +193,9 @@ export default function MentorInterviewsPage() {
                       </div>
 
                       {interview.feedback && (
-                        <div className="mt-3 rounded-lg border-l-2 border-indigo-300 bg-indigo-50 p-3">
-                          <p className="text-xs font-semibold text-indigo-700 mb-1">Your Feedback</p>
-                          <p className="text-xs text-indigo-600">{interview.feedback}</p>
+                        <div className="mt-3 rounded-lg border-l-2 border-kit-300 bg-kit-50 p-3">
+                          <p className="text-xs font-semibold text-kit-700 mb-1">Your Feedback</p>
+                          <p className="text-xs text-kit-600">{interview.feedback}</p>
                         </div>
                       )}
                     </div>
@@ -203,7 +203,7 @@ export default function MentorInterviewsPage() {
                   {isPast && (
                     <button
                       onClick={() => setSelectedInterview(interview)}
-                      className="flex shrink-0 items-center gap-2 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors">
+                      className="flex shrink-0 items-center gap-2 rounded-xl bg-kit-600 px-3 py-2 text-xs font-semibold text-white hover:bg-kit-700 transition-colors">
                       <MessageSquare className="h-3.5 w-3.5" />
                       {interview.feedback ? 'Edit Feedback' : 'Add Feedback'}
                     </button>

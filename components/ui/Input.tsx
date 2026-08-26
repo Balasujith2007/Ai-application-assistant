@@ -31,7 +31,7 @@ export function Input({
         id={inputId}
         className={cn(
           'block w-full rounded-lg border px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition',
-          'focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
+          'focus:outline-none focus:ring-2 focus:ring-kit-600 focus:border-kit-600',
           error
             ? 'border-red-300 bg-red-50 focus:ring-red-400 focus:border-red-400'
             : 'border-gray-300 bg-white hover:border-gray-400',
@@ -68,7 +68,7 @@ export function Textarea({ label, error, className, id, ...props }: TextareaProp
         id={inputId}
         className={cn(
           'block w-full rounded-lg border px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition resize-y min-h-[80px]',
-          'focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500',
+          'focus:outline-none focus:ring-2 focus:ring-kit-600 focus:border-kit-600',
           error
             ? 'border-red-300 bg-red-50'
             : 'border-gray-300 bg-white hover:border-gray-400',

@@ -106,7 +106,7 @@ export default function ApplicationsPage() {
       <DashboardLayout title="Applications" subtitle="Loading your applications...">
         <div className="flex h-[60vh] items-center justify-center">
           <div className="flex flex-col items-center gap-4">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600"></div>
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-kit-200 border-t-kit-600"></div>
             <p className="text-sm font-medium text-gray-500">Loading applications...</p>
           </div>
         </div>
@@ -154,8 +154,8 @@ export default function ApplicationsPage() {
             label="Total Applications"
             value={stats.totalApplications}
             icon={Briefcase}
-            color="text-indigo-600"
-            bg="bg-indigo-50"
+            color="text-kit-600"
+            bg="bg-kit-50"
             index={0}
           />
           <StatCard
@@ -170,8 +170,8 @@ export default function ApplicationsPage() {
             label="Interviews"
             value={stats.interviewsCount}
             icon={Calendar}
-            color="text-purple-600"
-            bg="bg-purple-50"
+            color="text-kit-600"
+            bg="bg-kit-50"
             index={2}
           />
           <StatCard
@@ -203,7 +203,7 @@ export default function ApplicationsPage() {
                 placeholder="Search company, role, or location..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 bg-gray-50/50 py-2 pl-9 pr-4 text-sm text-gray-900 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                className="w-full rounded-xl border border-gray-300 bg-gray-50/50 py-2 pl-9 pr-4 text-sm text-gray-900 focus:border-kit-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-kit-500/20"
               />
             </div>
 
@@ -211,7 +211,7 @@ export default function ApplicationsPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 focus:border-indigo-500 focus:outline-none"
+              className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 focus:border-kit-500 focus:outline-none"
             >
               <option value="ALL">All Statuses</option>
               <option value="APPLIED">Applied</option>
@@ -225,7 +225,7 @@ export default function ApplicationsPage() {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 focus:border-indigo-500 focus:outline-none"
+              className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 focus:border-kit-500 focus:outline-none"
             >
               <option value="ALL">All Types</option>
               <option value="JOB">Full-time Job</option>
@@ -240,7 +240,7 @@ export default function ApplicationsPage() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'newest' | 'deadline')}
-              className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 focus:border-indigo-500 focus:outline-none"
+              className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 focus:border-kit-500 focus:outline-none"
             >
               <option value="newest">Newest Applied</option>
               <option value="deadline">Upcoming Deadline</option>
@@ -251,7 +251,7 @@ export default function ApplicationsPage() {
         {/* Applications List / Table */}
         {filteredApps.length === 0 ? (
           <EmptyState
-            icon={<Briefcase className="h-10 w-10 text-indigo-500" />}
+            icon={<Briefcase className="h-10 w-10 text-kit-500" />}
             title="No applications found"
             description="Start tracking your internship and job applications."
             action={
@@ -282,16 +282,16 @@ export default function ApplicationsPage() {
                     <tr
                       key={app.id}
                       onClick={() => handleOpenDetail(app)}
-                      className="group cursor-pointer transition-colors hover:bg-indigo-50/30"
+                      className="group cursor-pointer transition-colors hover:bg-kit-50/30"
                     >
                       {/* Company */}
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 font-bold text-sm">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-kit-50 text-kit-600 font-bold text-sm">
                             {app.companyName.charAt(0)}
                           </div>
                           <div>
-                            <span className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
+                            <span className="font-bold text-gray-900 group-hover:text-kit-600 transition-colors">
                               {app.companyName}
                             </span>
                             <div className="mt-0.5">
@@ -326,7 +326,7 @@ export default function ApplicationsPage() {
                       {/* Next Action */}
                       <td className="py-4 px-4 max-w-[200px]">
                         {app.nextAction ? (
-                          <span className="truncate block text-xs font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-md">
+                          <span className="truncate block text-xs font-semibold text-kit-700 bg-kit-50 px-2.5 py-1 rounded-md">
                             {app.nextAction}
                           </span>
                         ) : (
@@ -339,14 +339,14 @@ export default function ApplicationsPage() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => handleOpenDetail(app)}
-                            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-indigo-600 transition-colors"
+                            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-kit-600 transition-colors"
                             title="View Details"
                           >
                             <Eye className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleOpenEdit(app)}
-                            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-indigo-600 transition-colors"
+                            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-kit-600 transition-colors"
                             title="Edit"
                           >
                             <Pencil className="h-4 w-4" />

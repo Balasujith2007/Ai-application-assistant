@@ -101,13 +101,13 @@ export function NotificationDropdown() {
 
   const getIcon = (title: string) => {
     const titleLower = title.toLowerCase();
-    if (titleLower.includes('📢') || titleLower.includes('announcement')) return <Megaphone className="h-5 w-5 text-indigo-600" />;
+    if (titleLower.includes('📢') || titleLower.includes('announcement')) return <Megaphone className="h-5 w-5 text-kit-600" />;
     if (titleLower.includes('application')) return <Briefcase className="h-5 w-5 text-blue-500" />;
-    if (titleLower.includes('interview')) return <Calendar className="h-5 w-5 text-purple-500" />;
+    if (titleLower.includes('interview')) return <Calendar className="h-5 w-5 text-kit-500" />;
     if (titleLower.includes('task')) return <CheckSquare className="h-5 w-5 text-orange-500" />;
     if (titleLower.includes('profile')) return <User className="h-5 w-5 text-green-500" />;
     if (titleLower.includes('deadline')) return <AlertCircle className="h-5 w-5 text-red-500" />;
-    return <Sparkles className="h-5 w-5 text-indigo-500" />;
+    return <Sparkles className="h-5 w-5 text-kit-500" />;
   };
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
@@ -133,7 +133,7 @@ export function NotificationDropdown() {
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-bold text-gray-900">Notifications</h3>
               {unreadCount > 0 && (
-                <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+                <span className="rounded-full bg-kit-100 px-2 py-0.5 text-xs font-semibold text-kit-700">
                   {unreadCount} new
                 </span>
               )}
@@ -141,7 +141,7 @@ export function NotificationDropdown() {
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
-                className="text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+                className="text-xs font-medium text-kit-600 hover:text-kit-800 transition-colors"
               >
                 Mark all as read
               </button>
@@ -165,7 +165,7 @@ export function NotificationDropdown() {
                     onClick={() => markAsReadAndNavigate(notification)}
                     className={cn(
                       "w-full text-left flex items-start gap-3.5 p-4 transition-colors hover:bg-gray-50",
-                      !notification.isRead ? "bg-indigo-50/40" : "bg-white"
+                      !notification.isRead ? "bg-kit-50/40" : "bg-white"
                     )}
                   >
                     <div className={cn(
@@ -183,7 +183,7 @@ export function NotificationDropdown() {
                           {notification.title}
                         </p>
                         {!notification.isRead && (
-                          <span className="flex-shrink-0 h-2 w-2 rounded-full bg-indigo-600" />
+                          <span className="flex-shrink-0 h-2 w-2 rounded-full bg-kit-600" />
                         )}
                       </div>
                       <p className="text-xs text-gray-600 mt-1 line-clamp-2 leading-relaxed">
@@ -207,7 +207,7 @@ export function NotificationDropdown() {
                 setIsOpen(false);
                 router.push('/dashboard/notifications');
               }}
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+              className="text-xs font-semibold text-kit-600 hover:text-kit-800 transition-colors"
             >
               View all notifications →
             </button>

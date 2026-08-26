@@ -31,24 +31,25 @@ interface StatCardProps {
   title: string;
   value: string | number;
   icon: React.ReactNode;
-  color?: 'blue' | 'indigo' | 'emerald' | 'amber' | 'purple' | 'rose';
+  color?: 'blue' | 'indigo' | 'emerald' | 'amber' | 'purple' | 'rose' | 'kit';
   trend?: string;
 }
 
 const COLORS = {
   blue: 'bg-blue-50 text-blue-600',
-  indigo: 'bg-indigo-50 text-indigo-600',
+  indigo: 'bg-kit-50 text-kit-600',
   emerald: 'bg-emerald-50 text-emerald-600',
   amber: 'bg-amber-50 text-amber-600',
-  purple: 'bg-purple-50 text-purple-600',
+  purple: 'bg-kit-50 text-kit-600',
   rose: 'bg-rose-50 text-rose-600',
+  kit: 'bg-kit-50 text-kit-600',
 };
 
 export function StatCard({
   title,
   value,
   icon,
-  color = 'indigo',
+  color = 'kit',
   trend,
 }: StatCardProps) {
   return (

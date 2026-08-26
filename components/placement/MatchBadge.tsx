@@ -50,7 +50,7 @@ export function MatchBadge({
       {/* Header Bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 font-bold text-sm">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-kit-50 text-kit-600 font-bold text-sm">
             {opportunity?.companyName?.charAt(0) || 'C'}
           </div>
           <div>
@@ -155,7 +155,7 @@ export function MatchBadge({
                   ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 hover:bg-emerald-200'
                   : stateInfo.isButtonDisabled
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
-                  : 'bg-indigo-600 text-white shadow-xs hover:bg-indigo-700'
+                  : 'bg-kit-600 text-white shadow-xs hover:bg-kit-700'
               )}
             >
               {stateInfo.buttonText}

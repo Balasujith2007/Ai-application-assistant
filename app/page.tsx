@@ -23,7 +23,7 @@ const FEATURES = [
     icon: <Users className="h-6 w-6" />,
     title: 'Smart Career Profile',
     desc: 'Build a comprehensive career profile with education, skills, projects, and experience.',
-    color: 'bg-indigo-50 text-indigo-600',
+    color: 'bg-kit-50 text-kit-600',
   },
   {
     icon: <FileText className="h-6 w-6" />,
@@ -53,7 +53,7 @@ const FEATURES = [
     icon: <BarChart3 className="h-6 w-6" />,
     title: 'Career Analytics',
     desc: 'Visualize your career journey with insightful stats and progress tracking.',
-    color: 'bg-purple-50 text-purple-600',
+    color: 'bg-kit-50 text-kit-600',
   },
   {
     icon: <Bot className="h-6 w-6" />,
@@ -98,7 +98,7 @@ const ROLES = [
     title: 'Students',
     desc: 'Manage your entire career journey — resume, applications, internships, and hackathons — from a single dashboard.',
     benefits: ['Application tracking', 'Resume management', 'AI career assistance', 'Profile completion tracker'],
-    color: 'bg-indigo-600',
+    color: 'bg-kit-600',
   },
   {
     icon: <Users className="h-8 w-8" />,
@@ -124,7 +124,7 @@ export default function LandingPage() {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 shadow-sm">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-kit-600 shadow-sm">
               <Zap className="h-5 w-5 text-white" />
             </div>
             <span className="text-xl font-bold text-gray-900">CareerAI</span>
@@ -159,7 +159,7 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/register"
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 transition-colors"
+              className="rounded-lg bg-kit-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-kit-700 transition-colors"
             >
               Get Started
             </Link>
@@ -171,19 +171,19 @@ export default function LandingPage() {
       <section className="relative overflow-hidden px-6 pt-20 pb-24 text-center">
         {/* Background decoration */}
         <div className="absolute inset-0 -z-10">
-          <div className="absolute left-1/2 top-0 h-96 w-96 -translate-x-1/2 rounded-full bg-indigo-100 opacity-40 blur-3xl" />
+          <div className="absolute left-1/2 top-0 h-96 w-96 -translate-x-1/2 rounded-full bg-kit-100 opacity-40 blur-3xl" />
           <div className="absolute right-1/4 bottom-0 h-64 w-64 rounded-full bg-blue-100 opacity-30 blur-3xl" />
         </div>
 
         <div className="mx-auto max-w-4xl">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-4 py-1.5 text-sm font-medium text-indigo-700">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-kit-200 bg-kit-50 px-4 py-1.5 text-sm font-medium text-kit-700">
             <Star className="h-3.5 w-3.5" />
             Built for college students & placement departments
           </div>
 
           <h1 className="text-5xl font-bold leading-tight tracking-tight text-gray-900 md:text-6xl">
             Your Career Journey.{' '}
-            <span className="text-indigo-600">Smarter.</span>
+            <span className="text-kit-600">Smarter.</span>
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-600 leading-relaxed">
@@ -195,7 +195,7 @@ export default function LandingPage() {
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <Link
               href="/register"
-              className="group flex items-center gap-2 rounded-xl bg-indigo-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all duration-200"
+              className="group flex items-center gap-2 rounded-xl bg-kit-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-kit-200 hover:bg-kit-700 transition-all duration-200"
             >
               Get Started Free
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -216,7 +216,7 @@ export default function LandingPage() {
               { value: '95%', label: 'Placement Rate' },
             ].map(({ value, label }) => (
               <div key={label}>
-                <p className="text-3xl font-bold text-indigo-600">{value}</p>
+                <p className="text-3xl font-bold text-kit-600">{value}</p>
                 <p className="mt-1 text-sm text-gray-500">{label}</p>
               </div>
             ))}
@@ -240,15 +240,15 @@ export default function LandingPage() {
               {/* Sidebar */}
               <div className="w-48 border-r border-gray-100 bg-gray-50 p-3">
                 <div className="mb-4 flex items-center gap-2 rounded-lg bg-white p-2 shadow-sm">
-                  <div className="h-6 w-6 rounded-md bg-indigo-600" />
+                  <div className="h-6 w-6 rounded-md bg-kit-600" />
                   <span className="text-xs font-bold text-gray-800">CareerAI</span>
                 </div>
                 {['Overview', 'My Profile', 'Resume', 'Applications', 'Internships', 'Hackathons', 'AI Assistant'].map((item, i) => (
                   <div
                     key={item}
-                    className={`mb-1 flex items-center gap-2 rounded-md px-2 py-1.5 text-xs ${i === 0 ? 'bg-indigo-50 font-medium text-indigo-700' : 'text-gray-500'}`}
+                    className={`mb-1 flex items-center gap-2 rounded-md px-2 py-1.5 text-xs ${i === 0 ? 'bg-kit-50 font-medium text-kit-700' : 'text-gray-500'}`}
                   >
-                    <div className={`h-1.5 w-1.5 rounded-full ${i === 0 ? 'bg-indigo-600' : 'bg-gray-300'}`} />
+                    <div className={`h-1.5 w-1.5 rounded-full ${i === 0 ? 'bg-kit-600' : 'bg-gray-300'}`} />
                     {item}
                   </div>
                 ))}
@@ -258,9 +258,9 @@ export default function LandingPage() {
                 <p className="mb-3 text-xs font-semibold text-gray-700">Welcome back, Arjun 👋</p>
                 <div className="mb-4 grid grid-cols-4 gap-2">
                   {[
-                    { label: 'Applications', val: '12', color: 'bg-indigo-50 text-indigo-700' },
+                    { label: 'Applications', val: '12', color: 'bg-kit-50 text-kit-700' },
                     { label: 'Active', val: '5', color: 'bg-blue-50 text-blue-700' },
-                    { label: 'Interviews', val: '2', color: 'bg-purple-50 text-purple-700' },
+                    { label: 'Interviews', val: '2', color: 'bg-kit-50 text-kit-700' },
                     { label: 'Offers', val: '1', color: 'bg-emerald-50 text-emerald-700' },
                   ].map(({ label, val, color }) => (
                     <div key={label} className={`rounded-lg p-2 ${color}`}>
@@ -275,7 +275,7 @@ export default function LandingPage() {
                     <div key={app} className="flex items-center justify-between border-b border-gray-50 py-1.5 last:border-0">
                       <span className="text-xs text-gray-600">{app}</span>
                       <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        i === 0 ? 'bg-purple-50 text-purple-700' : i === 1 ? 'bg-blue-50 text-blue-700' : 'bg-red-50 text-red-700'
+                        i === 0 ? 'bg-kit-50 text-kit-700' : i === 1 ? 'bg-blue-50 text-blue-700' : 'bg-red-50 text-red-700'
                       }`}>
                         {['Interview', 'Applied', 'Rejected'][i]}
                       </span>
@@ -330,7 +330,7 @@ export default function LandingPage() {
                   <div className="absolute left-full top-8 hidden w-full border-t-2 border-dashed border-gray-200 lg:block" />
                 )}
                 <div className="text-center">
-                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-600 text-xl font-bold text-white shadow-lg shadow-indigo-200">
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-kit-600 text-xl font-bold text-white shadow-lg shadow-kit-200">
                     {step}
                   </div>
                   <h3 className="mb-2 text-base font-semibold text-gray-900">{title}</h3>
@@ -387,7 +387,7 @@ export default function LandingPage() {
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <Link
               href="/register"
-              className="group flex items-center gap-2 rounded-xl bg-indigo-600 px-10 py-4 text-lg font-semibold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all"
+              className="group flex items-center gap-2 rounded-xl bg-kit-600 px-10 py-4 text-lg font-semibold text-white shadow-lg shadow-kit-200 hover:bg-kit-700 transition-all"
             >
               Create Free Account
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
@@ -401,7 +401,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-kit-600">
                 <Zap className="h-4 w-4 text-white" />
               </div>
               <span className="text-lg font-bold text-gray-900">CareerAI</span>

@@ -161,7 +161,7 @@ export default function TestApplyPage3() {
 
       <button
         type="submit"
-        className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white"
+        className="rounded-xl bg-kit-600 px-5 py-2.5 text-sm font-semibold text-white"
       >
         Continue to Review
       </button>

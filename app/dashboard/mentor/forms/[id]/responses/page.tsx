@@ -138,7 +138,7 @@ export default function MentorFormResponsesPage() {
           </button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <FileText className="h-6 w-6 text-indigo-600" /> {formTitle}
+              <FileText className="h-6 w-6 text-kit-600" /> {formTitle}
             </h1>
             <p className="text-sm text-gray-500 mt-1">Assigned student submission responses ({responses.length} total)</p>
           </div>
@@ -157,8 +157,8 @@ export default function MentorFormResponsesPage() {
       {/* Completion Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs flex items-center gap-4">
-          <div className="h-12 w-12 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
-            <Users className="h-6 w-6 text-indigo-600" />
+          <div className="h-12 w-12 rounded-xl bg-kit-50 flex items-center justify-center shrink-0">
+            <Users className="h-6 w-6 text-kit-600" />
           </div>
           <div>
             <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Assigned Students</span>
@@ -187,12 +187,12 @@ export default function MentorFormResponsesPage() {
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs flex items-center gap-4">
-          <div className="h-12 w-12 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
-            <BarChart2 className="h-6 w-6 text-purple-600" />
+          <div className="h-12 w-12 rounded-xl bg-kit-50 flex items-center justify-center shrink-0">
+            <BarChart2 className="h-6 w-6 text-kit-600" />
           </div>
           <div>
             <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Completion Rate</span>
-            <h3 className="text-2xl font-bold text-purple-600">{stats.completionRate}%</h3>
+            <h3 className="text-2xl font-bold text-kit-600">{stats.completionRate}%</h3>
           </div>
         </div>
       </div>
@@ -206,7 +206,7 @@ export default function MentorFormResponsesPage() {
             placeholder="Search student or register no..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-gray-200 bg-white pl-9 pr-3 py-1.5 text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            className="w-full rounded-xl border border-gray-200 bg-white pl-9 pr-3 py-1.5 text-xs text-gray-900 focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200"
           />
         </div>
       </div>
@@ -214,7 +214,7 @@ export default function MentorFormResponsesPage() {
       {/* Responses Table */}
       {loading ? (
         <div className="py-16 text-center text-gray-400">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-indigo-600" />
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-kit-600" />
           <p className="text-xs font-semibold mt-2">Loading student responses…</p>
         </div>
       ) : filteredResponses.length === 0 ? (
@@ -253,7 +253,7 @@ export default function MentorFormResponsesPage() {
                     <td className="px-4 py-3 text-right">
                       <button
                         onClick={() => setSelectedResponse(res)}
-                        className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg transition-colors"
+                        className="inline-flex items-center gap-1 text-xs font-bold text-kit-600 hover:text-kit-700 bg-kit-50 px-2.5 py-1 rounded-lg transition-colors"
                       >
                         <Eye className="h-3.5 w-3.5" /> View Answers
                       </button>
@@ -294,7 +294,7 @@ export default function MentorFormResponsesPage() {
                         href={answerVal}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-indigo-600 hover:underline font-semibold flex items-center gap-1"
+                        className="text-kit-600 hover:underline font-semibold flex items-center gap-1"
                       >
                         Download Uploaded File
                       </a>

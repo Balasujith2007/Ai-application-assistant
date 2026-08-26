@@ -92,13 +92,13 @@ export default function MentorTasksPage() {
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <CheckSquare className="h-6 w-6 text-indigo-600" /> Student Tasks & Assignments
+            <CheckSquare className="h-6 w-6 text-kit-600" /> Student Tasks & Assignments
           </h1>
           <p className="text-sm text-gray-500 mt-1">Assign preparation tasks and track completion progress for assigned students</p>
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 shadow-sm transition-colors"
+          className="flex items-center gap-2 rounded-xl bg-kit-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-kit-700 shadow-sm transition-colors"
         >
           <Plus className="h-4 w-4" /> Assign New Task
         </button>
@@ -106,7 +106,7 @@ export default function MentorTasksPage() {
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
         </div>
       ) : tasks.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-12 text-center text-sm text-gray-500">
@@ -128,7 +128,7 @@ export default function MentorTasksPage() {
               <div className="text-xs text-gray-500 space-y-1 pt-2 border-t border-gray-100">
                 <p className="flex items-center gap-1.5"><User className="h-3.5 w-3.5 text-gray-400" /> Student: <strong className="text-gray-900">{t.user.name}</strong></p>
                 {t.deadline && (
-                  <p className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-indigo-500" /> Due: {new Date(t.deadline).toLocaleDateString()}</p>
+                  <p className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-kit-500" /> Due: {new Date(t.deadline).toLocaleDateString()}</p>
                 )}
               </div>
             </div>
@@ -153,7 +153,7 @@ export default function MentorTasksPage() {
                 <select
                   value={studentId}
                   onChange={(e) => setStudentId(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm focus:border-kit-500 focus:outline-none"
                   required
                 >
                   <option value="" disabled>Choose student...</option>
@@ -169,7 +169,7 @@ export default function MentorTasksPage() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Update resume with latest project..."
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm focus:border-kit-500 focus:outline-none"
                   required
                 />
               </div>
@@ -209,7 +209,7 @@ export default function MentorTasksPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-kit-600 py-2.5 text-sm font-semibold text-white hover:bg-kit-700 disabled:opacity-60"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Assign Task'}
                 </button>

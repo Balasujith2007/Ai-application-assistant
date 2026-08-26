@@ -338,13 +338,13 @@ export default function HODReportsPage() {
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <FileText className="h-6 w-6 text-indigo-600" /> Department Reports
+            <FileText className="h-6 w-6 text-kit-600" /> Department Reports
           </h1>
           <p className="text-sm text-gray-500 mt-1">Exportable summaries for HOD management and placement audits</p>
         </div>
         <button
           onClick={handlePrint}
-          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm"
+          className="flex items-center gap-2 rounded-xl bg-kit-600 px-4 py-2 text-sm font-semibold text-white hover:bg-kit-700 transition-colors shadow-sm"
         >
           <Printer className="h-4 w-4" /> Print / Export Page
         </button>
@@ -359,7 +359,7 @@ export default function HODReportsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
           <div>
             <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-              <Filter className="h-4 w-4 text-indigo-600" /> Class Filter
+              <Filter className="h-4 w-4 text-kit-600" /> Class Filter
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">Select Department, Year, and Section to generate class-specific reports</p>
           </div>
@@ -381,7 +381,7 @@ export default function HODReportsPage() {
               value={selectedDepartment}
               disabled={loadingClasses}
               onChange={(e) => handleDepartmentChange(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200"
             >
               <option value="">Select Department</option>
               {departments.map((dept) => (
@@ -399,7 +399,7 @@ export default function HODReportsPage() {
               value={selectedYear}
               disabled={!selectedDepartment}
               onChange={(e) => handleYearChange(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
             >
               <option value="">Select Year</option>
               {years.map((y) => (
@@ -417,7 +417,7 @@ export default function HODReportsPage() {
               value={selectedSection}
               disabled={!selectedDepartment || !selectedYear}
               onChange={(e) => setSelectedSection(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
             >
               <option value="">Select Section</option>
               {sections.map((sec) => (
@@ -431,13 +431,13 @@ export default function HODReportsPage() {
 
         {/* Selected Class Banner */}
         {isClassSelected ? (
-          <div className="rounded-xl bg-indigo-50/70 border border-indigo-100 p-3.5 flex items-center justify-between">
+          <div className="rounded-xl bg-kit-50/70 border border-kit-100 p-3.5 flex items-center justify-between">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500 block mb-0.5">Selected Class</span>
-              <p className="text-sm font-bold text-indigo-950">{selectedDepartment}</p>
-              <p className="text-xs text-indigo-700 font-semibold mt-0.5">Year {selectedYear} • Section {selectedSection}</p>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-kit-500 block mb-0.5">Selected Class</span>
+              <p className="text-sm font-bold text-kit-900">{selectedDepartment}</p>
+              <p className="text-xs text-kit-700 font-semibold mt-0.5">Year {selectedYear} • Section {selectedSection}</p>
             </div>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-600 text-white shadow-2xs">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-kit-600 text-white shadow-2xs">
               <CheckCircle2 className="h-3.5 w-3.5" /> Class Filter Active
             </span>
           </div>
@@ -466,7 +466,7 @@ export default function HODReportsPage() {
             <div key={r.id} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between">
               <div>
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-kit-50 text-kit-600">
                     <FileText className="h-5 w-5" />
                   </div>
                   <h3 className="font-bold text-gray-900">{r.title}</h3>
@@ -479,7 +479,7 @@ export default function HODReportsPage() {
                   <button
                     disabled={!isClassSelected || isThisDownloading}
                     onClick={() => handleDownload(r, 'pdf')}
-                    className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="flex items-center gap-1.5 text-xs font-bold text-kit-600 hover:text-kit-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     title={isClassSelected ? "Download as PDF" : "Select Department, Year and Section first"}
                   >
                     {isThisDownloading && downloadFormat === 'pdf' ? (

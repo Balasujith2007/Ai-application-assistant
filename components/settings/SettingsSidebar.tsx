@@ -31,10 +31,10 @@ export function SettingsSidebar({ activeTab, setActiveTab }: Props) {
             onClick={() => setActiveTab(tab.id)}
             className={cn(
               "flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg whitespace-nowrap transition-colors",
-              isActive ? "bg-indigo-50 text-indigo-700" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              isActive ? "bg-kit-50 text-kit-700" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
             )}
           >
-            <Icon className={cn("h-5 w-5", isActive ? "text-indigo-600" : "text-gray-400")} />
+            <Icon className={cn("h-5 w-5", isActive ? "text-kit-600" : "text-gray-400")} />
             {tab.label}
           </button>
         );

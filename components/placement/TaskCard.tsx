@@ -34,9 +34,9 @@ export function TaskCard({
   };
 
   const categoryStyles: Record<TaskCategory, string> = {
-    Resume: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    Resume: 'bg-kit-50 text-kit-700 border-kit-200',
     Applications: 'bg-blue-50 text-blue-700 border-blue-200',
-    Interviews: 'bg-purple-50 text-purple-700 border-purple-200',
+    Interviews: 'bg-kit-50 text-kit-700 border-kit-200',
     'Skill Development': 'bg-emerald-50 text-emerald-700 border-emerald-200',
     Hackathons: 'bg-orange-50 text-orange-700 border-orange-200',
     Mentor: 'bg-teal-50 text-teal-700 border-teal-200',
@@ -63,8 +63,8 @@ export function TaskCard({
           className={cn(
             'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-2 transition-colors',
             task.completed
-              ? 'border-indigo-600 bg-indigo-600 text-white'
-              : 'border-gray-300 bg-white hover:border-indigo-500',
+              ? 'border-kit-600 bg-kit-600 text-white'
+              : 'border-gray-300 bg-white hover:border-kit-500',
           )}
         >
           {task.completed && <Check className="h-4 w-4 stroke-[3]" />}
@@ -115,7 +115,7 @@ export function TaskCard({
             <span
               className={cn(
                 'flex items-center gap-1.5',
-                isOverdue ? 'text-rose-600 font-bold' : isToday ? 'text-indigo-600 font-bold' : 'text-gray-500',
+                isOverdue ? 'text-rose-600 font-bold' : isToday ? 'text-kit-600 font-bold' : 'text-gray-500',
               )}
             >
               <Clock className="h-3.5 w-3.5" />
@@ -137,7 +137,7 @@ export function TaskCard({
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           onClick={() => onEdit(task)}
-          className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-indigo-600 transition-colors"
+          className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-kit-600 transition-colors"
           title="Edit Task"
         >
           <Pencil className="h-4 w-4" />

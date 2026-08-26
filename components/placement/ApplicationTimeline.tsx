@@ -50,7 +50,7 @@ export function ApplicationTimeline({ timeline, status }: ApplicationTimelinePro
       <div className="absolute left-6 top-1/2 -mt-0.5 h-1 w-[calc(100%-3rem)] bg-gray-200" />
       {/* Active progress line */}
       <div
-        className="absolute left-6 top-1/2 -mt-0.5 h-1 bg-indigo-600 transition-all duration-500"
+        className="absolute left-6 top-1/2 -mt-0.5 h-1 bg-kit-600 transition-all duration-500"
         style={{
           width: `${(currentIndex / (steps.length - 1)) * 80}%`,
         }}
@@ -67,9 +67,9 @@ export function ApplicationTimeline({ timeline, status }: ApplicationTimelinePro
                 className={cn(
                   'flex h-10 w-10 items-center justify-center rounded-full border-2 bg-white z-10 font-bold transition-all duration-300',
                   isDone
-                    ? 'border-indigo-600 bg-indigo-600 text-white shadow-xs'
+                    ? 'border-kit-600 bg-kit-600 text-white shadow-xs'
                     : 'border-gray-300 text-gray-400 bg-white',
-                  isCurrent && 'ring-4 ring-indigo-100 scale-105',
+                  isCurrent && 'ring-4 ring-kit-100 scale-105',
                 )}
               >
                 {isDone ? (
@@ -83,7 +83,7 @@ export function ApplicationTimeline({ timeline, status }: ApplicationTimelinePro
                 className={cn(
                   'text-xs font-semibold',
                   isDone ? 'text-gray-900' : 'text-gray-400',
-                  isCurrent && 'text-indigo-600 font-bold',
+                  isCurrent && 'text-kit-600 font-bold',
                 )}
               >
                 {step.label}

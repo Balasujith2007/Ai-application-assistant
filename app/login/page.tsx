@@ -61,9 +61,7 @@ function LoginForm() {
     <div className="mx-auto w-full max-w-sm">
       {/* Logo */}
       <Link href="/" className="flex items-center gap-2 mb-10">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600">
-          <Zap className="h-5 w-5 text-white" />
-        </div>
+        <img src="/kit-logo.png" alt="KIT Logo" className="h-9 w-9 object-contain" />
         <span className="text-xl font-bold text-gray-900">CareerAI</span>
       </Link>
 
@@ -73,14 +71,14 @@ function LoginForm() {
       </p>
 
       {/* Demo credentials hint */}
-      <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-700">
+      <div className="mt-4 rounded-lg border border-kit-200 bg-kit-50 p-3 text-xs text-kit-700">
         <strong>Demo:</strong> student@demo.com / Demo@1234
       </div>
 
       <div className="mt-6">
         <a
           href="/api/auth/google"
-          className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
+          className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-kit-500 focus:ring-offset-2 transition-colors"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -149,13 +147,13 @@ function LoginForm() {
               id="remember-me"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              className="h-4 w-4 rounded border-gray-300 text-kit-600 focus:ring-kit-500"
             />
             Remember me
           </label>
           <Link
             href="/forgot-password"
-            className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+            className="text-sm text-kit-600 hover:text-kit-700 font-medium"
           >
             Forgot password?
           </Link>
@@ -176,7 +174,7 @@ function LoginForm() {
         Don&apos;t have an account?{' '}
         <Link
           href="/register"
-          className="font-medium text-indigo-600 hover:text-indigo-700"
+          className="font-medium text-kit-600 hover:text-kit-700"
         >
           Create one free
         </Link>
@@ -196,17 +194,17 @@ export default function LoginPage() {
       </div>
 
       {/* Right — Visual panel */}
-      <div className="hidden lg:flex lg:flex-1 flex-col justify-center bg-indigo-600 px-16 py-12">
+      <div className="hidden lg:flex lg:flex-1 flex-col justify-center bg-kit-600 px-16 py-12">
         <div className="max-w-md text-white">
           <div className="mb-8">
-            <div className="inline-flex rounded-2xl bg-white/10 p-3">
-              <Zap className="h-8 w-8 text-white" />
+            <div className="inline-flex bg-white rounded-2xl p-2 h-16 w-16 items-center justify-center">
+              <img src="/kit-logo.png" alt="KIT Logo" className="h-12 w-12 object-contain" />
             </div>
           </div>
           <h2 className="text-3xl font-bold">
             Your career journey starts here
           </h2>
-          <p className="mt-4 text-lg text-indigo-100">
+          <p className="mt-4 text-lg text-kit-100">
             Track internships, manage resumes, and land your dream job with
             AI-powered career assistance.
           </p>
@@ -221,7 +219,7 @@ export default function LoginPage() {
                 <div className="mt-0.5 h-5 w-5 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
                   <div className="h-2 w-2 rounded-full bg-white" />
                 </div>
-                <p className="text-sm text-indigo-100">{item}</p>
+                <p className="text-sm text-kit-100">{item}</p>
               </div>
             ))}
           </div>

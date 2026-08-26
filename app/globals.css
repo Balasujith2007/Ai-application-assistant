@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+@theme {
+  --color-kit-50: #FFF5F6;
+  --color-kit-100: #FBECEF;
+  --color-kit-200: #F5CED6;
+  --color-kit-300: #E89AAA;
+  --color-kit-400: #D4546E;
+  --color-kit-500: #C51F3A;
+  --color-kit-600: #A30D2D;
+  --color-kit-700: #8F0B28;
+  --color-kit-800: #760820;
+  --color-kit-900: #5C0618;
+}
+
 @layer base {
   :root {
     --font-inter: 'Inter', system-ui, sans-serif;

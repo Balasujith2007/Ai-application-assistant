@@ -132,7 +132,7 @@ export default function MentorOpportunitiesPage() {
                 onClick={() => setFilter(t.id as any)}
                 className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
                   filter === t.id
-                    ? 'bg-indigo-600 text-white shadow-sm'
+                    ? 'bg-kit-600 text-white shadow-sm'
                     : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                 }`}
               >
@@ -151,7 +151,7 @@ export default function MentorOpportunitiesPage() {
         {/* Opportunity List Table / Grid */}
         {loading ? (
           <div className="flex h-64 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+            <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-white py-16 px-4 text-center">
@@ -164,7 +164,7 @@ export default function MentorOpportunitiesPage() {
               <div key={opp.id} className="flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
                 <div>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-md">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-kit-700 bg-kit-50 px-2.5 py-1 rounded-md">
                       {opp.type}
                     </span>
                     <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
@@ -182,7 +182,7 @@ export default function MentorOpportunitiesPage() {
                       <span className="font-bold text-gray-900 block">{opp.viewsCount}</span> Views
                     </div>
                     <div>
-                      <span className="font-bold text-indigo-600 block">{opp.registrationCount}</span> Registrations
+                      <span className="font-bold text-kit-600 block">{opp.registrationCount}</span> Registrations
                     </div>
                   </div>
                 </div>
@@ -215,7 +215,7 @@ export default function MentorOpportunitiesPage() {
                 <div className="flex items-center justify-between border-b border-gray-100 pb-4">
                   <div>
                     <h2 className="text-lg font-bold text-gray-900">Student Registrations</h2>
-                    <p className="text-xs font-semibold text-indigo-600">{selectedOppTitle}</p>
+                    <p className="text-xs font-semibold text-kit-600">{selectedOppTitle}</p>
                   </div>
                   <button
                     onClick={() => setSelectedOppId(null)}
@@ -227,7 +227,7 @@ export default function MentorOpportunitiesPage() {
 
                 {loadingRegs ? (
                   <div className="flex h-48 items-center justify-center">
-                    <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
+                    <Loader2 className="h-7 w-7 animate-spin text-kit-600" />
                   </div>
                 ) : registrations.length === 0 ? (
                   <div className="py-12 text-center text-sm text-gray-500">
@@ -258,7 +258,7 @@ export default function MentorOpportunitiesPage() {
                           {/* Links */}
                           <div className="flex flex-wrap gap-2 text-xs pt-1">
                             {reg.student.profile?.githubUrl && (
-                              <a href={reg.student.profile.githubUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline flex items-center gap-1 font-semibold">
+                              <a href={reg.student.profile.githubUrl} target="_blank" rel="noopener noreferrer" className="text-kit-600 hover:underline flex items-center gap-1 font-semibold">
                                 GitHub <ShieldCheck className="h-3 w-3 text-emerald-600" />
                               </a>
                             )}
@@ -268,7 +268,7 @@ export default function MentorOpportunitiesPage() {
                               </a>
                             )}
                             {reg.student.profile?.codolioUrl && (
-                              <a href={reg.student.profile.codolioUrl} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline flex items-center gap-1 font-semibold">
+                              <a href={reg.student.profile.codolioUrl} target="_blank" rel="noopener noreferrer" className="text-kit-600 hover:underline flex items-center gap-1 font-semibold">
                                 Codolio <ShieldCheck className="h-3 w-3 text-emerald-600" />
                               </a>
                             )}
@@ -286,7 +286,7 @@ export default function MentorOpportunitiesPage() {
                           <select
                             value={reg.status}
                             onChange={(e) => updateRegistrationStatus(reg.id, e.target.value)}
-                            className="rounded-xl border border-gray-300 px-3 py-1.5 text-xs font-bold focus:border-indigo-500 focus:outline-none bg-white"
+                            className="rounded-xl border border-gray-300 px-3 py-1.5 text-xs font-bold focus:border-kit-500 focus:outline-none bg-white"
                           >
                             <option value="INITIATED">INITIATED</option>
                             <option value="REGISTERED">REGISTERED ✓</option>

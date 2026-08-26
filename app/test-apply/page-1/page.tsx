@@ -89,7 +89,7 @@ export default function TestApplyPage1() {
         />
       </div>
 
-      <button type="submit" className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white">
+      <button type="submit" className="rounded-xl bg-kit-600 px-5 py-2.5 text-sm font-semibold text-white">
         Continue
       </button>
     </form>

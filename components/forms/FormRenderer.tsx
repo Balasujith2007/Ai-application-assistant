@@ -217,7 +217,7 @@ export function FormRenderer({ form, mode = 'student', onSubmitSuccess }: FormRe
         <h1 className="text-2xl font-bold text-gray-900">{form.title || 'Untitled Form'}</h1>
         {form.description && <p className="text-sm text-gray-600 mt-2 leading-relaxed">{form.description}</p>}
         {form.instructions && (
-          <div className="mt-4 rounded-xl bg-indigo-50/70 border border-indigo-100 p-3.5 text-xs text-indigo-900">
+          <div className="mt-4 rounded-xl bg-kit-50/70 border border-kit-100 p-3.5 text-xs text-kit-900">
             <strong>Instructions:</strong> {form.instructions}
           </div>
         )}
@@ -254,7 +254,7 @@ export function FormRenderer({ form, mode = 'student', onSubmitSuccess }: FormRe
                 {field.label}
                 {field.required && <span className="text-rose-600 ml-1">*</span>}
                 {cfg.profileKey && (
-                  <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
+                  <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-semibold text-kit-600 bg-kit-50 px-2 py-0.5 rounded-md">
                     <UserCheck className="h-3 w-3" /> Auto-filled from Profile
                   </span>
                 )}
@@ -269,7 +269,7 @@ export function FormRenderer({ form, mode = 'student', onSubmitSuccess }: FormRe
                   placeholder={field.placeholder || ''}
                   value={formData[field.fieldId] || ''}
                   onChange={(e) => handleInputChange(field.fieldId, e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200"
                 />
               )}
 
@@ -279,7 +279,7 @@ export function FormRenderer({ form, mode = 'student', onSubmitSuccess }: FormRe
                   placeholder={field.placeholder || ''}
                   value={formData[field.fieldId] || ''}
                   onChange={(e) => handleInputChange(field.fieldId, e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200"
                 />
               )}
 
@@ -289,7 +289,7 @@ export function FormRenderer({ form, mode = 'student', onSubmitSuccess }: FormRe
                   placeholder={field.placeholder || 'example@domain.com'}
                   value={formData[field.fieldId] || ''}
                   onChange={(e) => handleInputChange(field.fieldId, e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200"
                 />
               )}
 
@@ -299,7 +299,7 @@ export function FormRenderer({ form, mode = 'student', onSubmitSuccess }: FormRe
                   placeholder={field.placeholder || '+91 9876543210'}
                   value={formData[field.fieldId] || ''}
                   onChange={(e) => handleInputChange(field.fieldId, e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200"
                 />
               )}
 
@@ -309,7 +309,7 @@ export function FormRenderer({ form, mode = 'student', onSubmitSuccess }: FormRe
                   placeholder={field.placeholder || '0'}
                   value={formData[field.fieldId] || ''}
                   onChange={(e) => handleInputChange(field.fieldId, e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200"
                 />
               )}
 
@@ -318,7 +318,7 @@ export function FormRenderer({ form, mode = 'student', onSubmitSuccess }: FormRe
                   type="date"
                   value={formData[field.fieldId] || ''}
                   onChange={(e) => handleInputChange(field.fieldId, e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200"
                 />
               )}
 
@@ -326,7 +326,7 @@ export function FormRenderer({ form, mode = 'student', onSubmitSuccess }: FormRe
                 <select
                   value={formData[field.fieldId] || ''}
                   onChange={(e) => handleInputChange(field.fieldId, e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200"
                 >
                   <option value="">Select an option</option>
                   {options.map((opt: string, i: number) => (
@@ -345,7 +345,7 @@ export function FormRenderer({ form, mode = 'student', onSubmitSuccess }: FormRe
                         value={opt}
                         checked={formData[field.fieldId] === opt}
                         onChange={() => handleInputChange(field.fieldId, opt)}
-                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                        className="h-4 w-4 text-kit-600 focus:ring-kit-500 border-gray-300"
                       />
                       <span>{opt}</span>
                     </label>
@@ -364,7 +364,7 @@ export function FormRenderer({ form, mode = 'student', onSubmitSuccess }: FormRe
                           type="checkbox"
                           checked={isChecked}
                           onChange={(e) => handleCheckboxChange(field.fieldId, opt, e.target.checked)}
-                          className="h-4 w-4 rounded-sm text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                          className="h-4 w-4 rounded-sm text-kit-600 focus:ring-kit-500 border-gray-300"
                         />
                         <span>{opt}</span>
                       </label>
@@ -383,7 +383,7 @@ export function FormRenderer({ form, mode = 'student', onSubmitSuccess }: FormRe
                         value={opt}
                         checked={formData[field.fieldId] === opt}
                         onChange={() => handleInputChange(field.fieldId, opt)}
-                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                        className="h-4 w-4 text-kit-600 focus:ring-kit-500 border-gray-300"
                       />
                       <span>{opt}</span>
                     </label>
@@ -396,7 +396,7 @@ export function FormRenderer({ form, mode = 'student', onSubmitSuccess }: FormRe
                   <input
                     type="file"
                     onChange={(e) => handleFileChange(field.fieldId, e.target.files?.[0] || null)}
-                    className="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                    className="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-kit-50 file:text-kit-700 hover:file:bg-kit-100"
                   />
                   {files[field.fieldId] && (
                     <p className="text-[11px] font-semibold text-emerald-600 mt-1">
@@ -412,7 +412,7 @@ export function FormRenderer({ form, mode = 'student', onSubmitSuccess }: FormRe
                   placeholder={field.placeholder || 'https://'}
                   value={formData[field.fieldId] || ''}
                   onChange={(e) => handleInputChange(field.fieldId, e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200"
                 />
               )}
 
@@ -448,7 +448,7 @@ export function FormRenderer({ form, mode = 'student', onSubmitSuccess }: FormRe
                   readOnly={cfg.isReadOnly !== false}
                   value={formData[field.fieldId] || ''}
                   onChange={(e) => handleInputChange(field.fieldId, e.target.value)}
-                  className={`w-full rounded-xl border border-gray-200 px-3 py-2 text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
+                  className={`w-full rounded-xl border border-gray-200 px-3 py-2 text-xs text-gray-900 focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200 ${
                     cfg.isReadOnly !== false ? 'bg-gray-50 text-gray-700 cursor-not-allowed' : 'bg-white'
                   }`}
                 />
@@ -469,7 +469,7 @@ export function FormRenderer({ form, mode = 'student', onSubmitSuccess }: FormRe
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
+          className="rounded-xl bg-kit-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-kit-700 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
         >
           {submitting ? (
             <>

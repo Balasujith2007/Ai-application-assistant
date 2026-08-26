@@ -60,7 +60,7 @@ export default function MentorStudentDetailPage({ params }: Props) {
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
       </div>
     );
   }
@@ -68,7 +68,7 @@ export default function MentorStudentDetailPage({ params }: Props) {
   if (error || !student) {
     return (
       <div className="space-y-4">
-        <Link href="/dashboard/mentor/students" className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:underline">
+        <Link href="/dashboard/mentor/students" className="inline-flex items-center gap-2 text-sm font-semibold text-kit-600 hover:underline">
           <ArrowLeft className="h-4 w-4" /> Back to My Students
         </Link>
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -88,13 +88,13 @@ export default function MentorStudentDetailPage({ params }: Props) {
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <Link href="/dashboard/mentor/students" className="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-indigo-600 transition-colors">
+        <Link href="/dashboard/mentor/students" className="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-kit-600 transition-colors">
           <ArrowLeft className="h-4 w-4" /> Back to My Students
         </Link>
         <button
           onClick={handleRemind}
           disabled={reminding}
-          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60 shadow-sm transition-colors"
+          className="flex items-center gap-2 rounded-xl bg-kit-600 px-4 py-2 text-sm font-semibold text-white hover:bg-kit-700 disabled:opacity-60 shadow-sm transition-colors"
         >
           {reminding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Send Reminder
         </button>
@@ -103,12 +103,12 @@ export default function MentorStudentDetailPage({ params }: Props) {
       {/* Main Student Card */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-6">
         <div className="flex items-start gap-5">
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-3xl font-bold text-indigo-700">
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-kit-100 text-3xl font-bold text-kit-700">
             {student.name.charAt(0).toUpperCase()}
           </div>
           <div className="space-y-1">
             <h1 className="text-2xl font-bold text-gray-900">{student.name}</h1>
-            <p className="text-sm font-mono font-bold text-indigo-600">Register No: {student.profile?.registerNo || '—'}</p>
+            <p className="text-sm font-mono font-bold text-kit-600">Register No: {student.profile?.registerNo || '—'}</p>
             <p className="text-sm text-gray-500 flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-gray-400" /> {student.email}</p>
           </div>
         </div>
@@ -139,7 +139,7 @@ export default function MentorStudentDetailPage({ params }: Props) {
         {/* Resumes */}
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
           <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2">
-            <FileText className="h-5 w-5 text-indigo-600" /> Resumes ({student.resumes?.length || 0})
+            <FileText className="h-5 w-5 text-kit-600" /> Resumes ({student.resumes?.length || 0})
           </h3>
           {student.resumes?.length > 0 ? (
             <div className="space-y-3">
@@ -163,7 +163,7 @@ export default function MentorStudentDetailPage({ params }: Props) {
         {/* Applications */}
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
           <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2">
-            <Briefcase className="h-5 w-5 text-indigo-600" /> Applications ({student.applications?.length || 0})
+            <Briefcase className="h-5 w-5 text-kit-600" /> Applications ({student.applications?.length || 0})
           </h3>
           {student.applications?.length > 0 ? (
             <div className="space-y-3">
@@ -173,7 +173,7 @@ export default function MentorStudentDetailPage({ params }: Props) {
                     <p className="font-bold text-gray-900">{a.companyName}</p>
                     <p className="text-gray-500">{a.position}</p>
                   </div>
-                  <span className="rounded-full bg-indigo-100 px-2.5 py-1 font-semibold text-indigo-800">
+                  <span className="rounded-full bg-kit-100 px-2.5 py-1 font-semibold text-kit-800">
                     {a.status}
                   </span>
                 </div>

@@ -86,13 +86,13 @@ export default function HODTasksPage() {
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <CheckSquare className="h-6 w-6 text-indigo-600" /> Department Tasks & Actions
+            <CheckSquare className="h-6 w-6 text-kit-600" /> Department Tasks & Actions
           </h1>
           <p className="text-sm text-gray-500 mt-1">Assign preparation deadlines, action items, and task tracking for the department</p>
         </div>
         <button
           onClick={() => setModalOpen(true)}
-          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors"
+          className="flex items-center gap-2 rounded-xl bg-kit-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-kit-700 transition-colors"
         >
           <Plus className="h-4 w-4" /> Create Department Task
         </button>
@@ -100,7 +100,7 @@ export default function HODTasksPage() {
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
         </div>
       ) : (
         <>
@@ -175,7 +175,7 @@ export default function HODTasksPage() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Upload Updated Resume by Friday"
-                  className="w-full rounded-xl border border-gray-200 p-2.5 focus:border-indigo-500 focus:outline-none"
+                  className="w-full rounded-xl border border-gray-200 p-2.5 focus:border-kit-500 focus:outline-none"
                 />
               </div>
 
@@ -184,7 +184,7 @@ export default function HODTasksPage() {
                 <select
                   value={targetRole}
                   onChange={(e) => setTargetRole(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 p-2.5 focus:border-indigo-500 focus:outline-none"
+                  className="w-full rounded-xl border border-gray-200 p-2.5 focus:border-kit-500 focus:outline-none"
                 >
                   <option value="STUDENTS">All Students</option>
                   <option value="MENTORS">All Mentors</option>
@@ -196,7 +196,7 @@ export default function HODTasksPage() {
                 <select
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 p-2.5 focus:border-indigo-500 focus:outline-none"
+                  className="w-full rounded-xl border border-gray-200 p-2.5 focus:border-kit-500 focus:outline-none"
                 >
                   <option value="LOW">Low</option>
                   <option value="MEDIUM">Medium</option>
@@ -210,7 +210,7 @@ export default function HODTasksPage() {
                   type="date"
                   value={deadline}
                   onChange={(e) => setDeadline(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 p-2.5 focus:border-indigo-500 focus:outline-none"
+                  className="w-full rounded-xl border border-gray-200 p-2.5 focus:border-kit-500 focus:outline-none"
                 />
               </div>
 
@@ -225,7 +225,7 @@ export default function HODTasksPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 rounded-xl bg-indigo-600 py-2.5 font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+                  className="flex-1 rounded-xl bg-kit-600 py-2.5 font-semibold text-white hover:bg-kit-700 disabled:opacity-60"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Assign Task'}
                 </button>

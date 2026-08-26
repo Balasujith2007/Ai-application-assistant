@@ -23,20 +23,20 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       <div
         className={cn(
           'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full',
-          isUser ? 'bg-indigo-600' : 'bg-gray-100',
+          isUser ? 'bg-kit-600' : 'bg-gray-100',
         )}
       >
         {isUser ? (
           <User className="h-4 w-4 text-white" />
         ) : (
-          <Bot className="h-4 w-4 text-indigo-600" />
+          <Bot className="h-4 w-4 text-kit-600" />
         )}
       </div>
       <div
         className={cn(
           'max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed',
           isUser
-            ? 'rounded-tr-sm bg-indigo-600 text-white'
+            ? 'rounded-tr-sm bg-kit-600 text-white'
             : 'rounded-tl-sm bg-white border border-gray-200 text-gray-800',
         )}
       >
@@ -114,7 +114,7 @@ export default function AIAssistantPage() {
             {isLoading && (
               <div className="flex gap-3">
                 <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-100">
-                  <Bot className="h-4 w-4 text-indigo-600" />
+                  <Bot className="h-4 w-4 text-kit-600" />
                 </div>
                 <div className="rounded-2xl rounded-tl-sm bg-white border border-gray-200 px-4 py-3">
                   <div className="flex gap-1">
@@ -141,7 +141,7 @@ export default function AIAssistantPage() {
                   <button
                     key={prompt}
                     onClick={() => sendMessage(prompt)}
-                    className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 transition-colors"
+                    className="rounded-full border border-kit-200 bg-kit-50 px-3 py-1.5 text-xs font-medium text-kit-700 hover:bg-kit-100 transition-colors"
                   >
                     {prompt}
                   </button>
@@ -164,7 +164,7 @@ export default function AIAssistantPage() {
                   }
                 }}
                 placeholder="Ask about resume tips, interview prep, career advice..."
-                className="flex-1 rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                className="flex-1 rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-kit-400 focus:outline-none focus:ring-2 focus:ring-kit-200"
                 disabled={isLoading}
               />
               <Button

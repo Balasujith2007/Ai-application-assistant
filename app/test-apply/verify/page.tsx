@@ -30,7 +30,7 @@ export default function TestCaptchaPage() {
       <button
         disabled={!checked}
         onClick={() => router.push('/test-apply/page-1')}
-        className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+        className="rounded-xl bg-kit-600 px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
       >
         Continue
       </button>

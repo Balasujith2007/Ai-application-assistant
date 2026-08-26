@@ -52,14 +52,14 @@ export default function HODNotificationsPage() {
     <div className="space-y-6 pb-12">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Bell className="h-6 w-6 text-indigo-600" /> HOD Notification Center
+          <Bell className="h-6 w-6 text-kit-600" /> HOD Notification Center
         </h1>
         <p className="text-sm text-gray-500 mt-1">Department alerts, mentor review updates, and student milestones</p>
       </motion.div>
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
         </div>
       ) : (
         <div className="space-y-3">
@@ -72,7 +72,7 @@ export default function HODNotificationsPage() {
               <div
                 key={n.id}
                 className={`flex items-start justify-between rounded-2xl border p-5 transition-all ${
-                  n.isRead ? 'border-gray-200 bg-white' : 'border-indigo-200 bg-indigo-50/40 ring-1 ring-indigo-500/20'
+                  n.isRead ? 'border-gray-200 bg-white' : 'border-kit-200 bg-kit-50/40 ring-1 ring-kit-500/20'
                 }`}
               >
                 <div className="space-y-1">
@@ -85,7 +85,7 @@ export default function HODNotificationsPage() {
                     onClick={() => markAsRead(n.id)}
                     className="flex items-center gap-1 rounded-xl bg-white border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 shadow-sm"
                   >
-                    <Check className="h-3.5 w-3.5 text-indigo-600" /> Mark Read
+                    <Check className="h-3.5 w-3.5 text-kit-600" /> Mark Read
                   </button>
                 )}
               </div>

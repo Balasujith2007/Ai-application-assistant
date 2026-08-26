@@ -29,7 +29,7 @@ export function CareerPreferences({ data, onSave }: { data: any; onSave: (d: any
           <h3 className="text-sm font-medium text-gray-900 mb-3">Preferred Job Roles</h3>
           <div className="flex flex-wrap gap-2">
             {ROLES.map(role => (
-              <button key={role} onClick={() => toggleArray(selectedRoles, role, setSelectedRoles)} className={`px-3 py-1.5 rounded-full text-sm font-medium ${selectedRoles.includes(role) ? 'bg-indigo-100 text-indigo-700 border border-indigo-200' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'}`}>
+              <button key={role} onClick={() => toggleArray(selectedRoles, role, setSelectedRoles)} className={`px-3 py-1.5 rounded-full text-sm font-medium ${selectedRoles.includes(role) ? 'bg-kit-100 text-kit-700 border border-kit-200' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'}`}>
                 {role}
               </button>
             ))}
@@ -40,7 +40,7 @@ export function CareerPreferences({ data, onSave }: { data: any; onSave: (d: any
           <h3 className="text-sm font-medium text-gray-900 mb-3">Preferred Locations</h3>
           <div className="flex flex-wrap gap-2">
             {LOCATIONS.map(loc => (
-              <button key={loc} onClick={() => toggleArray(selectedLocations, loc, setSelectedLocations)} className={`px-3 py-1.5 rounded-full text-sm font-medium ${selectedLocations.includes(loc) ? 'bg-indigo-100 text-indigo-700 border border-indigo-200' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'}`}>
+              <button key={loc} onClick={() => toggleArray(selectedLocations, loc, setSelectedLocations)} className={`px-3 py-1.5 rounded-full text-sm font-medium ${selectedLocations.includes(loc) ? 'bg-kit-100 text-kit-700 border border-kit-200' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'}`}>
                 {loc}
               </button>
             ))}
@@ -52,7 +52,7 @@ export function CareerPreferences({ data, onSave }: { data: any; onSave: (d: any
           <input type="text" value={expectedSalary} onChange={e => setExpectedSalary(e.target.value)} placeholder="e.g. 12 LPA or 40k/month" className="w-full max-w-sm rounded-lg border border-gray-300 p-2" />
         </div>
 
-        <button onClick={handleSubmit} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">Save Preferences</button>
+        <button onClick={handleSubmit} className="px-4 py-2 bg-kit-600 text-white rounded-lg hover:bg-kit-700 font-medium">Save Preferences</button>
       </div>
     </div>
   );

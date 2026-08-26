@@ -33,9 +33,9 @@ export function DeadlineAlert({
     },
     interview_scheduled: {
       icon: Target,
-      bg: 'bg-indigo-50/90 border-indigo-200 text-indigo-900',
-      iconColor: 'text-indigo-600',
-      badgeBg: 'bg-indigo-100 text-indigo-800',
+      bg: 'bg-kit-50/90 border-kit-200 text-kit-900',
+      iconColor: 'text-kit-600',
+      badgeBg: 'bg-kit-100 text-kit-800',
       tag: 'INTERVIEW ALERT',
     },
     high_priority_task: {

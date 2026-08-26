@@ -67,7 +67,7 @@ export default function InterviewsPage() {
       <DashboardLayout title="Interviews" subtitle="Loading your interviews...">
         <div className="flex h-[60vh] items-center justify-center">
           <div className="flex flex-col items-center gap-4">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600"></div>
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-kit-200 border-t-kit-600"></div>
             <p className="text-sm font-medium text-gray-500">Loading interviews...</p>
           </div>
         </div>
@@ -123,8 +123,8 @@ export default function InterviewsPage() {
             label="Upcoming Interviews"
             value={stats.upcomingInterviewsCount}
             icon={CalendarCheck}
-            color="text-indigo-600"
-            bg="bg-indigo-50"
+            color="text-kit-600"
+            bg="bg-kit-50"
             index={0}
           />
           <StatCard
@@ -147,8 +147,8 @@ export default function InterviewsPage() {
             label="Selected"
             value={1}
             icon={Award}
-            color="text-purple-600"
-            bg="bg-purple-50"
+            color="text-kit-600"
+            bg="bg-kit-50"
             index={3}
           />
           <StatCard
@@ -172,7 +172,7 @@ export default function InterviewsPage() {
 
           {upcomingInterviews.length === 0 ? (
             <EmptyState
-              icon={<Calendar className="h-10 w-10 text-indigo-500" />}
+              icon={<Calendar className="h-10 w-10 text-kit-500" />}
               title="No upcoming interviews"
               description="Your scheduled interviews will appear here."
               action={
@@ -200,7 +200,7 @@ export default function InterviewsPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-indigo-600" />
+                <BookOpen className="h-5 w-5 text-kit-600" />
                 Recommended Preparation
               </h2>
               <p className="text-xs text-gray-500 mt-0.5">
@@ -219,15 +219,15 @@ export default function InterviewsPage() {
               <div
                 key={item.title}
                 onClick={() => handleStartMock(item.title)}
-                className="group flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50/50 p-4 transition-all hover:border-indigo-200 hover:bg-indigo-50/40 hover:shadow-xs cursor-pointer"
+                className="group flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50/50 p-4 transition-all hover:border-kit-200 hover:bg-kit-50/40 hover:shadow-xs cursor-pointer"
               >
                 <div>
-                  <h4 className="font-bold text-gray-900 text-sm group-hover:text-indigo-600 transition-colors">
+                  <h4 className="font-bold text-gray-900 text-sm group-hover:text-kit-600 transition-colors">
                     {item.title}
                   </h4>
                   <p className="text-xs text-gray-500 mt-0.5">{item.desc}</p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-indigo-600 transition-colors shrink-0" />
+                <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-kit-600 transition-colors shrink-0" />
               </div>
             ))}
           </div>

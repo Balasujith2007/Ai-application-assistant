@@ -26,7 +26,7 @@ export default function HODSettingsPage() {
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Settings className="h-6 w-6 text-indigo-600" /> Department & HOD Settings
+          <Settings className="h-6 w-6 text-kit-600" /> Department & HOD Settings
         </h1>
         <p className="text-sm text-gray-500 mt-1">Manage department preferences and HOD account profile</p>
       </motion.div>
@@ -66,7 +66,7 @@ export default function HODSettingsPage() {
               <input
                 value={department}
                 onChange={(e) => setDepartment(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 py-2.5 pl-9 pr-4 focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-xl border border-gray-200 py-2.5 pl-9 pr-4 focus:border-kit-500 focus:outline-none"
               />
             </div>
           </div>
@@ -75,7 +75,7 @@ export default function HODSettingsPage() {
         <div className="border-t border-gray-100 pt-4 flex justify-end">
           <button
             type="submit"
-            className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 font-semibold text-white hover:bg-indigo-700 shadow-sm transition-colors"
+            className="flex items-center gap-2 rounded-xl bg-kit-600 px-5 py-2.5 font-semibold text-white hover:bg-kit-700 shadow-sm transition-colors"
           >
             <Save className="h-4 w-4" /> Save Preferences
           </button>

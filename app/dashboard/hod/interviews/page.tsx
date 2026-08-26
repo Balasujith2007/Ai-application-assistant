@@ -51,14 +51,14 @@ export default function HODInterviewsPage() {
     <div className="space-y-6 pb-12">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Calendar className="h-6 w-6 text-indigo-600" /> Department Interviews
+          <Calendar className="h-6 w-6 text-kit-600" /> Department Interviews
         </h1>
         <p className="text-sm text-gray-500 mt-1">Department-wide interview scheduling and results</p>
       </motion.div>
 
       <div className="flex gap-4">
         <div className="rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm">
-          Upcoming: <strong className="text-indigo-600 ml-1">{upcomingCount}</strong>
+          Upcoming: <strong className="text-kit-600 ml-1">{upcomingCount}</strong>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm">
           Completed: <strong className="text-emerald-600 ml-1">{completedCount}</strong>
@@ -67,7 +67,7 @@ export default function HODInterviewsPage() {
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
         </div>
       ) : interviews.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-12 text-center text-sm text-gray-500">
@@ -79,14 +79,14 @@ export default function HODInterviewsPage() {
             <div key={i.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-3">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-gray-900">{i.companyName}</span>
-                <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">
+                <span className="rounded-full bg-kit-50 px-2.5 py-1 text-xs font-semibold text-kit-700">
                   {i.type.replace('_', ' ')}
                 </span>
               </div>
               <p className="text-sm text-gray-600">{i.role}</p>
               <div className="text-xs text-gray-500 space-y-1">
                 <p>Student: <strong className="text-gray-900">{i.user.name}</strong> ({i.user.profile?.registerNo || '—'})</p>
-                <p className="flex items-center gap-1 text-indigo-600 font-medium">
+                <p className="flex items-center gap-1 text-kit-600 font-medium">
                   <Clock className="h-3.5 w-3.5" />
                   {new Date(i.date).toLocaleDateString()} {i.time ? `· ${i.time}` : ''}
                 </p>

@@ -30,7 +30,7 @@ export function AIPreferences({ data, onSave }: { data: any; onSave: (d: any) =>
             <p className="font-medium text-gray-900">{t.label}</p>
             <button
               onClick={() => toggle(t.id)}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${prefs[t.id] ? 'bg-indigo-600' : 'bg-gray-200'}`}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${prefs[t.id] ? 'bg-kit-600' : 'bg-gray-200'}`}
             >
               <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${prefs[t.id] ? 'translate-x-5' : 'translate-x-0'}`} />
             </button>
@@ -38,7 +38,7 @@ export function AIPreferences({ data, onSave }: { data: any; onSave: (d: any) =>
         ))}
       </div>
 
-      <button onClick={handleSubmit} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">Save Preferences</button>
+      <button onClick={handleSubmit} className="px-4 py-2 bg-kit-600 text-white rounded-lg hover:bg-kit-700 font-medium">Save Preferences</button>
     </div>
   );
 }

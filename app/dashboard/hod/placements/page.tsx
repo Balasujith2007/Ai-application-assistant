@@ -68,14 +68,14 @@ export default function HODPlacementsPage() {
     <div className="space-y-6 pb-12">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Briefcase className="h-6 w-6 text-indigo-600" /> Placements & Internships
+          <Briefcase className="h-6 w-6 text-kit-600" /> Placements & Internships
         </h1>
         <p className="text-sm text-gray-500 mt-1">Department-wide placement metrics, applications, and selections</p>
       </motion.div>
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
         </div>
       ) : (
         <>
@@ -90,12 +90,12 @@ export default function HODPlacementsPage() {
               <p className="text-2xl font-bold text-emerald-700 mt-1">{stats?.placedStudents || 0}</p>
             </div>
             <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-              <span className="text-xs font-semibold text-indigo-600">Internship Applications</span>
-              <p className="text-2xl font-bold text-indigo-700 mt-1">{stats?.internshipApplications || 0}</p>
+              <span className="text-xs font-semibold text-kit-600">Internship Applications</span>
+              <p className="text-2xl font-bold text-kit-700 mt-1">{stats?.internshipApplications || 0}</p>
             </div>
             <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-              <span className="text-xs font-semibold text-purple-600">Job Applications</span>
-              <p className="text-2xl font-bold text-purple-700 mt-1">{stats?.jobApplications || 0}</p>
+              <span className="text-xs font-semibold text-kit-600">Job Applications</span>
+              <p className="text-2xl font-bold text-kit-700 mt-1">{stats?.jobApplications || 0}</p>
             </div>
           </div>
 
@@ -107,13 +107,13 @@ export default function HODPlacementsPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by student, register number, or company..."
-                className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-4 text-sm focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-4 text-sm focus:border-kit-500 focus:outline-none"
               />
             </div>
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 focus:border-indigo-500 focus:outline-none"
+              className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 focus:border-kit-500 focus:outline-none"
             >
               <option value="ALL">All Types</option>
               <option value="INTERNSHIP">Internships</option>
@@ -145,7 +145,7 @@ export default function HODPlacementsPage() {
                   filteredApps.map((app) => (
                     <tr key={app.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-6 py-4 font-semibold text-gray-900">{app.studentName}</td>
-                      <td className="px-6 py-4 font-mono text-xs font-bold text-indigo-700">{app.registerNo}</td>
+                      <td className="px-6 py-4 font-mono text-xs font-bold text-kit-700">{app.registerNo}</td>
                       <td className="px-6 py-4 font-medium text-gray-800">{app.companyName}</td>
                       <td className="px-6 py-4 text-gray-600">{app.position}</td>
                       <td className="px-6 py-4 text-xs font-semibold text-gray-500">{app.type}</td>
@@ -155,7 +155,7 @@ export default function HODPlacementsPage() {
                             app.status === 'SELECTED'
                               ? 'bg-emerald-100 text-emerald-800'
                               : app.status === 'APPLIED'
-                              ? 'bg-indigo-100 text-indigo-800'
+                              ? 'bg-kit-100 text-kit-800'
                               : 'bg-gray-100 text-gray-700'
                           }`}
                         >

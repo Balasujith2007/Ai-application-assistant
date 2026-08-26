@@ -41,7 +41,7 @@ export function InterviewDetailModal({
         {/* Header Card */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50/50 p-5">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white font-bold text-lg">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-kit-600 text-white font-bold text-lg">
               {interview.companyName.charAt(0)}
             </div>
             <div>
@@ -51,7 +51,7 @@ export function InterviewDetailModal({
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-indigo-50 border border-indigo-200 px-3 py-1 text-xs font-bold text-indigo-700">
+            <span className="rounded-full bg-kit-50 border border-kit-200 px-3 py-1 text-xs font-bold text-kit-700">
               {interview.round}
             </span>
           </div>
@@ -62,7 +62,7 @@ export function InterviewDetailModal({
           <div>
             <span className="text-xs text-gray-400 font-medium">Date & Time</span>
             <p className="text-sm font-semibold text-gray-900 flex items-center gap-1.5 mt-0.5">
-              <Calendar className="h-4 w-4 text-indigo-600" />
+              <Calendar className="h-4 w-4 text-kit-600" />
               {interview.date} at {interview.time} ({interview.duration})
             </p>
           </div>
@@ -70,7 +70,7 @@ export function InterviewDetailModal({
           <div>
             <span className="text-xs text-gray-400 font-medium">Interview Format</span>
             <p className="text-sm font-semibold text-gray-900 flex items-center gap-1.5 mt-0.5">
-              <Video className="h-4 w-4 text-indigo-600" />
+              <Video className="h-4 w-4 text-kit-600" />
               {interview.type}
             </p>
           </div>
@@ -78,7 +78,7 @@ export function InterviewDetailModal({
           <div>
             <span className="text-xs text-gray-400 font-medium">Interviewer</span>
             <p className="text-sm font-semibold text-gray-900 flex items-center gap-1.5 mt-0.5">
-              <UserCheck className="h-4 w-4 text-indigo-600" />
+              <UserCheck className="h-4 w-4 text-kit-600" />
               {interview.interviewer || 'Assigned Lead Panelist'}
             </p>
           </div>
@@ -124,7 +124,7 @@ export function InterviewDetailModal({
             <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Recommended Preparation Topics</h4>
             <div className="flex flex-wrap gap-2">
               {interview.prepTopics.map((topic) => (
-                <span key={topic} className="rounded-lg bg-indigo-50 border border-indigo-100 px-3 py-1.5 text-xs font-semibold text-indigo-700">
+                <span key={topic} className="rounded-lg bg-kit-50 border border-kit-100 px-3 py-1.5 text-xs font-semibold text-kit-700">
                   {topic}
                 </span>
               ))}
@@ -180,7 +180,7 @@ export function InterviewDetailModal({
                 href={interview.meetingLink}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-700 transition-colors"
+                className="inline-flex items-center gap-2 rounded-lg bg-kit-600 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-kit-700 transition-colors"
               >
                 <Video className="h-4 w-4" /> Join Interview Link
               </a>

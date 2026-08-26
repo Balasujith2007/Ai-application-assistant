@@ -24,7 +24,7 @@ export default function StudentProgressPage() {
     return (
       <DashboardLayout title="My Progress" subtitle="Loading progress metrics...">
         <div className="flex h-[60vh] items-center justify-center">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600"></div>
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-kit-200 border-t-kit-600"></div>
         </div>
       </DashboardLayout>
     );
@@ -32,8 +32,8 @@ export default function StudentProgressPage() {
 
   const metrics = [
     { name: 'Resume Readiness', pct: resumePct, icon: FileText, color: 'bg-emerald-500', desc: 'Score & formatting optimization' },
-    { name: 'Profile Completion', pct: profilePct, icon: User, color: 'bg-indigo-500', desc: 'Academic details & verified profiles' },
-    { name: 'Verified Skills', pct: skillsPct, icon: Award, color: 'bg-purple-500', desc: 'Coding skills & certifications' },
+    { name: 'Profile Completion', pct: profilePct, icon: User, color: 'bg-kit-500', desc: 'Academic details & verified profiles' },
+    { name: 'Verified Skills', pct: skillsPct, icon: Award, color: 'bg-kit-500', desc: 'Coding skills & certifications' },
     { name: 'Applications Progress', pct: applicationsPct, icon: Briefcase, color: 'bg-blue-500', desc: 'Drive registrations & active drives' },
     { name: 'Mentor Tasks Completed', pct: taskPct, icon: CheckSquare, color: 'bg-amber-500', desc: 'Assigned mentor milestones' },
     { name: 'Interview Readiness', pct: interviewPrepPct, icon: Calendar, color: 'bg-rose-500', desc: 'Mock interviews & technical prep' },
@@ -46,19 +46,19 @@ export default function StudentProgressPage() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-950 via-indigo-900 to-slate-900 p-8 text-white shadow-xl"
+          className="rounded-2xl border border-kit-100 bg-gradient-to-r from-kit-900 via-kit-900 to-slate-900 p-8 text-white shadow-xl"
         >
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-semibold text-indigo-300 border border-indigo-500/30">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-kit-500/20 px-3 py-1 text-xs font-semibold text-kit-300 border border-kit-500/30">
                 <PieChart className="h-3.5 w-3.5" /> Career Readiness Index
               </span>
               <h1 className="text-3xl font-bold mt-2">Overall Progress: {overallReadiness}%</h1>
-              <p className="text-sm text-indigo-200/80 mt-1 max-w-xl">
+              <p className="text-sm text-kit-200/80 mt-1 max-w-xl">
                 Calculated dynamically from your resume score, profile verification, active applications, mentor tasks, and placement preparation.
               </p>
             </div>
-            <div className="relative flex h-28 w-28 shrink-0 items-center justify-center rounded-full bg-indigo-600/30 border-4 border-indigo-400/40 text-2xl font-black">
+            <div className="relative flex h-28 w-28 shrink-0 items-center justify-center rounded-full bg-kit-600/30 border-4 border-kit-400/40 text-2xl font-black">
               {overallReadiness}%
             </div>
           </div>
@@ -75,7 +75,7 @@ export default function StudentProgressPage() {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-kit-50 text-kit-600">
                     <m.icon className="h-5 w-5" />
                   </div>
                   <div>

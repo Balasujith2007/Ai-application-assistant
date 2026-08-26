@@ -376,13 +376,13 @@ export default function MentorReportsPage() {
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <FileText className="h-6 w-6 text-indigo-600" /> Mentor Reports
+            <FileText className="h-6 w-6 text-kit-600" /> Mentor Reports
           </h1>
           <p className="text-sm text-gray-500 mt-1">Download reports and insights for your assigned students</p>
         </div>
         <button
           onClick={handlePrint}
-          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm w-fit"
+          className="flex items-center gap-2 rounded-xl bg-kit-600 px-4 py-2 text-sm font-semibold text-white hover:bg-kit-700 transition-colors shadow-sm w-fit"
         >
           <Printer className="h-4 w-4" /> Print / Export Page
         </button>
@@ -393,7 +393,7 @@ export default function MentorReportsPage() {
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-gray-500">Assigned Students</span>
-            <Users className="h-4 w-4 text-indigo-600" />
+            <Users className="h-4 w-4 text-kit-600" />
           </div>
           <p className="text-2xl font-bold text-gray-900 mt-2">
             {loadingMetrics ? '…' : summary.assignedStudentsCount}
@@ -469,7 +469,7 @@ export default function MentorReportsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
           <div>
             <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-              <Filter className="h-4 w-4 text-indigo-600" /> Report Filters
+              <Filter className="h-4 w-4 text-kit-600" /> Report Filters
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">Customize report parameters before downloading PDF or Excel</p>
           </div>
@@ -490,7 +490,7 @@ export default function MentorReportsPage() {
             <select
               value={selectedReportType}
               onChange={(e) => setSelectedReportType(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200"
             >
               <option value="ALL">All Reports</option>
               <option value="assigned-career">Assigned Student Career Report</option>
@@ -506,7 +506,7 @@ export default function MentorReportsPage() {
             <select
               value={selectedOpportunityType}
               onChange={(e) => setSelectedOpportunityType(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200"
             >
               <option value="ALL">All Types</option>
               <option value="INTERNSHIP">Internship</option>
@@ -520,7 +520,7 @@ export default function MentorReportsPage() {
             <select
               value={selectedRegStatus}
               onChange={(e) => setSelectedRegStatus(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200"
             >
               <option value="ALL">All Reg Statuses</option>
               <option value="REGISTERED">Registered</option>
@@ -540,7 +540,7 @@ export default function MentorReportsPage() {
             <select
               value={selectedResumeStatus}
               onChange={(e) => setSelectedResumeStatus(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200"
             >
               <option value="ALL">All Resume Statuses</option>
               <option value="UPLOADED">Uploaded</option>
@@ -565,10 +565,10 @@ export default function MentorReportsPage() {
         {activeReports.map((r) => {
           const isThisDownloading = downloadingId === r.id;
           return (
-            <div key={r.id} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:border-indigo-200 transition-colors">
+            <div key={r.id} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:border-kit-200 transition-colors">
               <div>
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-kit-50 text-kit-600">
                     <FileText className="h-5 w-5" />
                   </div>
                   <h3 className="font-bold text-gray-900">{r.title}</h3>
@@ -581,7 +581,7 @@ export default function MentorReportsPage() {
                   <button
                     disabled={Boolean(downloadingId)}
                     onClick={() => handleDownload(r, 'pdf')}
-                    className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="flex items-center gap-1.5 text-xs font-bold text-kit-600 hover:text-kit-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     {isThisDownloading && downloadFormat === 'pdf' ? (
                       <>

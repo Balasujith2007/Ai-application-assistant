@@ -65,9 +65,7 @@ export default function RegisterPage() {
         <div className="mx-auto w-full max-w-sm">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 mb-10">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600">
-              <Zap className="h-5 w-5 text-white" />
-            </div>
+            <img src="/kit-logo.png" alt="KIT Logo" className="h-9 w-9 object-contain" />
             <span className="text-xl font-bold text-gray-900">CareerAI</span>
           </Link>
 
@@ -79,7 +77,7 @@ export default function RegisterPage() {
           <div className="mt-6">
             <a
               href="/api/auth/google"
-              className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
+              className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-kit-500 focus:ring-offset-2 transition-colors"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -112,7 +110,7 @@ export default function RegisterPage() {
                   id="account-type"
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  className="block w-full appearance-none rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                  className="block w-full appearance-none rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 focus:border-kit-600 focus:outline-none focus:ring-2 focus:ring-kit-600 transition-colors"
                 >
                   <option value="" disabled>Select account type</option>
                   <option value="STUDENT">Student</option>
@@ -216,11 +214,11 @@ export default function RegisterPage() {
 
             <p className="text-center text-xs text-gray-500">
               By creating an account, you agree to our{' '}
-              <a href="#" className="text-indigo-600 hover:underline">
+              <a href="#" className="text-kit-600 hover:underline">
                 Terms
               </a>{' '}
               and{' '}
-              <a href="#" className="text-indigo-600 hover:underline">
+              <a href="#" className="text-kit-600 hover:underline">
                 Privacy Policy
               </a>
               .
@@ -231,7 +229,7 @@ export default function RegisterPage() {
             Already have an account?{' '}
             <Link
               href="/login"
-              className="font-medium text-indigo-600 hover:text-indigo-700"
+              className="font-medium text-kit-600 hover:text-kit-700"
             >
               Sign in
             </Link>
@@ -240,7 +238,7 @@ export default function RegisterPage() {
       </div>
 
       {/* Right panel */}
-      <div className="hidden lg:flex lg:flex-1 flex-col justify-center bg-gradient-to-br from-indigo-600 to-blue-700 px-16 py-12">
+      <div className="hidden lg:flex lg:flex-1 flex-col justify-center bg-gradient-to-br from-kit-600 to-kit-800 px-16 py-12">
         <div className="max-w-md text-white">
           <h2 className="mb-8 text-3xl font-bold">
             Everything you need to land your dream role
@@ -257,7 +255,7 @@ export default function RegisterPage() {
               </div>
               <div>
                 <p className="font-semibold">{title}</p>
-                <p className="text-sm text-indigo-100">{desc}</p>
+                <p className="text-sm text-kit-100">{desc}</p>
               </div>
             </div>
           ))}

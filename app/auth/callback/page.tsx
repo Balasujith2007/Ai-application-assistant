@@ -29,7 +29,7 @@ function AuthCallbackHandler() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
       <div className="flex items-center gap-3 bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
-        <div className="w-6 h-6 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-6 h-6 border-3 border-kit-600 border-t-transparent rounded-full animate-spin"></div>
         <p className="text-sm font-medium text-gray-700">Completing Google Sign In...</p>
       </div>
     </div>

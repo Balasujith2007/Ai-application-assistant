@@ -10,7 +10,7 @@ export default function TestApplyDone() {
         You clicked Submit — not the agent. Reload /test-apply/page-1 to confirm learned fields
         (expected salary, notice period, work authorization) autofill without asking again.
       </p>
-      <Link href="/test-apply" className="inline-flex text-sm font-semibold text-indigo-700 underline">
+      <Link href="/test-apply" className="inline-flex text-sm font-semibold text-kit-700 underline">
         Run the test again
       </Link>
     </div>

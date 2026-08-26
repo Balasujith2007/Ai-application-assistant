@@ -61,7 +61,7 @@ export default function HODApplicationsPage() {
     <div className="space-y-6 pb-12">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Briefcase className="h-6 w-6 text-indigo-600" /> Department Applications
+          <Briefcase className="h-6 w-6 text-kit-600" /> Department Applications
         </h1>
         <p className="text-sm text-gray-500 mt-1">Track student internship & placement application status</p>
       </motion.div>
@@ -73,7 +73,7 @@ export default function HODApplicationsPage() {
             key={status}
             className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 shadow-sm"
           >
-            {status}: <strong className="text-indigo-600 ml-1">{count}</strong>
+            {status}: <strong className="text-kit-600 ml-1">{count}</strong>
           </div>
         ))}
       </div>
@@ -86,13 +86,13 @@ export default function HODApplicationsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search company, position, or student..."
-            className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-4 text-sm focus:border-indigo-500 focus:outline-none"
+            className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-4 text-sm focus:border-kit-500 focus:outline-none"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none"
+          className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm focus:border-kit-500 focus:outline-none"
         >
           <option value="">All Statuses</option>
           <option value="APPLIED">Applied</option>
@@ -105,7 +105,7 @@ export default function HODApplicationsPage() {
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
         </div>
       ) : error ? (
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
@@ -132,14 +132,14 @@ export default function HODApplicationsPage() {
                     <p className="text-xs text-gray-400 font-mono">{a.user.profile?.registerNo || a.user.email}</p>
                   </td>
                   <td className="px-6 py-4">
-                    <p className="font-bold text-indigo-600">{a.companyName}</p>
+                    <p className="font-bold text-kit-600">{a.companyName}</p>
                     <p className="text-xs text-gray-500">{a.position}</p>
                   </td>
                   <td className="px-6 py-4 text-gray-600 text-xs">
                     {a.user.mentor?.name || 'Unassigned'}
                   </td>
                   <td className="px-6 py-4">
-                    <span className="inline-flex rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">
+                    <span className="inline-flex rounded-full bg-kit-50 px-3 py-1 text-xs font-bold text-kit-700">
                       {a.status}
                     </span>
                   </td>

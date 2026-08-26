@@ -119,7 +119,7 @@ export default function HODStudentsPage() {
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Users className="h-6 w-6 text-indigo-600" /> Department Student Management
+            <Users className="h-6 w-6 text-kit-600" /> Department Student Management
           </h1>
           <p className="text-sm text-gray-500 mt-1">View, search, and manage mentor assignments for all students</p>
         </div>
@@ -133,14 +133,14 @@ export default function HODStudentsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search name or register no..."
-            className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-4 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-4 text-sm focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200"
           />
         </div>
 
         <select
           value={yearFilter}
           onChange={(e) => setYearFilter(e.target.value)}
-          className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none"
+          className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm focus:border-kit-500 focus:outline-none"
         >
           <option value="">All Years</option>
           <option value="2">2nd Year</option>
@@ -151,7 +151,7 @@ export default function HODStudentsPage() {
         <select
           value={sectionFilter}
           onChange={(e) => setSectionFilter(e.target.value)}
-          className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none"
+          className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm focus:border-kit-500 focus:outline-none"
         >
           <option value="">All Sections</option>
           <option value="A">Section A</option>
@@ -161,7 +161,7 @@ export default function HODStudentsPage() {
         <select
           value={mentorFilter}
           onChange={(e) => setMentorFilter(e.target.value)}
-          className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none"
+          className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm focus:border-kit-500 focus:outline-none"
         >
           <option value="">All Mentors</option>
           {mentors.map((m) => (
@@ -173,7 +173,7 @@ export default function HODStudentsPage() {
       {/* Table */}
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
         </div>
       ) : error ? (
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
@@ -196,7 +196,7 @@ export default function HODStudentsPage() {
             <tbody className="divide-y divide-gray-50">
               {students.map((s) => (
                 <tr key={s.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-6 py-4 font-mono text-xs font-bold text-indigo-700">{s.registerNo}</td>
+                  <td className="px-6 py-4 font-mono text-xs font-bold text-kit-700">{s.registerNo}</td>
                   <td className="px-6 py-4">
                     <div>
                       <p className="font-semibold text-gray-900">{s.name}</p>
@@ -221,7 +221,7 @@ export default function HODStudentsPage() {
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => { setAssignStudent(s); setSelectedMentorId(s.assignedMentor?.id || ''); }}
-                        className="flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition-colors"
+                        className="flex items-center gap-1 rounded-lg border border-kit-200 bg-kit-50 px-3 py-1.5 text-xs font-bold text-kit-700 hover:bg-kit-100 transition-colors"
                       >
                         <UserPlus className="h-3.5 w-3.5" />
                         {s.assignedMentor ? 'Change Mentor' : 'Assign Mentor'}
@@ -255,8 +255,8 @@ export default function HODStudentsPage() {
               </button>
             </div>
 
-            <div className="rounded-xl bg-indigo-50 p-4">
-              <p className="text-xs text-indigo-500 font-semibold uppercase">Student</p>
+            <div className="rounded-xl bg-kit-50 p-4">
+              <p className="text-xs text-kit-500 font-semibold uppercase">Student</p>
               <p className="font-bold text-gray-900 mt-0.5">{assignStudent.name}</p>
               <p className="text-xs text-gray-500 font-mono">{assignStudent.registerNo}</p>
             </div>
@@ -267,7 +267,7 @@ export default function HODStudentsPage() {
                 <select
                   value={selectedMentorId}
                   onChange={(e) => setSelectedMentorId(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm focus:border-kit-500 focus:outline-none"
                   required
                 >
                   <option value="" disabled>Choose a mentor...</option>
@@ -290,7 +290,7 @@ export default function HODStudentsPage() {
                 <button
                   type="submit"
                   disabled={assigning || !selectedMentorId}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-kit-600 py-2.5 text-sm font-semibold text-white hover:bg-kit-700 disabled:opacity-60"
                 >
                   {assigning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                   Confirm

@@ -99,7 +99,7 @@ export function AddTaskModal({
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
             placeholder="Details about what needs to be done..."
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-kit-500 focus:outline-none"
           />
         </div>
 
@@ -109,7 +109,7 @@ export function AddTaskModal({
             <select
               value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value as TaskCategory })}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-kit-500 focus:outline-none"
             >
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>{c}</option>
@@ -122,7 +122,7 @@ export function AddTaskModal({
             <select
               value={form.priority}
               onChange={(e) => setForm({ ...form, priority: e.target.value as TaskPriority })}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-kit-500 focus:outline-none"
             >
               {PRIORITIES.map((p) => (
                 <option key={p} value={p}>{p}</option>
@@ -155,7 +155,7 @@ export function AddTaskModal({
             <select
               value={form.relatedAppId}
               onChange={(e) => setForm({ ...form, relatedAppId: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-kit-500 focus:outline-none"
             >
               <option value="">None</option>
               {applications.map((app) => (
@@ -169,7 +169,7 @@ export function AddTaskModal({
             <select
               value={form.relatedInterviewId}
               onChange={(e) => setForm({ ...form, relatedInterviewId: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-kit-500 focus:outline-none"
             >
               <option value="">None</option>
               {interviews.map((int) => (

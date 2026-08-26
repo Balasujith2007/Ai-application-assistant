@@ -16,11 +16,11 @@ const SIZES = {
 };
 
 const COLORS = [
-  'bg-indigo-500',
+  'bg-kit-500',
   'bg-blue-500',
   'bg-emerald-500',
   'bg-amber-500',
-  'bg-purple-500',
+  'bg-kit-600',
   'bg-rose-500',
   'bg-teal-500',
   'bg-orange-500',
@@ -58,7 +58,7 @@ export function LoadingSpinner({ size = 'md', className }: LoadingSpinnerProps) 
   return (
     <div className={cn('flex items-center justify-center', className)}>
       <svg
-        className={cn('animate-spin text-indigo-600', spinSizes[size])}
+        className={cn('animate-spin text-kit-600', spinSizes[size])}
         fill="none"
         viewBox="0 0 24 24"
       >
@@ -133,7 +133,7 @@ export function ProgressBar({
       )}
       <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
         <div
-          className="h-full rounded-full bg-indigo-500 transition-all duration-500"
+          className="h-full rounded-full bg-kit-600 transition-all duration-500"
           style={{ width: `${pct}%` }}
         />
       </div>

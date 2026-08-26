@@ -99,14 +99,14 @@ export default function HODAssignMentorPage() {
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <UserCheck className="h-6 w-6 text-indigo-600" /> Student-Mentor Assignment
+          <UserCheck className="h-6 w-6 text-kit-600" /> Student-Mentor Assignment
         </h1>
         <p className="text-sm text-gray-500 mt-1">Select one or multiple students and assign them to a faculty mentor</p>
       </motion.div>
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
@@ -119,12 +119,12 @@ export default function HODAssignMentorPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search students..."
-                  className="w-full rounded-xl border border-gray-200 bg-white py-2 pl-9 pr-4 text-sm focus:border-indigo-500 focus:outline-none"
+                  className="w-full rounded-xl border border-gray-200 bg-white py-2 pl-9 pr-4 text-sm focus:border-kit-500 focus:outline-none"
                 />
               </div>
               <button
                 onClick={selectAllUnassigned}
-                className="shrink-0 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100"
+                className="shrink-0 rounded-xl border border-kit-200 bg-kit-50 px-3 py-2 text-xs font-semibold text-kit-700 hover:bg-kit-100"
               >
                 Select Unassigned
               </button>
@@ -139,7 +139,7 @@ export default function HODAssignMentorPage() {
                       key={s.id}
                       onClick={() => toggleSelectStudent(s.id)}
                       className={`flex items-center justify-between p-4 cursor-pointer transition-colors ${
-                        isSelected ? 'bg-indigo-50/70' : 'hover:bg-gray-50'
+                        isSelected ? 'bg-kit-50/70' : 'hover:bg-gray-50'
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -147,7 +147,7 @@ export default function HODAssignMentorPage() {
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => {}}
-                          className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          className="h-4 w-4 rounded border-gray-300 text-kit-600 focus:ring-kit-500"
                         />
                         <div>
                           <p className="font-semibold text-gray-900 text-sm">{s.name}</p>
@@ -188,7 +188,7 @@ export default function HODAssignMentorPage() {
                         onClick={() => setSelectedMentorId(m.id)}
                         className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${
                           isSelected
-                            ? 'border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-600/20'
+                            ? 'border-kit-600 bg-kit-50/60 ring-2 ring-kit-600/20'
                             : 'border-gray-200 hover:border-gray-300'
                         }`}
                       >
@@ -196,7 +196,7 @@ export default function HODAssignMentorPage() {
                           <p className="font-bold text-gray-900 text-sm">{m.name}</p>
                           <p className="text-xs text-gray-500 font-mono">{m.employeeId}</p>
                         </div>
-                        <span className="text-xs font-semibold text-indigo-700 bg-indigo-100 px-2.5 py-1 rounded-full">
+                        <span className="text-xs font-semibold text-kit-700 bg-kit-100 px-2.5 py-1 rounded-full">
                           {m.assignedStudentsCount} assigned
                         </span>
                       </div>
@@ -214,7 +214,7 @@ export default function HODAssignMentorPage() {
                 <button
                   onClick={handleAssign}
                   disabled={submitting || selectedStudentIds.length === 0 || !selectedMentorId}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-kit-600 py-3 text-sm font-semibold text-white shadow-sm hover:bg-kit-700 disabled:opacity-60 transition-colors"
                 >
                   {submitting ? (
                     <Loader2 className="h-5 w-5 animate-spin" />

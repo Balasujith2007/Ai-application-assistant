@@ -79,14 +79,14 @@ export function MockInterviewModal({
     <Modal isOpen={isOpen} onClose={onClose} title="AI Mock Interview Practice" size="lg">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between rounded-xl bg-gradient-to-r from-indigo-900 to-indigo-700 p-5 text-white shadow-md">
+        <div className="flex items-center justify-between rounded-xl bg-gradient-to-r from-kit-900 to-kit-700 p-5 text-white shadow-md">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 backdrop-blur-md text-white">
-              <Bot className="h-6 w-6 text-indigo-300" />
+              <Bot className="h-6 w-6 text-kit-300" />
             </div>
             <div>
               <h3 className="font-bold text-lg leading-tight">CareerAI Interview Simulator</h3>
-              <p className="text-xs text-indigo-200">Practicing for {companyName} • Domain: {selectedTopic}</p>
+              <p className="text-xs text-kit-200">Practicing for {companyName} • Domain: {selectedTopic}</p>
             </div>
           </div>
           <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
@@ -111,7 +111,7 @@ export function MockInterviewModal({
                 }}
                 className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
                   selectedTopic === t
-                    ? 'bg-indigo-600 text-white shadow-xs'
+                    ? 'bg-kit-600 text-white shadow-xs'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -122,10 +122,10 @@ export function MockInterviewModal({
         </div>
 
         {/* AI Question Box */}
-        <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-5">
-          <div className="flex items-center justify-between text-xs font-bold text-indigo-800 uppercase tracking-wider mb-2">
+        <div className="rounded-xl border border-kit-100 bg-kit-50/50 p-5">
+          <div className="flex items-center justify-between text-xs font-bold text-kit-800 uppercase tracking-wider mb-2">
             <span>Question {(questionIndex % questions.length) + 1} of {questions.length}</span>
-            <Sparkles className="h-4 w-4 text-indigo-600" />
+            <Sparkles className="h-4 w-4 text-kit-600" />
           </div>
           <p className="text-base font-bold text-gray-900">{currentQuestion}</p>
         </div>
@@ -140,7 +140,7 @@ export function MockInterviewModal({
             value={userAnswer}
             onChange={(e) => setUserAnswer(e.target.value)}
             placeholder="Type your structured answer here (e.g. key concepts, code structure, or STAR methodology)..."
-            className="w-full rounded-xl border border-gray-300 p-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            className="w-full rounded-xl border border-gray-300 p-3 text-sm focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-500/20"
           />
         </div>
 

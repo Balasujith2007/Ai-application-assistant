@@ -175,7 +175,7 @@ export default function StudentOpportunitiesPage() {
   const getTypeBadge = (type: string) => {
     switch (type) {
       case 'HACKATHON':
-        return <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-bold text-purple-700">Hackathon 🚀</span>;
+        return <span className="rounded-full bg-kit-100 px-3 py-1 text-xs font-bold text-kit-700">Hackathon 🚀</span>;
       case 'INTERNSHIP':
         return <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">Internship 💼</span>;
       case 'JOB':
@@ -286,7 +286,7 @@ export default function StudentOpportunitiesPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
                   activeTab === tab.id
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                    ? 'bg-kit-600 text-white shadow-md shadow-kit-500/20'
                     : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                 }`}
               >
@@ -303,7 +303,7 @@ export default function StudentOpportunitiesPage() {
               placeholder="Search title, skills..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              className="w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kit-500/20"
             />
           </div>
         </div>
@@ -311,7 +311,7 @@ export default function StudentOpportunitiesPage() {
         {/* Opportunities Grid */}
         {loading ? (
           <div className="flex h-64 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+            <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
           </div>
         ) : filteredOpportunities.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-white py-16 px-4 text-center">
@@ -326,12 +326,12 @@ export default function StudentOpportunitiesPage() {
                 key={opp.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="group flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-all hover:border-indigo-200"
+                className="group flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-all hover:border-kit-200"
               >
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <h3 className="text-base font-bold text-gray-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">
+                      <h3 className="text-base font-bold text-gray-900 line-clamp-1 group-hover:text-kit-600 transition-colors">
                         {opp.title}
                       </h3>
                       <p className="text-xs font-semibold text-gray-500 flex items-center gap-1.5 mt-0.5">
@@ -349,7 +349,7 @@ export default function StudentOpportunitiesPage() {
                   {opp.requiredSkills && opp.requiredSkills.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 pt-1">
                       {opp.requiredSkills.slice(0, 4).map((skill, idx) => (
-                        <span key={idx} className="rounded-md bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">
+                        <span key={idx} className="rounded-md bg-kit-50 px-2 py-0.5 text-[11px] font-semibold text-kit-700">
                           🏷 {skill}
                         </span>
                       ))}
@@ -363,7 +363,7 @@ export default function StudentOpportunitiesPage() {
                       <span><strong>Deadline:</strong> {new Date(opp.applicationDeadline).toLocaleDateString()}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <MapPin className="h-3.5 w-3.5 text-indigo-500" />
+                      <MapPin className="h-3.5 w-3.5 text-kit-500" />
                       <span>{opp.location || 'Online'}</span>
                     </div>
                   </div>
@@ -400,7 +400,7 @@ export default function StudentOpportunitiesPage() {
                 <div className="flex items-start justify-between gap-4 border-b border-gray-100 pb-4">
                   <div>
                     <h2 className="text-xl font-bold text-gray-900">{selectedOpp.title}</h2>
-                    <p className="text-sm font-semibold text-indigo-600 mt-0.5">{selectedOpp.organization}</p>
+                    <p className="text-sm font-semibold text-kit-600 mt-0.5">{selectedOpp.organization}</p>
                   </div>
                   <button
                     onClick={() => setSelectedOpp(null)}
@@ -446,7 +446,7 @@ export default function StudentOpportunitiesPage() {
                       href={selectedOpp.opportunityUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-50 px-4 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition-colors"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-kit-50 px-4 py-2 text-xs font-bold text-kit-700 hover:bg-kit-100 transition-colors"
                     >
                       Official Page <ExternalLink className="h-3.5 w-3.5" />
                     </a>

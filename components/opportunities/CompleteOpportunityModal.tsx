@@ -122,7 +122,7 @@ export function CompleteOpportunityModal({
               <select
                 value={outcome}
                 onChange={(e) => setOutcome(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 font-medium text-gray-900 focus:border-indigo-500 focus:outline-none bg-white"
+                className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 font-medium text-gray-900 focus:border-kit-500 focus:outline-none bg-white"
                 required
               >
                 <option value="Participated">Participated</option>
@@ -143,7 +143,7 @@ export function CompleteOpportunityModal({
                 placeholder="e.g. Lead Developer, Intern, Participant"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 font-medium text-gray-900 focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 font-medium text-gray-900 focus:border-kit-500 focus:outline-none"
               />
             </div>
 
@@ -154,7 +154,7 @@ export function CompleteOpportunityModal({
                 type="date"
                 value={completedDate}
                 onChange={(e) => setCompletedDate(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 font-medium text-gray-900 focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 font-medium text-gray-900 focus:border-kit-500 focus:outline-none"
               />
             </div>
 
@@ -166,7 +166,7 @@ export function CompleteOpportunityModal({
                 placeholder="https://drive.google.com/..."
                 value={certificateUrl}
                 onChange={(e) => setCertificateUrl(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 font-medium text-gray-900 focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 font-medium text-gray-900 focus:border-kit-500 focus:outline-none"
               />
             </div>
 
@@ -178,7 +178,7 @@ export function CompleteOpportunityModal({
                 placeholder="Brief notes about your key learnings or achievements..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 font-medium text-gray-900 focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 font-medium text-gray-900 focus:border-kit-500 focus:outline-none"
               />
             </div>
 

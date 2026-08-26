@@ -29,7 +29,7 @@ export default function TestApplyLanding() {
             /* ignore */
           }
         }}
-        className="inline-flex rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
+        className="inline-flex rounded-xl bg-kit-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-kit-700"
       >
         Start application
       </Link>

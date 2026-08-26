@@ -179,14 +179,14 @@ export default function HODFormsPage() {
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <FileText className="h-6 w-6 text-indigo-600" /> Form Builder
+            <FileText className="h-6 w-6 text-kit-600" /> Form Builder
           </h1>
           <p className="text-sm text-gray-500 mt-1">Create and manage custom forms for students and department activities</p>
         </div>
         <button
           onClick={handleCreateForm}
           disabled={creating}
-          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50 w-fit"
+          className="flex items-center gap-2 rounded-xl bg-kit-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-kit-700 transition-colors shadow-sm disabled:opacity-50 w-fit"
         >
           {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
           <span>Create Form</span>
@@ -202,7 +202,7 @@ export default function HODFormsPage() {
               onClick={() => setTabFilter(tab)}
               className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
                 tabFilter === tab
-                  ? 'bg-indigo-600 text-white shadow-2xs'
+                  ? 'bg-kit-600 text-white shadow-2xs'
                   : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
               }`}
             >
@@ -218,7 +218,7 @@ export default function HODFormsPage() {
             placeholder="Search forms..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-gray-200 bg-white pl-9 pr-3 py-1.5 text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            className="w-full rounded-xl border border-gray-200 bg-white pl-9 pr-3 py-1.5 text-xs text-gray-900 focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200"
           />
         </div>
       </motion.div>
@@ -226,7 +226,7 @@ export default function HODFormsPage() {
       {/* Forms Grid */}
       {loading ? (
         <div className="py-16 text-center text-gray-400">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-indigo-600" />
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-kit-600" />
           <p className="text-xs font-semibold mt-2">Loading forms…</p>
         </div>
       ) : filteredForms.length === 0 ? (
@@ -238,7 +238,7 @@ export default function HODFormsPage() {
           </p>
           <button
             onClick={handleCreateForm}
-            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors shadow-2xs mt-2"
+            className="inline-flex items-center gap-2 rounded-xl bg-kit-600 px-4 py-2 text-xs font-semibold text-white hover:bg-kit-700 transition-colors shadow-2xs mt-2"
           >
             <Plus className="h-3.5 w-3.5" /> Create Form
           </button>
@@ -248,7 +248,7 @@ export default function HODFormsPage() {
           {filteredForms.map((form) => {
             const isActing = actionId === form.id;
             return (
-              <div key={form.id} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:border-indigo-200 transition-colors">
+              <div key={form.id} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:border-kit-200 transition-colors">
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-3">
                     <h3 className="font-bold text-gray-900 line-clamp-1">{form.title}</h3>
@@ -275,7 +275,7 @@ export default function HODFormsPage() {
                     </div>
                     <div>
                       <span className="text-gray-400 block text-[10px] font-semibold uppercase">Responses</span>
-                      <span className="font-bold text-indigo-600">{form.responsesCount}</span>
+                      <span className="font-bold text-kit-600">{form.responsesCount}</span>
                     </div>
                   </div>
                 </div>
@@ -290,21 +290,21 @@ export default function HODFormsPage() {
                     <div className="flex items-center gap-1">
                       <Link
                         href={`/dashboard/hod/forms/${form.id}/edit`}
-                        className="p-1.5 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                        className="p-1.5 text-gray-600 hover:text-kit-600 hover:bg-kit-50 rounded-lg transition-colors"
                         title="Edit Form"
                       >
                         <Edit className="h-4 w-4" />
                       </Link>
                       <Link
                         href={`/dashboard/hod/forms/${form.id}/edit?preview=true`}
-                        className="p-1.5 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                        className="p-1.5 text-gray-600 hover:text-kit-600 hover:bg-kit-50 rounded-lg transition-colors"
                         title="Preview Form"
                       >
                         <Eye className="h-4 w-4" />
                       </Link>
                       <Link
                         href={`/dashboard/hod/forms/${form.id}/responses`}
-                        className="p-1.5 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors relative"
+                        className="p-1.5 text-gray-600 hover:text-kit-600 hover:bg-kit-50 rounded-lg transition-colors relative"
                         title="View Responses"
                       >
                         <MessageSquare className="h-4 w-4" />
@@ -312,7 +312,7 @@ export default function HODFormsPage() {
                       <button
                         onClick={() => handleDuplicate(form)}
                         disabled={isActing}
-                        className="p-1.5 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-40"
+                        className="p-1.5 text-gray-600 hover:text-kit-600 hover:bg-kit-50 rounded-lg transition-colors disabled:opacity-40"
                         title="Duplicate Form"
                       >
                         <Copy className="h-4 w-4" />

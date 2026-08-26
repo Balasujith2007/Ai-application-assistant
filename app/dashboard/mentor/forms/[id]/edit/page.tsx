@@ -324,7 +324,7 @@ export default function MentorFormBuilderEditorPage() {
   if (loading) {
     return (
       <div className="py-20 text-center text-gray-400">
-        <Loader2 className="h-8 w-8 animate-spin mx-auto text-indigo-600" />
+        <Loader2 className="h-8 w-8 animate-spin mx-auto text-kit-600" />
         <p className="text-xs font-semibold mt-2">Loading Mentor Form Builder…</p>
       </div>
     );
@@ -352,7 +352,7 @@ export default function MentorFormBuilderEditorPage() {
                   setFormTitle(e.target.value);
                   setSaveStatus('unsaved');
                 }}
-                className="text-lg font-bold text-gray-900 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-indigo-500 focus:outline-none px-1 py-0.5"
+                className="text-lg font-bold text-gray-900 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-kit-500 focus:outline-none px-1 py-0.5"
                 placeholder="Form Title"
               />
               <span
@@ -392,14 +392,14 @@ export default function MentorFormBuilderEditorPage() {
           <button
             onClick={() => saveFormDraft(false)}
             disabled={saving}
-            className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors shadow-2xs disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-kit-600 hover:bg-kit-50 transition-colors shadow-2xs disabled:opacity-50"
           >
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
             <span>Save Draft</span>
           </button>
           <button
             onClick={handlePublishForm}
-            className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 rounded-xl bg-kit-600 px-4 py-2 text-xs font-semibold text-white hover:bg-kit-700 transition-colors shadow-sm"
           >
             <Send className="h-3.5 w-3.5" /> Publish Form
           </button>
@@ -420,15 +420,15 @@ export default function MentorFormBuilderEditorPage() {
               const catFields = FIELD_PALETTE.filter((f) => f.category === cat);
               return (
                 <div key={cat} className="space-y-1.5">
-                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">{cat}</h3>
+                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-kit-600">{cat}</h3>
                   <div className="space-y-1">
                     {catFields.map((f) => (
                       <button
                         key={f.type}
                         onClick={() => handleAddField(f.type)}
-                        className="w-full flex items-center gap-2.5 rounded-xl border border-gray-100 bg-gray-50/70 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-all text-left group"
+                        className="w-full flex items-center gap-2.5 rounded-xl border border-gray-100 bg-gray-50/70 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-kit-50 hover:border-kit-200 hover:text-kit-700 transition-all text-left group"
                       >
-                        <f.icon className="h-4 w-4 text-gray-400 group-hover:text-indigo-600 shrink-0" />
+                        <f.icon className="h-4 w-4 text-gray-400 group-hover:text-kit-600 shrink-0" />
                         <span>{f.label}</span>
                       </button>
                     ))}
@@ -444,13 +444,13 @@ export default function MentorFormBuilderEditorPage() {
           {/* Form Header Card */}
           <div
             onClick={() => setShowSettingsModal(true)}
-            className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm cursor-pointer hover:border-indigo-300 transition-colors group relative"
+            className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm cursor-pointer hover:border-kit-300 transition-colors group relative"
           >
-            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 block mb-1">Click to edit header & instructions</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-kit-600 block mb-1">Click to edit header & instructions</span>
             <h1 className="text-xl font-bold text-gray-900">{formTitle || 'Untitled Form'}</h1>
             {formDesc && <p className="text-xs text-gray-500 mt-1">{formDesc}</p>}
             {formInst && (
-              <div className="mt-3 rounded-xl bg-indigo-50/70 p-3 text-xs text-indigo-900 border border-indigo-100">
+              <div className="mt-3 rounded-xl bg-kit-50/70 p-3 text-xs text-kit-900 border border-kit-100">
                 <strong>Instructions:</strong> {formInst}
               </div>
             )}
@@ -475,7 +475,7 @@ export default function MentorFormBuilderEditorPage() {
                     onClick={() => setSelectedFieldId(field.fieldId)}
                     className={`rounded-2xl border bg-white p-5 shadow-xs transition-all relative cursor-pointer group ${
                       isSelected
-                        ? 'border-indigo-600 ring-2 ring-indigo-100'
+                        ? 'border-kit-600 ring-2 ring-kit-100'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
@@ -518,7 +518,7 @@ export default function MentorFormBuilderEditorPage() {
                             e.stopPropagation();
                             handleDuplicateField(field);
                           }}
-                          className="p-1 text-gray-400 hover:text-indigo-600"
+                          className="p-1 text-gray-400 hover:text-kit-600"
                           title="Duplicate"
                         >
                           <Copy className="h-4 w-4" />
@@ -540,7 +540,7 @@ export default function MentorFormBuilderEditorPage() {
 
                     {/* Field Visual Placeholder */}
                     <div className="mt-3 ml-6 pt-2 border-t border-gray-100 text-xs text-gray-400 italic">
-                      Type: <span className="font-semibold text-indigo-600 not-italic uppercase tracking-wider text-[10px]">{field.type}</span>
+                      Type: <span className="font-semibold text-kit-600 not-italic uppercase tracking-wider text-[10px]">{field.type}</span>
                       {['dropdown', 'radio', 'checkbox'].includes(field.type) && field.config.options && (
                         <div className="mt-1 flex flex-wrap gap-1 not-italic font-normal">
                           {field.config.options.map((opt, i) => (
@@ -571,7 +571,7 @@ export default function MentorFormBuilderEditorPage() {
                   type="text"
                   value={selectedField.label}
                   onChange={(e) => handleUpdateSelectedField('label', e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200"
                 />
               </div>
 
@@ -581,7 +581,7 @@ export default function MentorFormBuilderEditorPage() {
                   rows={2}
                   value={selectedField.description || ''}
                   onChange={(e) => handleUpdateSelectedField('description', e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200"
                   placeholder="Optional hint for students"
                 />
               </div>
@@ -593,7 +593,7 @@ export default function MentorFormBuilderEditorPage() {
                     type="text"
                     value={selectedField.placeholder || ''}
                     onChange={(e) => handleUpdateSelectedField('placeholder', e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200"
                     placeholder="Input placeholder text"
                   />
                 </div>
@@ -607,7 +607,7 @@ export default function MentorFormBuilderEditorPage() {
                     type="checkbox"
                     checked={selectedField.required}
                     onChange={(e) => handleUpdateSelectedField('required', e.target.checked)}
-                    className="h-4 w-4 rounded-sm text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                    className="h-4 w-4 rounded-sm text-kit-600 focus:ring-kit-500 border-gray-300"
                   />
                 </div>
               )}
@@ -626,7 +626,7 @@ export default function MentorFormBuilderEditorPage() {
                           newOpts[optIdx] = e.target.value;
                           handleUpdateFieldConfig('options', newOpts);
                         }}
-                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-900 focus:border-indigo-500 focus:outline-none"
+                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-900 focus:border-kit-500 focus:outline-none"
                       />
                       <button
                         onClick={() => {
@@ -645,7 +645,7 @@ export default function MentorFormBuilderEditorPage() {
                       const newOpts = [...(selectedField.config.options || []), `Option ${(selectedField.config.options || []).length + 1}`];
                       handleUpdateFieldConfig('options', newOpts);
                     }}
-                    className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700 pt-1"
+                    className="flex items-center gap-1 text-xs font-semibold text-kit-600 hover:text-kit-700 pt-1"
                   >
                     <Plus className="h-3.5 w-3.5" /> Add Option
                   </button>
@@ -666,7 +666,7 @@ export default function MentorFormBuilderEditorPage() {
                           handleUpdateSelectedField('label', selectedObj.label);
                         }
                       }}
-                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-kit-500 focus:outline-none focus:ring-2 focus:ring-kit-200"
                     >
                       {PROFILE_KEYS.map((pk) => (
                         <option key={pk.key} value={pk.key}>{pk.label}</option>
@@ -680,7 +680,7 @@ export default function MentorFormBuilderEditorPage() {
                       type="checkbox"
                       checked={selectedField.config.isReadOnly !== false}
                       onChange={(e) => handleUpdateFieldConfig('isReadOnly', e.target.checked)}
-                      className="h-4 w-4 rounded-sm text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                      className="h-4 w-4 rounded-sm text-kit-600 focus:ring-kit-500 border-gray-300"
                     />
                   </div>
                 </div>
@@ -698,7 +698,7 @@ export default function MentorFormBuilderEditorPage() {
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                <Settings className="h-5 w-5 text-indigo-600" /> Form Settings
+                <Settings className="h-5 w-5 text-kit-600" /> Form Settings
               </h3>
               <button onClick={() => setShowSettingsModal(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="h-5 w-5" />
@@ -712,7 +712,7 @@ export default function MentorFormBuilderEditorPage() {
                   type="text"
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-indigo-500 focus:outline-none"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-kit-500 focus:outline-none"
                 />
               </div>
 
@@ -722,7 +722,7 @@ export default function MentorFormBuilderEditorPage() {
                   rows={2}
                   value={formDesc}
                   onChange={(e) => setFormDesc(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-indigo-500 focus:outline-none"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-kit-500 focus:outline-none"
                 />
               </div>
 
@@ -732,7 +732,7 @@ export default function MentorFormBuilderEditorPage() {
                   rows={2}
                   value={formInst}
                   onChange={(e) => setFormInst(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-indigo-500 focus:outline-none"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-kit-500 focus:outline-none"
                 />
               </div>
 
@@ -745,7 +745,7 @@ export default function MentorFormBuilderEditorPage() {
                   type="checkbox"
                   checked={allowMultiple}
                   onChange={(e) => setAllowMultiple(e.target.checked)}
-                  className="h-4 w-4 rounded-sm text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                  className="h-4 w-4 rounded-sm text-kit-600 focus:ring-kit-500 border-gray-300"
                 />
               </div>
 
@@ -755,7 +755,7 @@ export default function MentorFormBuilderEditorPage() {
                   type="text"
                   value={confirmationMsg}
                   onChange={(e) => setConfirmationMsg(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-indigo-500 focus:outline-none"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-900 focus:border-kit-500 focus:outline-none"
                 />
               </div>
             </div>
@@ -763,7 +763,7 @@ export default function MentorFormBuilderEditorPage() {
             <div className="pt-3 border-t border-gray-100 flex justify-end">
               <button
                 onClick={() => setShowSettingsModal(false)}
-                className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors"
+                className="rounded-xl bg-kit-600 px-4 py-2 text-xs font-semibold text-white hover:bg-kit-700 transition-colors"
               >
                 Done
               </button>

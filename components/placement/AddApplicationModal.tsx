@@ -286,13 +286,13 @@ export function AddApplicationModal({
           )}
 
           {/* STEP 1: Opportunity Link Fetcher */}
-          <div className="rounded-2xl border border-indigo-200 bg-indigo-50/50 p-4 space-y-3">
+          <div className="rounded-2xl border border-kit-200 bg-kit-50/50 p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold uppercase tracking-wider text-indigo-900 flex items-center gap-1.5">
-                <LinkIcon className="h-4 w-4 text-indigo-600" />
+              <label className="text-xs font-bold uppercase tracking-wider text-kit-900 flex items-center gap-1.5">
+                <LinkIcon className="h-4 w-4 text-kit-600" />
                 Opportunity Link (Auto-Fetch Details)
               </label>
-              <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full">
+              <span className="text-[11px] font-semibold text-kit-700 bg-kit-100 px-2 py-0.5 rounded-full">
                 Step 1: Paste URL
               </span>
             </div>
@@ -303,7 +303,7 @@ export function AddApplicationModal({
                 placeholder="Paste Hackathon / Internship / Job URL..."
                 value={opportunityUrlInput}
                 onChange={(e) => setOpportunityUrlInput(e.target.value)}
-                className="flex-1 rounded-xl border border-indigo-200 bg-white px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                className="flex-1 rounded-xl border border-kit-200 bg-white px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kit-500/20"
               />
               <Button
                 type="button"
@@ -378,8 +378,8 @@ export function AddApplicationModal({
           </div>
 
           {/* STEP 4: Verified Profile Links Section */}
-          <div className="rounded-xl border border-indigo-100 bg-indigo-50/30 p-4 space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-900">
+          <div className="rounded-xl border border-kit-100 bg-kit-50/30 p-4 space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-kit-900">
               Profile Links (Required & Verified)
             </h4>
 
@@ -408,7 +408,7 @@ export function AddApplicationModal({
                       ? 'border-emerald-500 bg-emerald-50/20'
                       : githubState === 'failed'
                       ? 'border-red-400 bg-red-50/20'
-                      : 'border-gray-300 focus:border-indigo-500'
+                      : 'border-gray-300 focus:border-kit-500'
                   }`}
                   required
                 />
@@ -475,7 +475,7 @@ export function AddApplicationModal({
                       ? 'border-emerald-500 bg-emerald-50/20'
                       : codolioState === 'failed'
                       ? 'border-red-400 bg-red-50/20'
-                      : 'border-gray-300 focus:border-indigo-500'
+                      : 'border-gray-300 focus:border-kit-500'
                   }`}
                   required
                 />
@@ -548,7 +548,7 @@ export function AddApplicationModal({
               <select
                 value={form.applicationType}
                 onChange={(e) => setForm({ ...form, applicationType: e.target.value as any })}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-kit-500 focus:outline-none"
               >
                 {TYPES.map((t) => (
                   <option key={t} value={t}>{t}</option>
@@ -561,7 +561,7 @@ export function AddApplicationModal({
               <select
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value as ApplicationStatus })}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-kit-500 focus:outline-none"
               >
                 {STATUSES.map((st) => (
                   <option key={st} value={st}>{st}</option>
@@ -576,7 +576,7 @@ export function AddApplicationModal({
                 value={form.resumeVersion}
                 onChange={(e) => setForm({ ...form, resumeVersion: e.target.value })}
                 placeholder="e.g. Version 3 - Tech Focused"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-kit-500 focus:outline-none"
               />
             </div>
           </div>
@@ -634,7 +634,7 @@ export function AddApplicationModal({
               value={form.description || form.notes}
               onChange={(e) => setForm({ ...form, description: e.target.value, notes: e.target.value })}
               placeholder="Any specific description, referral details, or assessment info..."
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-kit-500 focus:outline-none"
             />
           </div>
         </div>

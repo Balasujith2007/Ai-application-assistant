@@ -51,14 +51,14 @@ export default function HODProgressPage() {
     <div className="space-y-6 pb-12">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <PieChart className="h-6 w-6 text-indigo-600" /> Career Readiness Progress
+          <PieChart className="h-6 w-6 text-kit-600" /> Career Readiness Progress
         </h1>
         <p className="text-sm text-gray-500 mt-1">Department-wide student career preparedness analytics</p>
       </motion.div>
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
         </div>
       ) : (
         <div className="space-y-6">

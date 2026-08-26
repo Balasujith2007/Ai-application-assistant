@@ -80,13 +80,13 @@ export default function HODAnnouncementsPage() {
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Megaphone className="h-6 w-6 text-indigo-600" /> Department Announcements
+            <Megaphone className="h-6 w-6 text-kit-600" /> Department Announcements
           </h1>
           <p className="text-sm text-gray-500 mt-1">Publish notices, placement alerts, and event reminders to department students & mentors</p>
         </div>
         <button
           onClick={() => setModalOpen(true)}
-          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors"
+          className="flex items-center gap-2 rounded-xl bg-kit-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-kit-700 transition-colors"
         >
           <Plus className="h-4 w-4" /> New Announcement
         </button>
@@ -94,7 +94,7 @@ export default function HODAnnouncementsPage() {
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
         </div>
       ) : (
         <div className="space-y-4">
@@ -107,7 +107,7 @@ export default function HODAnnouncementsPage() {
               <div key={a.id} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-2">
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-gray-900 text-base">{a.title}</h3>
-                  <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+                  <span className="rounded-full bg-kit-50 px-3 py-1 text-xs font-semibold text-kit-700">
                     To: {a.targetRole} ({a.targetUser})
                   </span>
                 </div>
@@ -131,7 +131,7 @@ export default function HODAnnouncementsPage() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Upcoming TCS Internship Drive"
-                  className="w-full rounded-xl border border-gray-200 p-2.5 focus:border-indigo-500 focus:outline-none"
+                  className="w-full rounded-xl border border-gray-200 p-2.5 focus:border-kit-500 focus:outline-none"
                 />
               </div>
 
@@ -140,7 +140,7 @@ export default function HODAnnouncementsPage() {
                 <select
                   value={targetAudience}
                   onChange={(e) => setTargetAudience(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 p-2.5 focus:border-indigo-500 focus:outline-none"
+                  className="w-full rounded-xl border border-gray-200 p-2.5 focus:border-kit-500 focus:outline-none"
                 >
                   <option value="STUDENTS">All Students</option>
                   <option value="MENTORS">All Mentors</option>
@@ -156,7 +156,7 @@ export default function HODAnnouncementsPage() {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Provide announcement details..."
-                  className="w-full rounded-xl border border-gray-200 p-2.5 focus:border-indigo-500 focus:outline-none resize-none"
+                  className="w-full rounded-xl border border-gray-200 p-2.5 focus:border-kit-500 focus:outline-none resize-none"
                 />
               </div>
 
@@ -171,7 +171,7 @@ export default function HODAnnouncementsPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 rounded-xl bg-indigo-600 py-2.5 font-semibold text-white hover:bg-indigo-700 disabled:opacity-60 flex items-center justify-center gap-2"
+                  className="flex-1 rounded-xl bg-kit-600 py-2.5 font-semibold text-white hover:bg-kit-700 disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Publish
                 </button>

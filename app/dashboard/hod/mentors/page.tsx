@@ -48,13 +48,13 @@ export default function HODMentorsPage() {
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Building2 className="h-6 w-6 text-indigo-600" /> Department Mentors
+            <Building2 className="h-6 w-6 text-kit-600" /> Department Mentors
           </h1>
           <p className="text-sm text-gray-500 mt-1">Faculty mentors and student assignment workload</p>
         </div>
         <Link
           href="/dashboard/hod/assign-mentor"
-          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 shadow-sm transition-colors"
+          className="flex items-center gap-2 rounded-xl bg-kit-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-kit-700 shadow-sm transition-colors"
         >
           <PlusCircle className="h-4 w-4" /> Assign Students
         </Link>
@@ -62,7 +62,7 @@ export default function HODMentorsPage() {
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
         </div>
       ) : error ? (
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
@@ -84,7 +84,7 @@ export default function HODMentorsPage() {
                   </div>
                   <div>
                     <p className="font-bold text-gray-900 text-base">{m.name}</p>
-                    <p className="text-xs font-mono text-indigo-600">{m.employeeId}</p>
+                    <p className="text-xs font-mono text-kit-600">{m.employeeId}</p>
                   </div>
                 </div>
 
@@ -99,7 +99,7 @@ export default function HODMentorsPage() {
                   <span className="font-medium text-gray-500 flex items-center gap-1.5">
                     <Users className="h-4 w-4 text-gray-400" /> Assigned Students:
                   </span>
-                  <span className="font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full text-xs">
+                  <span className="font-bold text-kit-700 bg-kit-50 px-2.5 py-1 rounded-full text-xs">
                     {m.assignedStudentsCount} students
                   </span>
                 </div>

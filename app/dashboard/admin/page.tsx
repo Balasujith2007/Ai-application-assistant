@@ -19,10 +19,10 @@ export default function AdminDashboard() {
           <h3 className="mb-4 font-semibold text-gray-900">User Management</h3>
           <div className="space-y-2">
             {[
-              { role: 'STUDENT', count: 856, color: 'bg-indigo-100 text-indigo-700' },
+              { role: 'STUDENT', count: 856, color: 'bg-kit-100 text-kit-700' },
               { role: 'MENTOR', count: 48, color: 'bg-blue-100 text-blue-700' },
               { role: 'FACULTY', count: 86, color: 'bg-amber-100 text-amber-700' },
-              { role: 'HOD', count: 8, color: 'bg-purple-100 text-purple-700' },
+              { role: 'HOD', count: 8, color: 'bg-kit-100 text-kit-700' },
               { role: 'PLACEMENT_CELL', count: 6, color: 'bg-emerald-100 text-emerald-700' },
               { role: 'ADMIN', count: 4, color: 'bg-red-100 text-red-700' },
             ].map(({ role, count, color }) => (

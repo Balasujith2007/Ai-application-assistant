@@ -119,9 +119,9 @@ export default function MentorPostOpportunityPage() {
 
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-6">
           {/* Quick Auto-Fetch Section */}
-          <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-4 space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-900 flex items-center gap-1.5">
-              <Sparkles className="h-4 w-4 text-indigo-600" />
+          <div className="rounded-xl border border-kit-200 bg-kit-50/50 p-4 space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-kit-900 flex items-center gap-1.5">
+              <Sparkles className="h-4 w-4 text-kit-600" />
               Auto-Fill from Official Opportunity URL
             </h4>
 
@@ -131,7 +131,7 @@ export default function MentorPostOpportunityPage() {
                 placeholder="Paste Official Opportunity Webpage URL..."
                 value={form.opportunityUrl}
                 onChange={(e) => setForm({ ...form, opportunityUrl: e.target.value })}
-                className="flex-1 rounded-xl border border-indigo-200 bg-white px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                className="flex-1 rounded-xl border border-kit-200 bg-white px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kit-500/20"
               />
               <Button
                 type="button"
@@ -146,7 +146,7 @@ export default function MentorPostOpportunityPage() {
             </div>
 
             {fetchNotice && (
-              <p className="text-xs font-semibold text-indigo-900 bg-indigo-100 p-2 rounded-lg">{fetchNotice}</p>
+              <p className="text-xs font-semibold text-kit-900 bg-kit-100 p-2 rounded-lg">{fetchNotice}</p>
             )}
           </div>
 
@@ -200,7 +200,7 @@ export default function MentorPostOpportunityPage() {
               <select
                 value={form.type}
                 onChange={(e) => setForm({ ...form, type: e.target.value })}
-                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-kit-500 focus:outline-none"
               >
                 <option value="JOB">Job (Full Time)</option>
                 <option value="INTERNSHIP">Internship</option>
@@ -217,7 +217,7 @@ export default function MentorPostOpportunityPage() {
               <select
                 value={form.mode}
                 onChange={(e) => setForm({ ...form, mode: e.target.value })}
-                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-kit-500 focus:outline-none"
               >
                 <option value="ONLINE">Online</option>
                 <option value="OFFLINE">Offline</option>

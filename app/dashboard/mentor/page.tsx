@@ -83,12 +83,12 @@ export default function MentorDashboard() {
   };
 
   const stats = data ? [
-    { label: 'Assigned Students', value: data.stats.assignedStudents, icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50', href: '/dashboard/mentor/students' },
+    { label: 'Assigned Students', value: data.stats.assignedStudents, icon: Users, color: 'text-kit-600', bg: 'bg-kit-50', href: '/dashboard/mentor/students' },
     { label: 'Our Students', value: data.stats.ourStudents ?? 0, icon: Users, color: 'text-sky-600', bg: 'bg-sky-50', href: '/dashboard/mentor/our-students' },
     { label: 'Pending Reviews', value: data.stats.pendingResumes, icon: FileText, color: 'text-orange-600', bg: 'bg-orange-50', href: '/dashboard/mentor/resumes' },
     { label: "Today's Interviews", value: data.stats.todayInterviews, icon: Calendar, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Upcoming Deadlines', value: data.stats.upcomingDeadlines, icon: Clock, color: 'text-rose-600', bg: 'bg-rose-50' },
-    { label: 'Hackathon Registrations', value: data.stats.hackathonRegistrations || 0, icon: Trophy, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { label: 'Hackathon Registrations', value: data.stats.hackathonRegistrations || 0, icon: Trophy, color: 'text-kit-600', bg: 'bg-kit-50' },
     { label: 'Internship Registrations', value: data.stats.internshipRegistrations || 0, icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Total Registered Students', value: data.stats.totalRegisteredStudents || 0, icon: CheckCircle2, color: 'text-teal-600', bg: 'bg-teal-50' },
   ] : [];
@@ -96,7 +96,7 @@ export default function MentorDashboard() {
   if (loading) {
     return (
       <div className="flex min-h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
       </div>
     );
   }
@@ -119,7 +119,7 @@ export default function MentorDashboard() {
         </div>
         <div className="flex items-center gap-3">
           <Link href="/dashboard/mentor/opportunities">
-            <button className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors">
+            <button className="flex items-center gap-2 rounded-xl bg-kit-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-kit-700 transition-colors">
               <Briefcase className="h-4 w-4" /> My Opportunities
             </button>
           </Link>
@@ -196,7 +196,7 @@ export default function MentorDashboard() {
                         <td className="py-4">
                           <div className="flex justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100">
                             <Link href={`/dashboard/mentor/students`}
-                              className="flex items-center gap-1 rounded bg-indigo-50 px-2 py-1 text-xs font-bold text-indigo-700 hover:bg-indigo-100">
+                              className="flex items-center gap-1 rounded bg-kit-50 px-2 py-1 text-xs font-bold text-kit-700 hover:bg-kit-100">
                               <Eye className="h-3 w-3" /> View
                             </Link>
                             <button
@@ -262,7 +262,7 @@ export default function MentorDashboard() {
             className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">Upcoming Interviews</h2>
-              <Link href="/dashboard/mentor/interviews" className="text-sm font-medium text-indigo-600 hover:text-indigo-700">View All →</Link>
+              <Link href="/dashboard/mentor/interviews" className="text-sm font-medium text-kit-600 hover:text-kit-700">View All →</Link>
             </div>
             {data?.upcomingInterviews?.length === 0 ? (
               <p className="text-sm text-gray-500">No upcoming interviews scheduled.</p>
@@ -283,7 +283,7 @@ export default function MentorDashboard() {
                       <tr key={i.id} className="hover:bg-gray-50/50">
                         <td className="py-4 font-semibold text-gray-900">{i.student}</td>
                         <td className="py-4 text-gray-600">{i.company}</td>
-                        <td className="py-4 font-medium text-indigo-600">{new Date(i.date).toLocaleDateString()}</td>
+                        <td className="py-4 font-medium text-kit-600">{new Date(i.date).toLocaleDateString()}</td>
                         <td className="py-4 text-gray-600">{i.time || '—'}</td>
                         <td className="py-4">
                           <span className="inline-flex rounded-md bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700">
@@ -305,7 +305,7 @@ export default function MentorDashboard() {
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}
             className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="mb-6 flex items-center gap-2 text-lg font-bold text-gray-900">
-              <BellRing className="h-5 w-5 text-indigo-500" /> Recent Notifications
+              <BellRing className="h-5 w-5 text-kit-500" /> Recent Notifications
             </h2>
             {data?.notifications?.length === 0 ? (
               <p className="text-sm text-gray-500">No new notifications.</p>
@@ -313,7 +313,7 @@ export default function MentorDashboard() {
               <div className="space-y-3">
                 {data?.notifications?.map((n) => (
                   <div key={n.id} className="flex items-start gap-3 rounded-lg p-2 transition-colors hover:bg-gray-50">
-                    <div className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.isRead ? 'bg-gray-300' : 'bg-indigo-500'}`} />
+                    <div className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.isRead ? 'bg-gray-300' : 'bg-kit-500'}`} />
                     <div>
                       <p className="text-sm font-semibold text-gray-800">{n.title}</p>
                       <p className="text-xs text-gray-500">{n.message}</p>

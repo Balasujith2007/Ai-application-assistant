@@ -40,7 +40,7 @@ export function AccountSettings({ data, onSave }: { data: any; onSave: (d: any) 
           </div>
         </div>
         <div className="pt-4 flex gap-3">
-          <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">Save Changes</button>
+          <button type="submit" className="px-4 py-2 bg-kit-600 text-white rounded-lg hover:bg-kit-700 font-medium">Save Changes</button>
         </div>
       </form>
     </div>

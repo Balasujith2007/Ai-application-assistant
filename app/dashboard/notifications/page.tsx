@@ -88,13 +88,13 @@ export default function NotificationsPage() {
 
   const getIcon = (title: string) => {
     const titleLower = title.toLowerCase();
-    if (titleLower.includes('📢') || titleLower.includes('announcement')) return <Megaphone className="h-5 w-5 text-indigo-600" />;
+    if (titleLower.includes('📢') || titleLower.includes('announcement')) return <Megaphone className="h-5 w-5 text-kit-600" />;
     if (titleLower.includes('resume')) return <FileText className="h-5 w-5 text-emerald-600" />;
     if (titleLower.includes('task')) return <CheckSquare className="h-5 w-5 text-amber-600" />;
-    if (titleLower.includes('interview')) return <Calendar className="h-5 w-5 text-purple-600" />;
+    if (titleLower.includes('interview')) return <Calendar className="h-5 w-5 text-kit-600" />;
     if (titleLower.includes('application')) return <Briefcase className="h-5 w-5 text-blue-600" />;
     if (titleLower.includes('profile')) return <User className="h-5 w-5 text-green-600" />;
-    return <Sparkles className="h-5 w-5 text-indigo-500" />;
+    return <Sparkles className="h-5 w-5 text-kit-500" />;
   };
 
   const filteredNotifications = notifications.filter((n) => {
@@ -110,7 +110,7 @@ export default function NotificationsPage() {
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Bell className="h-6 w-6 text-indigo-600" /> Notification Center
+            <Bell className="h-6 w-6 text-kit-600" /> Notification Center
           </h1>
           <p className="text-sm text-gray-500 mt-1">
             Stay updated with announcements, task assignments, resume reviews, and status updates
@@ -121,7 +121,7 @@ export default function NotificationsPage() {
           <button
             onClick={markAllAsRead}
             disabled={markingAll}
-            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-60 shadow-sm transition-colors"
+            className="inline-flex items-center gap-2 rounded-xl bg-kit-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-kit-700 disabled:opacity-60 shadow-sm transition-colors"
           >
             {markingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCheck className="h-4 w-4" />}
             Mark all as read
@@ -134,7 +134,7 @@ export default function NotificationsPage() {
         <button
           onClick={() => setFilter('ALL')}
           className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
-            filter === 'ALL' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+            filter === 'ALL' ? 'bg-kit-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
           }`}
         >
           All ({notifications.length})
@@ -142,7 +142,7 @@ export default function NotificationsPage() {
         <button
           onClick={() => setFilter('UNREAD')}
           className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
-            filter === 'UNREAD' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+            filter === 'UNREAD' ? 'bg-kit-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
           }`}
         >
           Unread ({unreadCount})
@@ -150,7 +150,7 @@ export default function NotificationsPage() {
         <button
           onClick={() => setFilter('READ')}
           className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
-            filter === 'READ' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+            filter === 'READ' ? 'bg-kit-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
           }`}
         >
           Read ({notifications.length - unreadCount})
@@ -160,7 +160,7 @@ export default function NotificationsPage() {
       {/* Notifications Grid/List */}
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
         </div>
       ) : filteredNotifications.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-white py-16 px-4 text-center">
@@ -182,7 +182,7 @@ export default function NotificationsPage() {
               onClick={() => handleNotificationClick(n)}
               className={`group flex flex-col sm:flex-row sm:items-center justify-between rounded-2xl border p-5 transition-all cursor-pointer hover:shadow-md ${
                 !n.isRead
-                  ? 'border-indigo-200 bg-indigo-50/40 ring-1 ring-indigo-500/20'
+                  ? 'border-kit-200 bg-kit-50/40 ring-1 ring-kit-500/20'
                   : 'border-gray-200 bg-white'
               }`}
             >
@@ -196,7 +196,7 @@ export default function NotificationsPage() {
                       {n.title}
                     </h3>
                     {!n.isRead && (
-                      <span className="shrink-0 h-2 w-2 rounded-full bg-indigo-600" />
+                      <span className="shrink-0 h-2 w-2 rounded-full bg-kit-600" />
                     )}
                   </div>
                   <p className="text-xs text-gray-600 leading-relaxed">{n.message}</p>
@@ -210,7 +210,7 @@ export default function NotificationsPage() {
 
               <div className="flex items-center gap-2 mt-4 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-gray-100 shrink-0">
                 {n.link && (
-                  <span className="inline-flex items-center gap-1 rounded-xl bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors">
+                  <span className="inline-flex items-center gap-1 rounded-xl bg-kit-50 px-3 py-1.5 text-xs font-semibold text-kit-700 hover:bg-kit-100 transition-colors">
                     <ExternalLink className="h-3.5 w-3.5" /> View
                   </span>
                 )}
@@ -221,7 +221,7 @@ export default function NotificationsPage() {
                     title="Mark as Read"
                     className="inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 shadow-sm transition-colors"
                   >
-                    <Check className="h-3.5 w-3.5 text-indigo-600" /> Mark Read
+                    <Check className="h-3.5 w-3.5 text-kit-600" /> Mark Read
                   </button>
                 )}
 

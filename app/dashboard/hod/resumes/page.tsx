@@ -60,14 +60,14 @@ export default function HODResumesPage() {
     <div className="space-y-6 pb-12">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <FileText className="h-6 w-6 text-indigo-600" /> Department Resume Management
+          <FileText className="h-6 w-6 text-kit-600" /> Department Resume Management
         </h1>
         <p className="text-sm text-gray-500 mt-1">Track resume submissions and mentor review status across the department</p>
       </motion.div>
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
         </div>
       ) : (
         <>
@@ -99,13 +99,13 @@ export default function HODResumesPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by student, register number, or mentor..."
-                className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-4 text-sm focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-4 text-sm focus:border-kit-500 focus:outline-none"
               />
             </div>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 focus:border-indigo-500 focus:outline-none"
+              className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 focus:border-kit-500 focus:outline-none"
             >
               <option value="ALL">All Statuses</option>
               <option value="Completed">Completed / Reviewed</option>
@@ -130,7 +130,7 @@ export default function HODResumesPage() {
               <tbody className="divide-y divide-gray-50">
                 {filteredResumes.map((r) => (
                   <tr key={r.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4 font-mono text-xs font-bold text-indigo-700">{r.registerNo}</td>
+                    <td className="px-6 py-4 font-mono text-xs font-bold text-kit-700">{r.registerNo}</td>
                     <td className="px-6 py-4 font-semibold text-gray-900">{r.studentName}</td>
                     <td className="px-6 py-4 text-gray-600">{r.mentorName}</td>
                     <td className="px-6 py-4">
@@ -155,7 +155,7 @@ export default function HODResumesPage() {
                           href={r.fileUrl.startsWith('/api/resumes/') ? r.fileUrl : `/api/resumes/${r.id}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 shadow-sm transition-colors"
+                          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-kit-700 hover:bg-kit-50 shadow-sm transition-colors"
                         >
                           <Eye className="h-3.5 w-3.5" /> View Resume
                         </a>

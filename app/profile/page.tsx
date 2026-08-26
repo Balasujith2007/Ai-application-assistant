@@ -74,7 +74,7 @@ export default function ProfilePage() {
                 onClick={() => setActiveSection(id)}
                 className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                   activeSection === id
-                    ? 'bg-indigo-50 text-indigo-700'
+                    ? 'bg-kit-50 text-kit-700'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
@@ -228,7 +228,7 @@ function EducationSection({ education, onUpdate }: { education: Education[]; onU
                 <p className="text-xs text-gray-500">{edu.startYear} — {edu.endYear ?? 'Present'}{edu.grade ? ` · ${edu.grade}` : ''}</p>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => { setEditId(edu.id); setForm({ institution: edu.institution, degree: edu.degree, fieldOfStudy: edu.fieldOfStudy ?? '', startYear: String(edu.startYear), endYear: edu.endYear ? String(edu.endYear) : '', grade: edu.grade ?? '' }); setShowForm(true); }} className="text-gray-400 hover:text-indigo-600"><Pencil className="h-4 w-4" /></button>
+                <button onClick={() => { setEditId(edu.id); setForm({ institution: edu.institution, degree: edu.degree, fieldOfStudy: edu.fieldOfStudy ?? '', startYear: String(edu.startYear), endYear: edu.endYear ? String(edu.endYear) : '', grade: edu.grade ?? '' }); setShowForm(true); }} className="text-gray-400 hover:text-kit-600"><Pencil className="h-4 w-4" /></button>
                 <button onClick={() => handleDelete(edu.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></button>
               </div>
             </div>
@@ -237,7 +237,7 @@ function EducationSection({ education, onUpdate }: { education: Education[]; onU
         {education.length === 0 && <p className="text-sm text-gray-500">No education added yet.</p>}
       </div>
       {showForm && (
-        <div className="mt-4 rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+        <div className="mt-4 rounded-lg border border-kit-200 bg-kit-50 p-4">
           <div className="grid grid-cols-2 gap-3">
             <Input label="Institution" value={form.institution} onChange={(e) => setForm({ ...form, institution: e.target.value })} className="col-span-2" />
             <Input label="Degree" value={form.degree} onChange={(e) => setForm({ ...form, degree: e.target.value })} />
@@ -282,7 +282,7 @@ function SkillsSection({ skills, onUpdate }: { skills: Skill[]; onUpdate: () => 
       <h3 className="mb-6 text-lg font-semibold text-gray-900">Skills</h3>
       <div className="flex flex-wrap gap-2 mb-4">
         {skills.map((skill) => (
-          <span key={skill.id} className="flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700">
+          <span key={skill.id} className="flex items-center gap-1 rounded-full border border-kit-200 bg-kit-50 px-3 py-1 text-sm font-medium text-kit-700">
             {skill.name}
             <button onClick={() => handleRemove(skill.id)} className="ml-1 hover:text-red-500">
               <X className="h-3.5 w-3.5" />
@@ -342,7 +342,7 @@ function ProjectsSection({ projects, onUpdate }: { projects: Project[]; onUpdate
                 </div>
               </div>
               <div className="flex gap-2 ml-4">
-                <button onClick={() => { setEditId(proj.id); setForm({ title: proj.title, description: proj.description ?? '', technologies: proj.technologies.join(', '), githubUrl: proj.githubUrl ?? '', liveUrl: proj.liveUrl ?? '' }); setShowForm(true); }} className="text-gray-400 hover:text-indigo-600"><Pencil className="h-4 w-4" /></button>
+                <button onClick={() => { setEditId(proj.id); setForm({ title: proj.title, description: proj.description ?? '', technologies: proj.technologies.join(', '), githubUrl: proj.githubUrl ?? '', liveUrl: proj.liveUrl ?? '' }); setShowForm(true); }} className="text-gray-400 hover:text-kit-600"><Pencil className="h-4 w-4" /></button>
                 <button onClick={async () => { if (confirm('Delete project?')) { await api.delete(`/profiles/projects/${proj.id}`); onUpdate(); } }} className="text-gray-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></button>
               </div>
             </div>
@@ -351,7 +351,7 @@ function ProjectsSection({ projects, onUpdate }: { projects: Project[]; onUpdate
         {projects.length === 0 && <p className="text-sm text-gray-500">No projects added yet.</p>}
       </div>
       {showForm && (
-        <div className="mt-4 rounded-lg border border-indigo-200 bg-indigo-50 p-4 space-y-3">
+        <div className="mt-4 rounded-lg border border-kit-200 bg-kit-50 p-4 space-y-3">
           <Input label="Project Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           <Textarea label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           <Input label="Technologies (comma separated)" value={form.technologies} onChange={(e) => setForm({ ...form, technologies: e.target.value })} placeholder="React, Node.js, PostgreSQL" />
@@ -404,7 +404,7 @@ function ExperienceSection({ experiences, onUpdate }: { experiences: Experience[
                 {exp.description && <p className="mt-2 text-sm text-gray-600">{exp.description}</p>}
               </div>
               <div className="flex gap-2 ml-4">
-                <button onClick={() => { setEditId(exp.id); setForm({ company: exp.company, role: exp.role, description: exp.description ?? '', startDate: exp.startDate?.slice(0, 10) ?? '', endDate: exp.endDate?.slice(0, 10) ?? '', currentlyWorking: exp.currentlyWorking }); setShowForm(true); }} className="text-gray-400 hover:text-indigo-600"><Pencil className="h-4 w-4" /></button>
+                <button onClick={() => { setEditId(exp.id); setForm({ company: exp.company, role: exp.role, description: exp.description ?? '', startDate: exp.startDate?.slice(0, 10) ?? '', endDate: exp.endDate?.slice(0, 10) ?? '', currentlyWorking: exp.currentlyWorking }); setShowForm(true); }} className="text-gray-400 hover:text-kit-600"><Pencil className="h-4 w-4" /></button>
                 <button onClick={async () => { if (confirm('Delete experience?')) { await api.delete(`/profiles/experience/${exp.id}`); onUpdate(); } }} className="text-gray-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></button>
               </div>
             </div>
@@ -413,7 +413,7 @@ function ExperienceSection({ experiences, onUpdate }: { experiences: Experience[
         {experiences.length === 0 && <p className="text-sm text-gray-500">No experience added yet.</p>}
       </div>
       {showForm && (
-        <div className="mt-4 rounded-lg border border-indigo-200 bg-indigo-50 p-4 space-y-3">
+        <div className="mt-4 rounded-lg border border-kit-200 bg-kit-50 p-4 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <Input label="Company" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} />
             <Input label="Role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} />
@@ -530,7 +530,7 @@ function SocialSection({ profile, onUpdate }: { profile: Profile | null; onUpdat
       label: 'Codolio Profile',
       placeholder: 'https://codolio.com/profile/username',
       urlKey: 'codolioUrl' as const,
-      color: 'border-purple-600 bg-purple-600 text-white'
+      color: 'border-kit-600 bg-kit-600 text-white'
     }
   ];
 
@@ -635,7 +635,7 @@ function CareerActivitiesSection() {
         </div>
         <Link
           href="/dashboard/student/opportunity-history"
-          className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 transition-colors"
+          className="rounded-xl bg-kit-600 px-4 py-2 text-xs font-bold text-white hover:bg-kit-700 transition-colors"
         >
           View Full History →
         </Link>
@@ -654,7 +654,7 @@ function CareerActivitiesSection() {
       ) : (
         <div className="space-y-3">
           {completedActivities.map((act) => (
-            <div key={act.id} className="flex items-center justify-between rounded-xl border border-gray-100 bg-white p-4 shadow-2xs hover:border-indigo-100 transition-colors">
+            <div key={act.id} className="flex items-center justify-between rounded-xl border border-gray-100 bg-white p-4 shadow-2xs hover:border-kit-100 transition-colors">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 font-bold text-xs">
                   ✓
@@ -671,7 +671,7 @@ function CareerActivitiesSection() {
                   href={act.certificateUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-xs font-semibold text-indigo-600 hover:underline flex items-center gap-1"
+                  className="text-xs font-semibold text-kit-600 hover:underline flex items-center gap-1"
                 >
                   Certificate <ExternalLink className="h-3 w-3" />
                 </a>

@@ -60,19 +60,19 @@ export default function HODDashboardPage() {
   if (loading) {
     return (
       <div className="flex min-h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
       </div>
     );
   }
 
   const stats = data ? [
-    { label: 'Total Dept. Students', value: data.totalStudents, icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+    { label: 'Total Dept. Students', value: data.totalStudents, icon: Users, color: 'text-kit-600', bg: 'bg-kit-50' },
     { label: 'Active Mentors', value: data.totalMentors, icon: UserCheck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Active Applications', value: data.activeApplications, icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Hackathon Registrations', value: data.hackathonRegistrations || 0, icon: Trophy, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { label: 'Hackathon Registrations', value: data.hackathonRegistrations || 0, icon: Trophy, color: 'text-kit-600', bg: 'bg-kit-50' },
     { label: 'Internship Registrations', value: data.internshipRegistrations || 0, icon: Briefcase, color: 'text-teal-600', bg: 'bg-teal-50' },
     { label: 'Total Registered Students', value: data.totalRegisteredStudents || 0, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Upcoming Interviews', value: data.upcomingInterviews, icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { label: 'Upcoming Interviews', value: data.upcomingInterviews, icon: Calendar, color: 'text-kit-600', bg: 'bg-kit-50' },
     { label: 'Unassigned Students', value: data.unassignedStudents, icon: UserX, color: 'text-amber-600', bg: 'bg-amber-50' },
     { label: 'Resumes Uploaded', value: data.studentsWithResumesCount, icon: FileText, color: 'text-rose-600', bg: 'bg-rose-50' },
   ] : [];
@@ -92,7 +92,7 @@ export default function HODDashboardPage() {
         <div className="flex items-center gap-3">
           <a
             href="/dashboard/hod/opportunities"
-            className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors"
+            className="flex items-center gap-2 rounded-xl bg-kit-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-kit-700 transition-colors"
           >
             <Briefcase className="h-4 w-4" /> Broadcast Opportunities
           </a>
@@ -186,7 +186,7 @@ export default function HODDashboardPage() {
           className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
         >
           <h2 className="mb-6 flex items-center gap-2 text-lg font-bold text-gray-900">
-            <PieChart className="h-5 w-5 text-indigo-600" /> Year-wise Student Distribution
+            <PieChart className="h-5 w-5 text-kit-600" /> Year-wise Student Distribution
           </h2>
           <div className="space-y-4">
             {data?.yearDistribution.map((y) => {
@@ -198,7 +198,7 @@ export default function HODDashboardPage() {
                     <span className="text-gray-900 font-bold">{y.total} students ({pct}%)</span>
                   </div>
                   <div className="h-3 overflow-hidden rounded-full bg-gray-100">
-                    <div className="h-full rounded-full bg-indigo-600 transition-all duration-500" style={{ width: `${pct}%` }} />
+                    <div className="h-full rounded-full bg-kit-600 transition-all duration-500" style={{ width: `${pct}%` }} />
                   </div>
                 </div>
               );

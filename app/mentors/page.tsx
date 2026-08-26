@@ -122,11 +122,11 @@ const CATEGORIES = [
 
 // Map colors to tailwind classes
 const COLOR_MAP: Record<string, { bg: string; text: string; borderHover: string }> = {
-  indigo: { bg: 'bg-indigo-50', text: 'text-indigo-600', borderHover: 'hover:border-indigo-500' },
+  indigo: { bg: 'bg-kit-50', text: 'text-kit-600', borderHover: 'hover:border-kit-500' },
   blue: { bg: 'bg-blue-50', text: 'text-blue-600', borderHover: 'hover:border-blue-500' },
   emerald: { bg: 'bg-emerald-50', text: 'text-emerald-600', borderHover: 'hover:border-emerald-500' },
   orange: { bg: 'bg-orange-50', text: 'text-orange-600', borderHover: 'hover:border-orange-500' },
-  purple: { bg: 'bg-purple-50', text: 'text-purple-600', borderHover: 'hover:border-purple-500' },
+  purple: { bg: 'bg-kit-50', text: 'text-kit-600', borderHover: 'hover:border-kit-500' },
   rose: { bg: 'bg-rose-50', text: 'text-rose-600', borderHover: 'hover:border-rose-500' },
   cyan: { bg: 'bg-cyan-50', text: 'text-cyan-600', borderHover: 'hover:border-cyan-500' },
   yellow: { bg: 'bg-yellow-50', text: 'text-yellow-600', borderHover: 'hover:border-yellow-500' },
@@ -141,14 +141,12 @@ const COLOR_MAP: Record<string, { bg: string; text: string; borderHover: string 
 
 export default function MentorsPage() {
   return (
-    <div className="min-h-screen bg-white font-[var(--font-inter)] selection:bg-indigo-100 selection:text-indigo-900">
+    <div className="min-h-screen bg-white font-[var(--font-inter)] selection:bg-kit-100 selection:text-kit-900">
       {/* Navbar */}
       <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 shadow-sm">
-              <Zap className="h-4 w-4 text-white" />
-            </div>
+            <img src="/kit-logo.png" alt="KIT Logo" className="h-8 w-8 object-contain" />
             <span className="text-xl font-bold text-gray-900 tracking-tight">CareerAI</span>
           </Link>
           <div className="flex items-center gap-4">
@@ -168,7 +166,7 @@ export default function MentorsPage() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <h1 className="text-5xl font-bold tracking-tight text-gray-900 sm:text-6xl lg:text-7xl">
               Everything Mentors Need for <br className="hidden sm:block" />
-              <span className="text-indigo-600">Student Success</span>
+              <span className="text-kit-600">Student Success</span>
             </h1>
             <p className="mt-6 text-lg leading-8 text-gray-500 max-w-2xl mx-auto">
               Manage your assigned students, track their progress, review resumes, and conduct mock interviews—all in one intelligent platform.
@@ -267,7 +265,7 @@ export default function MentorsPage() {
 
                     {/* Button */}
                     <div className="mt-auto pt-6 border-t border-gray-100">
-                      <button className="group/btn relative flex items-center justify-center gap-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:border-indigo-600 hover:bg-indigo-600 hover:text-white">
+                      <button className="group/btn relative flex items-center justify-center gap-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:border-kit-600 hover:bg-kit-600 hover:text-white">
                         <span>Learn More</span>
                         <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/btn:translate-x-1" />
                       </button>
@@ -283,7 +281,7 @@ export default function MentorsPage() {
       {/* Premium Insights Section */}
       <section className="mx-auto max-w-7xl px-6 lg:px-8 mb-32">
         <div className="mb-12 max-w-2xl">
-          <span className="inline-block rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-indigo-600 mb-4">
+          <span className="inline-block rounded-full bg-kit-50 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-kit-600 mb-4">
             INSIGHTS & AI
           </span>
           <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl mb-4">
@@ -330,7 +328,7 @@ export default function MentorsPage() {
               </div>
             </div>
             <div className="mt-auto pt-6 border-t border-gray-100">
-              <button className="group/btn relative flex items-center justify-center gap-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:border-indigo-600 hover:bg-indigo-600 hover:text-white">
+              <button className="group/btn relative flex items-center justify-center gap-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:border-kit-600 hover:bg-kit-600 hover:text-white">
                 <span>Learn More</span>
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/btn:translate-x-1" />
               </button>
@@ -372,7 +370,7 @@ export default function MentorsPage() {
               </div>
             </div>
             <div className="mt-auto pt-6 border-t border-gray-100">
-              <button className="group/btn relative flex items-center justify-center gap-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:border-indigo-600 hover:bg-indigo-600 hover:text-white">
+              <button className="group/btn relative flex items-center justify-center gap-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:border-kit-600 hover:bg-kit-600 hover:text-white">
                 <span>Learn More</span>
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/btn:translate-x-1" />
               </button>
@@ -453,10 +451,10 @@ export default function MentorsPage() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.3, delay: idx * 0.05 }}
                 whileHover={{ y: -6 }}
-                className="group relative flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-300 hover:shadow-lg hover:border-indigo-500"
+                className="group relative flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-300 hover:shadow-lg hover:border-kit-500"
               >
                 <div className="flex justify-between items-start mb-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 transition-colors group-hover:bg-indigo-600 group-hover:text-white">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-kit-50 text-kit-600 transition-colors group-hover:bg-kit-600 group-hover:text-white">
                     <Bot className="h-5 w-5" strokeWidth={1.5} />
                   </div>
                   <span className="inline-block rounded bg-blue-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-600">
@@ -472,23 +470,23 @@ export default function MentorsPage() {
       </section>
 
       {/* Premium Full-Width Final CTA */}
-      <section className="bg-gradient-to-br from-indigo-50 via-white to-blue-50 py-32 border-t border-gray-100">
+      <section className="bg-gradient-to-br from-kit-50 via-white to-blue-50 py-32 border-t border-gray-100">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <motion.div 
             initial={{ opacity: 0, scale: 0.98 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="rounded-[3rem] bg-white border border-indigo-100 px-6 py-24 sm:px-16 lg:px-24 shadow-2xl relative overflow-hidden text-center"
+            className="rounded-[3rem] bg-white border border-kit-100 px-6 py-24 sm:px-16 lg:px-24 shadow-2xl relative overflow-hidden text-center"
           >
             {/* Subtle floating abstract shapes */}
-            <div className="absolute -top-24 -left-24 w-96 h-96 bg-indigo-100/50 blur-[80px] rounded-full pointer-events-none" />
+            <div className="absolute -top-24 -left-24 w-96 h-96 bg-kit-100/50 blur-[80px] rounded-full pointer-events-none" />
             <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-blue-100/50 blur-[80px] rounded-full pointer-events-none" />
             
             <div className="relative z-10">
               <h2 className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl max-w-4xl mx-auto leading-tight">
                 Ready to Empower the <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-500">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-kit-600 to-blue-500">
                   Next Generation?
                 </span>
               </h2>
@@ -498,7 +496,7 @@ export default function MentorsPage() {
               <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
                   href="/register"
-                  className="w-full sm:w-auto rounded-xl bg-indigo-600 px-10 py-4 text-base font-bold text-white shadow-lg shadow-indigo-200 transition-all hover:bg-indigo-700 hover:scale-[1.02] active:scale-95"
+                  className="w-full sm:w-auto rounded-xl bg-kit-600 px-10 py-4 text-base font-bold text-white shadow-lg shadow-kit-200 transition-all hover:bg-kit-700 hover:scale-[1.02] active:scale-95"
                 >
                   Start Mentoring Today
                 </Link>

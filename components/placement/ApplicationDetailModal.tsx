@@ -58,7 +58,7 @@ export function ApplicationDetailModal({
         {/* Top Header Card */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50/50 p-5">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white font-bold text-xl shadow-xs">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-kit-600 text-white font-bold text-xl shadow-xs">
               {application.companyName.charAt(0)}
             </div>
             <div>
@@ -107,7 +107,7 @@ export function ApplicationDetailModal({
               onClick={() => onUpdateStatus(application.id, st)}
               className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
                 application.status === st
-                  ? 'bg-indigo-600 text-white shadow-2xs'
+                  ? 'bg-kit-600 text-white shadow-2xs'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -129,7 +129,7 @@ export function ApplicationDetailModal({
           <div>
             <span className="text-xs text-gray-400 font-medium">Resume Version Used</span>
             <p className="text-sm font-semibold text-gray-900 flex items-center gap-1.5 mt-0.5">
-              <FileText className="h-4 w-4 text-indigo-600" />
+              <FileText className="h-4 w-4 text-kit-600" />
               {application.resumeVersion || 'Default Resume'}
             </p>
           </div>
@@ -174,7 +174,7 @@ export function ApplicationDetailModal({
             <h4 className="text-sm font-bold text-gray-900">Notes & Activity History</h4>
             <button
               onClick={() => setShowNoteInput(!showNoteInput)}
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+              className="text-xs font-semibold text-kit-600 hover:text-kit-700 flex items-center gap-1"
             >
               <Plus className="h-3.5 w-3.5" />
               Add Note
@@ -188,7 +188,7 @@ export function ApplicationDetailModal({
                 value={newNote}
                 onChange={(e) => setNewNote(e.target.value)}
                 placeholder="Type a new note..."
-                className="flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+                className="flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-kit-500 focus:outline-none"
               />
               <Button type="submit" size="sm" variant="primary">
                 <Send className="h-3.5 w-3.5" />
@@ -210,7 +210,7 @@ export function ApplicationDetailModal({
                 href={application.applicationUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-indigo-50 px-3.5 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors"
+                className="inline-flex items-center gap-2 rounded-lg bg-kit-50 px-3.5 py-2 text-xs font-semibold text-kit-700 hover:bg-kit-100 transition-colors"
               >
                 <ExternalLink className="h-4 w-4" />
                 Job Link
@@ -232,7 +232,7 @@ export function ApplicationDetailModal({
                 href={application.codolioUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-purple-50 px-3.5 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-100 transition-colors"
+                className="inline-flex items-center gap-2 rounded-lg bg-kit-50 px-3.5 py-2 text-xs font-semibold text-kit-700 hover:bg-kit-100 transition-colors"
               >
                 <ExternalLink className="h-4 w-4" />
                 Codolio Profile

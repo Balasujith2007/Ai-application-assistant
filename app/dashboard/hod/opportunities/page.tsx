@@ -141,7 +141,7 @@ export default function HODOpportunitiesPage() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <Megaphone className="h-5 w-5 text-indigo-600" /> Active Campus Opportunities
+              <Megaphone className="h-5 w-5 text-kit-600" /> Active Campus Opportunities
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">HOD Broadcasts are sent directly to student and mentor notification feeds</p>
           </div>
@@ -154,7 +154,7 @@ export default function HODOpportunitiesPage() {
         {/* Grid List */}
         {loading ? (
           <div className="flex h-64 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+            <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
           </div>
         ) : opportunities.length === 0 ? (
           <div className="py-16 text-center text-gray-500 bg-white rounded-2xl border border-dashed border-gray-200">
@@ -165,7 +165,7 @@ export default function HODOpportunitiesPage() {
             {opportunities.map((opp) => (
               <div key={opp.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-md">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-kit-700 bg-kit-50 px-2.5 py-1 rounded-md">
                     {opp.type}
                   </span>
                   <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
@@ -182,7 +182,7 @@ export default function HODOpportunitiesPage() {
 
                 <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
                   <span>📅 {new Date(opp.applicationDeadline).toLocaleDateString()}</span>
-                  <span className="font-bold text-indigo-600">{opp.registrationCount} Registrations</span>
+                  <span className="font-bold text-kit-600">{opp.registrationCount} Registrations</span>
                 </div>
               </div>
             ))}
@@ -195,27 +195,27 @@ export default function HODOpportunitiesPage() {
             <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  <Send className="h-5 w-5 text-indigo-600" /> Broadcast New Opportunity
+                  <Send className="h-5 w-5 text-kit-600" /> Broadcast New Opportunity
                 </h3>
                 <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600">✕</button>
               </div>
 
               <form onSubmit={handleCreateBroadcast} className="space-y-4">
                 {/* Auto Fetch */}
-                <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-3 space-y-2">
+                <div className="rounded-xl border border-kit-200 bg-kit-50/40 p-3 space-y-2">
                   <div className="flex gap-2">
                     <input
                       type="url"
                       placeholder="Paste Official Opportunity URL to auto-fill..."
                       value={form.opportunityUrl}
                       onChange={(e) => setForm({ ...form, opportunityUrl: e.target.value })}
-                      className="flex-1 rounded-xl border border-indigo-200 bg-white px-3 py-1.5 text-xs"
+                      className="flex-1 rounded-xl border border-kit-200 bg-white px-3 py-1.5 text-xs"
                     />
                     <Button type="button" size="sm" onClick={handleFetchUrlDetails} disabled={isFetchingUrl}>
                       {isFetchingUrl ? 'Fetching...' : 'Fetch'}
                     </Button>
                   </div>
-                  {fetchNotice && <p className="text-[11px] text-indigo-800 font-semibold">{fetchNotice}</p>}
+                  {fetchNotice && <p className="text-[11px] text-kit-800 font-semibold">{fetchNotice}</p>}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -255,8 +255,8 @@ export default function HODOpportunitiesPage() {
                 <Textarea label="Description *" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} required />
 
                 {/* HOD Targeting Controls */}
-                <div className="rounded-xl border border-purple-200 bg-purple-50/50 p-4 space-y-3">
-                  <h4 className="text-xs font-bold text-purple-900 uppercase tracking-wider">HOD Target Audience</h4>
+                <div className="rounded-xl border border-kit-200 bg-kit-50/50 p-4 space-y-3">
+                  <h4 className="text-xs font-bold text-kit-900 uppercase tracking-wider">HOD Target Audience</h4>
 
                   <div className="flex gap-4 text-xs font-semibold text-gray-700">
                     <label className="flex items-center gap-1.5 cursor-pointer">
@@ -279,7 +279,7 @@ export default function HODOpportunitiesPage() {
                       <select
                         value={form.targetDepartment}
                         onChange={(e) => setForm({ ...form, targetDepartment: e.target.value })}
-                        className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs focus:border-indigo-500 focus:outline-none"
+                        className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs focus:border-kit-500 focus:outline-none"
                       >
                         <option value="">All Departments</option>
                         {availableDepartments.map((dept) => (
@@ -294,7 +294,7 @@ export default function HODOpportunitiesPage() {
                       <select
                         value={form.targetYear}
                         onChange={(e) => setForm({ ...form, targetYear: e.target.value })}
-                        className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs focus:border-indigo-500 focus:outline-none"
+                        className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs focus:border-kit-500 focus:outline-none"
                       >
                         <option value="">All Years</option>
                         {availableYears.map((yr) => (

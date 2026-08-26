@@ -63,7 +63,7 @@ export function DashboardHeader({ title, subtitle }: DashboardHeaderProps) {
             <input
               type="text"
               placeholder="Search..."
-              className="w-56 rounded-lg border border-gray-200 bg-gray-50 py-2 pl-9 pr-4 text-sm text-gray-600 placeholder-gray-400 focus:border-indigo-300 focus:outline-none focus:ring-1 focus:ring-indigo-300"
+              className="w-56 rounded-lg border border-gray-200 bg-gray-50 py-2 pl-9 pr-4 text-sm text-gray-600 placeholder-gray-400 focus:border-kit-400 focus:outline-none focus:ring-1 focus:ring-kit-400"
             />
           </div>
 
@@ -73,7 +73,7 @@ export function DashboardHeader({ title, subtitle }: DashboardHeaderProps) {
           {/* Avatar */}
           {user && (
             <Link href="/profile">
-              <Avatar name={user.name} size="sm" className="cursor-pointer hover:ring-2 hover:ring-indigo-400 transition-all" />
+              <Avatar name={user.name} size="sm" className="cursor-pointer hover:ring-2 hover:ring-kit-400 transition-all" />
             </Link>
           )}
         </div>

@@ -84,7 +84,7 @@ export default function TasksPage() {
       <DashboardLayout title="Tasks" subtitle="Loading your tasks...">
         <div className="flex h-[60vh] items-center justify-center">
           <div className="flex flex-col items-center gap-4">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600"></div>
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-kit-200 border-t-kit-600"></div>
             <p className="text-sm font-medium text-gray-500">Loading tasks...</p>
           </div>
         </div>
@@ -132,8 +132,8 @@ export default function TasksPage() {
             label="Today's Tasks"
             value={stats.todaysTasksCount}
             icon={ListChecks}
-            color="text-indigo-600"
-            bg="bg-indigo-50"
+            color="text-kit-600"
+            bg="bg-kit-50"
             index={0}
           />
           <StatCard
@@ -173,7 +173,7 @@ export default function TasksPage() {
                 placeholder="Search tasks..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 bg-gray-50/50 py-2 pl-9 pr-4 text-sm text-gray-900 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                className="w-full rounded-xl border border-gray-300 bg-gray-50/50 py-2 pl-9 pr-4 text-sm text-gray-900 focus:border-kit-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-kit-500/20"
               />
             </div>
 
@@ -191,7 +191,7 @@ export default function TasksPage() {
                   onClick={() => setStatusFilter(tab.value)}
                   className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
                     statusFilter === tab.value
-                      ? 'bg-white text-indigo-700 shadow-2xs font-bold'
+                      ? 'bg-white text-kit-700 shadow-2xs font-bold'
                       : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
@@ -206,7 +206,7 @@ export default function TasksPage() {
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 focus:border-indigo-500 focus:outline-none"
+              className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 focus:border-kit-500 focus:outline-none"
             >
               <option value="ALL">All Priorities</option>
               <option value="High">High Priority</option>
@@ -218,7 +218,7 @@ export default function TasksPage() {
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 focus:border-indigo-500 focus:outline-none"
+              className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 focus:border-kit-500 focus:outline-none"
             >
               <option value="ALL">All Categories</option>
               <option value="Resume">Resume</option>
@@ -234,7 +234,7 @@ export default function TasksPage() {
         {/* Task List */}
         {filteredTasks.length === 0 ? (
           <EmptyState
-            icon={<CheckSquare className="h-10 w-10 text-indigo-500" />}
+            icon={<CheckSquare className="h-10 w-10 text-kit-500" />}
             title="No tasks found"
             description="Create your first placement task to keep your drive activities on schedule."
             action={

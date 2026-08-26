@@ -42,14 +42,14 @@ export default function MentorProgressPage() {
     <div className="space-y-6 pb-12">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <PieChart className="h-6 w-6 text-indigo-600" /> Assigned Student Progress
+          <PieChart className="h-6 w-6 text-kit-600" /> Assigned Student Progress
         </h1>
         <p className="text-sm text-gray-500 mt-1">Track resume status, applications, and preparation readiness for your students</p>
       </motion.div>
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
         </div>
       ) : students.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-12 text-center text-sm text-gray-500">
@@ -60,7 +60,7 @@ export default function MentorProgressPage() {
           {students.map((s) => (
             <div key={s.id} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-700">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-kit-100 text-sm font-bold text-kit-700">
                   {s.name.charAt(0).toUpperCase()}
                 </div>
                 <div>
