@@ -1,6 +1,9 @@
 import { extractFields } from './field-extractor';
 import { normalizeLabel } from '../ai/question-classifier';
 
+export const AUTO_START_THRESHOLD = 70;
+export const PROMPT_THRESHOLD = 50;
+
 export type PageKind = 'NONE' | 'LANDING' | 'CAPTCHA' | 'FORM' | 'REVIEW';
 
 export interface DetectionResult {
@@ -65,7 +68,7 @@ export function scoreFromSignals(input: {
   }
 
   const href = (input.href || '').toLowerCase();
-  if (/careers|jobs|apply|internship|hackathon|scholarship|greenhouse|lever\.co|workday|myworkday|unstop|hiretoday|dare2compete|smartrecruiters|icims|taleo|successfactors|jobvite|breezy\.hr|recruitee|ashby|rippling|bamboohr|ats\.|recruit\./.test(href)) {
+  if (/careers|jobs|apply|internship|hackathon|scholarship|greenhouse|lever\.co|workday|myworkday|unstop|hiretoday|dare2compete|smartrecruiters|icims|taleo|successfactors|jobvite|breezy\.hr|recruitee|ashby|rippling|bamboohr|younoodle|ats\.|recruit\./.test(href)) {
     score += 18;
     reasons.push('career URL pattern');
   }
@@ -98,7 +101,7 @@ export function scoreFromSignals(input: {
 
   score = Math.min(100, score);
   const autoStart = Boolean(
-    kind !== 'NONE' && (score >= 70 || input.captchaBlocking || (input.isTestApp && (kind === 'FORM' || kind === 'REVIEW' || kind === 'CAPTCHA'))),
+    kind !== 'NONE' && (score >= AUTO_START_THRESHOLD || input.captchaBlocking || (input.isTestApp && (kind === 'FORM' || kind === 'REVIEW' || kind === 'CAPTCHA'))),
   );
   return { score, reasons, autoStart, kind: kind || 'NONE' };
 }

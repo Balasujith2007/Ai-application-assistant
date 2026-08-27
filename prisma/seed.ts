@@ -50,6 +50,182 @@ async function main() {
   const mentorPassword = await bcrypt.hash('Mentor@123', 10);
   const hodPassword = await bcrypt.hash('Hod@123', 10);
 
+  // Seed Super Admin
+  const superAdminPassword = await bcrypt.hash('Superadmin@123', 10);
+  const superAdmin = await prisma.user.upsert({
+    where: { email: 'superadmin@careerai.edu' },
+    update: { name: 'Super Admin', role: Role.SUPER_ADMIN, password: superAdminPassword },
+    create: {
+      email: 'superadmin@careerai.edu',
+      name: 'Super Admin',
+      password: superAdminPassword,
+      role: Role.SUPER_ADMIN,
+    },
+  });
+  console.log(`✅ Super Admin created: ${superAdmin.email}`);
+
+  // Seed default AppFeatures
+  const defaultFeatures = [
+    { name: 'opportunities', description: 'Access to campus jobs, internships, hackathons', roles: [Role.STUDENT, Role.MENTOR, Role.HOD, Role.PLACEMENT_CELL, Role.ADMIN, Role.SUPER_ADMIN] },
+    { name: 'resume-management', description: 'Upload and manage student resumes', roles: [Role.STUDENT, Role.MENTOR, Role.HOD, Role.PLACEMENT_CELL, Role.ADMIN, Role.SUPER_ADMIN] },
+    { name: 'reports', description: 'Access to department and student performance reports', roles: [Role.MENTOR, Role.HOD, Role.PLACEMENT_CELL, Role.ADMIN, Role.SUPER_ADMIN] },
+    { name: 'form-builder', description: 'Create and publish feedback or evaluation forms', roles: [Role.MENTOR, Role.HOD, Role.ADMIN, Role.SUPER_ADMIN] },
+    { name: 'notifications', description: 'Send and receive platform notifications', roles: [Role.STUDENT, Role.MENTOR, Role.HOD, Role.PLACEMENT_CELL, Role.ADMIN, Role.SUPER_ADMIN] },
+    { name: 'ai-resume-analysis', description: 'AI-assisted resume checks', roles: [Role.STUDENT, Role.MENTOR, Role.SUPER_ADMIN] },
+    { name: 'skill-analysis', description: 'AI-assisted student skill mapping', roles: [Role.STUDENT, Role.MENTOR, Role.SUPER_ADMIN] },
+    { name: 'career-readiness', description: 'AI-assisted placement readiness checks', roles: [Role.STUDENT, Role.MENTOR, Role.SUPER_ADMIN] },
+    { name: 'auto-fill-agent', description: 'Chrome extension autofill capabilities', roles: [Role.STUDENT, Role.SUPER_ADMIN] },
+  ];
+
+  for (const feat of defaultFeatures) {
+    await prisma.appFeature.upsert({
+      where: { name: feat.name },
+      update: { description: feat.description, roles: feat.roles },
+      create: { name: feat.name, description: feat.description, roles: feat.roles, enabled: true },
+    });
+  }
+  console.log('✅ Default App Features seeded.');
+
+  // Seed default RolePermissions
+  const defaultPermissions: Array<{ role: Role; resource: string; action: string; allowed: boolean }> = [];
+
+  // Super Admin permissions
+  const allResources = [
+    'Dashboard', 'Opportunities', 'My Applications', 'My Tasks', 'My Resume', 'My Progress',
+    'Announcements', 'Notifications', 'Reports', 'Forms', 'User Management', 'Roles & Permissions',
+    'Sidebar Management', 'Feature Management', 'System Health', 'Audit Logs', 'Settings',
+    'My Students', 'Our Students', 'Resumes', 'Tasks', 'Student Progress', 'Students', 'Mentors', 'Student Assignment', 'Internship / Hackathon'
+  ];
+  const allActions = ['VIEW', 'CREATE', 'EDIT', 'DELETE', 'EXPORT', 'APPROVE'];
+
+  for (const resource of allResources) {
+    for (const action of allActions) {
+      defaultPermissions.push({ role: Role.SUPER_ADMIN, resource, action, allowed: true });
+    }
+  }
+
+  // Student permissions
+  const studentViewOnly = ['Dashboard', 'Opportunities', 'My Applications', 'My Tasks', 'My Resume', 'My Progress', 'Announcements', 'Notifications', 'Settings'];
+  for (const resource of studentViewOnly) {
+    defaultPermissions.push({ role: Role.STUDENT, resource, action: 'VIEW', allowed: true });
+  }
+  defaultPermissions.push({ role: Role.STUDENT, resource: 'My Resume', action: 'CREATE', allowed: true });
+  defaultPermissions.push({ role: Role.STUDENT, resource: 'My Resume', action: 'EDIT', allowed: true });
+  defaultPermissions.push({ role: Role.STUDENT, resource: 'My Resume', action: 'DELETE', allowed: true });
+  defaultPermissions.push({ role: Role.STUDENT, resource: 'My Tasks', action: 'EDIT', allowed: true });
+
+  // Mentor permissions
+  const mentorViewOnly = ['Dashboard', 'My Students', 'Our Students', 'Resumes', 'Tasks', 'Student Progress', 'Reports', 'Forms', 'Notifications', 'Settings'];
+  for (const resource of mentorViewOnly) {
+    defaultPermissions.push({ role: Role.MENTOR, resource, action: 'VIEW', allowed: true });
+  }
+  const mentorCreateEdit = ['Tasks', 'Forms'];
+  for (const resource of mentorCreateEdit) {
+    defaultPermissions.push({ role: Role.MENTOR, resource, action: 'CREATE', allowed: true });
+    defaultPermissions.push({ role: Role.MENTOR, resource, action: 'EDIT', allowed: true });
+    defaultPermissions.push({ role: Role.MENTOR, resource, action: 'DELETE', allowed: true });
+  }
+  defaultPermissions.push({ role: Role.MENTOR, resource: 'Reports', action: 'EXPORT', allowed: true });
+
+  // HOD permissions
+  const hodViewOnly = [
+    'Dashboard', 'Students', 'Mentors', 'Student Assignment', 'Student Progress', 'Internship / Hackathon',
+    'Resumes', 'Tasks', 'Announcements', 'Reports', 'Forms', 'Settings'
+  ];
+  for (const resource of hodViewOnly) {
+    defaultPermissions.push({ role: Role.HOD, resource, action: 'VIEW', allowed: true });
+  }
+  const hodCreateEdit = ['Students', 'Mentors', 'Student Assignment', 'Tasks', 'Announcements', 'Forms'];
+  for (const resource of hodCreateEdit) {
+    defaultPermissions.push({ role: Role.HOD, resource, action: 'CREATE', allowed: true });
+    defaultPermissions.push({ role: Role.HOD, resource, action: 'EDIT', allowed: true });
+    defaultPermissions.push({ role: Role.HOD, resource, action: 'DELETE', allowed: true });
+  }
+  defaultPermissions.push({ role: Role.HOD, resource: 'Reports', action: 'EXPORT', allowed: true });
+
+  for (const perm of defaultPermissions) {
+    await prisma.rolePermission.upsert({
+      where: {
+        role_resource_action: {
+          role: perm.role,
+          resource: perm.resource,
+          action: perm.action,
+        }
+      },
+      update: { allowed: perm.allowed },
+      create: { role: perm.role, resource: perm.resource, action: perm.action, allowed: perm.allowed },
+    });
+  }
+  console.log('✅ Default Role Permissions seeded.');
+
+  // Seed default RoleSidebarItems
+  const defaultSidebarItems = [
+    // STUDENT
+    { role: Role.STUDENT, title: 'Overview', path: '/dashboard/student', order: 0 },
+    { role: Role.STUDENT, title: 'Opportunities', path: '/dashboard/student/opportunities', order: 1 },
+    { role: Role.STUDENT, title: 'My Applications', path: '/dashboard/student/applications', order: 2 },
+    { role: Role.STUDENT, title: 'My Tasks', path: '/dashboard/student/tasks', order: 3 },
+    { role: Role.STUDENT, title: 'My Resume', path: '/resume', order: 4 },
+    { role: Role.STUDENT, title: 'My Progress', path: '/dashboard/student/progress', order: 5 },
+    { role: Role.STUDENT, title: 'Announcements', path: '/dashboard/student/announcements', order: 6 },
+    { role: Role.STUDENT, title: 'Notifications', path: '/dashboard/notifications', order: 7 },
+    { role: Role.STUDENT, title: 'Settings', path: '/dashboard/settings', order: 8 },
+
+    // MENTOR
+    { role: Role.MENTOR, title: 'Dashboard', path: '/dashboard/mentor', order: 0 },
+    { role: Role.MENTOR, title: 'My Students', path: '/dashboard/mentor/students', order: 1 },
+    { role: Role.MENTOR, title: 'Our Students', path: '/dashboard/mentor/our-students', order: 2 },
+    { role: Role.MENTOR, title: 'Resumes', path: '/dashboard/mentor/resumes', order: 3 },
+    { role: Role.MENTOR, title: 'Tasks', path: '/dashboard/mentor/tasks', order: 4 },
+    { role: Role.MENTOR, title: 'Student Progress', path: '/dashboard/mentor/progress', order: 5 },
+    { role: Role.MENTOR, title: 'Reports', path: '/dashboard/mentor/reports', order: 6 },
+    { role: Role.MENTOR, title: 'Forms', path: '/dashboard/mentor/forms', order: 7 },
+    { role: Role.MENTOR, title: 'Notifications', path: '/dashboard/notifications', order: 8 },
+    { role: Role.MENTOR, title: 'Settings', path: '/dashboard/settings', order: 9 },
+
+    // HOD
+    { role: Role.HOD, title: 'Dashboard', path: '/dashboard/hod', order: 0 },
+    { role: Role.HOD, title: 'Students', path: '/dashboard/hod/students', order: 1 },
+    { role: Role.HOD, title: 'Mentors', path: '/dashboard/hod/mentors', order: 2 },
+    { role: Role.HOD, title: 'Student Assignment', path: '/dashboard/hod/assign-mentor', order: 3 },
+    { role: Role.HOD, title: 'Student Progress', path: '/dashboard/hod/progress', order: 4 },
+    { role: Role.HOD, title: 'Internship / Hackathon', path: '/dashboard/hod/placements', order: 5 },
+    { role: Role.HOD, title: 'Resumes', path: '/dashboard/hod/resumes', order: 6 },
+    { role: Role.HOD, title: 'Tasks', path: '/dashboard/hod/tasks', order: 7 },
+    { role: Role.HOD, title: 'Announcements', path: '/dashboard/hod/announcements', order: 8 },
+    { role: Role.HOD, title: 'Reports', path: '/dashboard/hod/reports', order: 9 },
+    { role: Role.HOD, title: 'Forms', path: '/dashboard/hod/forms', order: 10 },
+    { role: Role.HOD, title: 'Settings', path: '/dashboard/settings', order: 11 },
+
+    // SUPER_ADMIN
+    { role: Role.SUPER_ADMIN, title: 'Dashboard', path: '/dashboard/super-admin', order: 0 },
+    { role: Role.SUPER_ADMIN, title: 'User Management', path: '/dashboard/super-admin/users', order: 1 },
+    { role: Role.SUPER_ADMIN, title: 'Roles & Permissions', path: '/dashboard/super-admin/roles', order: 2 },
+    { role: Role.SUPER_ADMIN, title: 'Sidebar Management', path: '/dashboard/super-admin/sidebar-management', order: 3 },
+    { role: Role.SUPER_ADMIN, title: 'Feature Management', path: '/dashboard/super-admin/features', order: 4 },
+    { role: Role.SUPER_ADMIN, title: 'Audit Logs', path: '/dashboard/super-admin/audit-logs', order: 5 },
+    { role: Role.SUPER_ADMIN, title: 'Opportunities', path: '/dashboard/super-admin/opportunities', order: 6 },
+    { role: Role.SUPER_ADMIN, title: 'Registrations', path: '/dashboard/super-admin/registrations', order: 7 },
+    { role: Role.SUPER_ADMIN, title: 'Auto-Fill Agent', path: '/dashboard/super-admin/auto-fill-agent', order: 8 },
+    { role: Role.SUPER_ADMIN, title: 'AI Features', path: '/dashboard/super-admin/ai-features', order: 9 },
+    { role: Role.SUPER_ADMIN, title: 'System Health', path: '/dashboard/super-admin/system-health', order: 10 },
+    { role: Role.SUPER_ADMIN, title: 'Settings', path: '/dashboard/settings', order: 11 },
+  ];
+
+  for (const item of defaultSidebarItems) {
+    await prisma.roleSidebarItem.upsert({
+      where: {
+        role_title: {
+          role: item.role,
+          title: item.title,
+        }
+      },
+      update: { path: item.path, order: item.order },
+      create: { role: item.role, title: item.title, path: item.path, order: item.order, enabled: true },
+    });
+  }
+  console.log('✅ Default Role Sidebar Items seeded.');
+
   // 1. Seed Primary Mentor: Kavitha
   const kavithaMentor = await prisma.user.upsert({
     where: { email: 'kavitha@careerai.edu' },

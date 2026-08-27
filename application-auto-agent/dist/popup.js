@@ -112,6 +112,25 @@
             reject(e);
           }
         });
+      },
+      async sendMessage(tabId, message) {
+        const api = getApi();
+        return new Promise((resolve, reject) => {
+          try {
+            const tabsApi = api.tabs;
+            if (tabsApi && typeof tabsApi.sendMessage === "function") {
+              tabsApi.sendMessage(tabId, message, (response) => {
+                const last = api.runtime?.lastError;
+                if (last?.message) reject(new Error(last.message));
+                else resolve(response);
+              });
+            } else {
+              reject(new Error("tabs.sendMessage unavailable"));
+            }
+          } catch (e) {
+            reject(e);
+          }
+        });
       }
     }
   };
@@ -156,6 +175,19 @@
   document.getElementById("logout").addEventListener("click", async () => {
     await bg({ type: "LOGOUT" });
     await refresh();
+  });
+  document.getElementById("manual-start").addEventListener("click", async () => {
+    const tabs = await ext.tabs.query({ active: true, currentWindow: true });
+    const activeTab = tabs && tabs[0];
+    if (activeTab?.id) {
+      try {
+        await ext.tabs.sendMessage(activeTab.id, { type: "START_ASSISTANT_MANUAL" });
+        window.close();
+      } catch (e) {
+        console.error(e);
+        alert("Could not start the assistant. Ensure you are on an active application page and the extension content script is loaded.");
+      }
+    }
   });
   document.getElementById("open-profile").addEventListener("click", async () => {
     show("profile");

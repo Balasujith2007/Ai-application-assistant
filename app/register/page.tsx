@@ -116,6 +116,7 @@ export default function RegisterPage() {
                   <option value="STUDENT">Student</option>
                   <option value="MENTOR">Mentor</option>
                   <option value="HOD">HOD</option>
+                  <option value="SUPER_ADMIN">Super Admin</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                   <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">

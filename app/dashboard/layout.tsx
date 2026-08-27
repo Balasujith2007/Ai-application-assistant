@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
 import {
   LayoutDashboard,
   Users,
@@ -20,15 +21,56 @@ import {
   Building2,
   CheckSquare,
   Zap,
+  ShieldCheck,
+  Activity,
+  Sparkles,
+  Trophy,
 } from 'lucide-react';
+import { getDashboardRoute } from '@/lib/auth';
 
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
+
+const ICON_MAP: Record<string, any> = {
+  'Dashboard': LayoutDashboard,
+  'Overview': LayoutDashboard,
+  'My Students': Users,
+  'Our Students': Users,
+  'Students': Users,
+  'User Management': Users,
+  'Mentors': Building2,
+  'Companies': Building2,
+  'Student Assignment': CheckSquare,
+  'Student Progress': PieChart,
+  'My Progress': PieChart,
+  'Analytics': PieChart,
+  'Opportunities': Trophy,
+  'Opportunity History': Trophy,
+  'Internship / Hackathon': Trophy,
+  'Resumes': FileText,
+  'My Resume': FileText,
+  'Resume': FileText,
+  'Reports': FileText,
+  'Audit Logs': FileText,
+  'Tasks': CheckSquare,
+  'My Tasks': CheckSquare,
+  'Forms': CheckSquare,
+  'Announcements': Bell,
+  'Notifications': Bell,
+  'Roles & Permissions': ShieldCheck,
+  'Sidebar Management': Settings,
+  'Feature Management': Settings,
+  'Settings': Settings,
+  'Auto-Fill Agent': Zap,
+  'AI Features': Sparkles,
+  'System Health': Activity,
+};
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading, isAuthenticated, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mainLinks, setMainLinks] = useState<any[]>([]);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -36,60 +78,53 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [isLoading, isAuthenticated, router]);
 
+  useEffect(() => {
+    if (!user) return;
+    const fetchSidebar = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get('/api/sidebar', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setMainLinks(res.data.data);
+      } catch (err) {
+        console.error('Failed to load dynamic layout sidebar', err);
+      }
+    };
+    fetchSidebar();
+  }, [user]);
+
+  // Client-side route protection
+  useEffect(() => {
+    if (isLoading || !isAuthenticated || !user || mainLinks.length === 0) return;
+
+    // Super Admin bypasses client route guards
+    if (user.role === 'SUPER_ADMIN') return;
+
+    const currentPath = pathname;
+
+    const allowedSubpaths = [
+      '/dashboard/settings',
+      '/dashboard/notifications',
+      '/profile',
+      '/resume'
+    ];
+
+    const isAllowed =
+      allowedSubpaths.some(p => currentPath.startsWith(p)) ||
+      mainLinks.some(link => currentPath.startsWith(link.path.split('?')[0]));
+
+    if (currentPath.startsWith('/dashboard/') && !isAllowed) {
+      router.replace(getDashboardRoute(user.role));
+    }
+  }, [pathname, mainLinks, user, isLoading, isAuthenticated, router]);
+
   if (isLoading || !isAuthenticated) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-kit-600 border-t-transparent" />
       </div>
     );
-  }
-
-  // Determine role-based links
-  let mainLinks = [];
-  if (user?.role === 'STUDENT') {
-    mainLinks = [
-      { name: 'Dashboard', href: '/dashboard/student', icon: LayoutDashboard },
-      { name: 'Opportunities', href: '/dashboard/student/opportunities', icon: Briefcase },
-      { name: 'My Applications', href: '/dashboard/student/applications', icon: FileText },
-      { name: 'My Tasks', href: '/dashboard/student/tasks', icon: CheckSquare },
-      { name: 'My Resume', href: '/resume', icon: FileText },
-      { name: 'My Progress', href: '/dashboard/student/progress', icon: PieChart },
-      { name: 'Announcements', href: '/dashboard/student/announcements', icon: Bell },
-      { name: 'Notifications', href: '/dashboard/notifications', icon: Bell },
-    ];
-  } else if (user?.role === 'MENTOR') {
-    mainLinks = [
-      { name: 'Dashboard', href: '/dashboard/mentor', icon: LayoutDashboard },
-      { name: 'My Students', href: '/dashboard/mentor/students', icon: Users },
-      { name: 'Our Students', href: '/dashboard/mentor/our-students', icon: Users },
-      { name: 'Resumes', href: '/dashboard/mentor/resumes', icon: FileText },
-      { name: 'Tasks', href: '/dashboard/mentor/tasks', icon: CheckSquare },
-      { name: 'Student Progress', href: '/dashboard/mentor/progress', icon: PieChart },
-      { name: 'Reports', href: '/dashboard/mentor/reports', icon: FileText },
-      { name: 'Forms', href: '/dashboard/mentor/forms', icon: CheckSquare },
-    ];
-  } else if (user?.role === 'HOD') {
-    mainLinks = [
-      { name: 'Dashboard', href: '/dashboard/hod', icon: LayoutDashboard },
-      { name: 'Students', href: '/dashboard/hod/students', icon: Users },
-      { name: 'Mentors', href: '/dashboard/hod/mentors', icon: Building2 },
-      { name: 'Student Assignment', href: '/dashboard/hod/assign-mentor', icon: CheckSquare },
-      { name: 'Student Progress', href: '/dashboard/hod/progress', icon: PieChart },
-      { name: 'Internship / Hackathon', href: '/dashboard/hod/placements', icon: Briefcase },
-      { name: 'Resumes', href: '/dashboard/hod/resumes', icon: FileText },
-      { name: 'Tasks', href: '/dashboard/hod/tasks', icon: CheckSquare },
-      { name: 'Announcements', href: '/dashboard/hod/announcements', icon: Bell },
-      { name: 'Reports', href: '/dashboard/hod/reports', icon: FileText },
-      { name: 'Forms', href: '/dashboard/hod/forms', icon: CheckSquare },
-    ];
-  } else {
-    // Placement cell / ADMIN
-    mainLinks = [
-      { name: 'Dashboard', href: '/dashboard/placement', icon: LayoutDashboard },
-      { name: 'Students', href: '/dashboard/placement/students', icon: Users },
-      { name: 'Companies', href: '/dashboard/placement/companies', icon: Building2 },
-      { name: 'Analytics', href: '/dashboard/placement/analytics', icon: PieChart },
-    ];
   }
 
   const commonLinks = [
@@ -132,19 +167,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="space-y-1 mb-8">
             <p className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Main Menu</p>
             {mainLinks.map((link) => {
-              const isActive = pathname === link.href;
+              const isActive = pathname === link.path;
+              const LinkIcon = ICON_MAP[link.title] || FileText;
               return (
                 <Link
-                  key={link.name}
-                  href={link.href}
+                  key={link.title}
+                  href={link.path}
                   className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                     isActive
                       ? 'bg-kit-100 text-kit-700'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
                 >
-                  <link.icon className={`h-5 w-5 shrink-0 ${isActive ? 'text-kit-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
-                  {link.name}
+                  <LinkIcon className={`h-5 w-5 shrink-0 ${isActive ? 'text-kit-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
+                  {link.title}
                 </Link>
               );
             })}

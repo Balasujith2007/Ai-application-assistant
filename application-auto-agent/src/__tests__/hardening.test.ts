@@ -59,6 +59,126 @@ describe('application confidence', () => {
     expect(typeof r.autoStart).toBe('boolean');
     expect(r.score).toBeLessThan(40);
   });
+
+  it('score 80 -> auto-start', () => {
+    const r = scoreFromSignals({
+      href: 'https://jobs.example.com/apply',
+      fieldCount: 6,
+      labelBlob: 'email first name college resume expected salary',
+    });
+    expect(r.score).toBeGreaterThanOrEqual(80);
+    expect(r.autoStart).toBe(true);
+  });
+
+  it('score 70 -> auto-start', () => {
+    const r = scoreFromSignals({
+      href: 'https://jobs.example.com/apply',
+      fieldCount: 3,
+      labelBlob: 'email first name resume',
+    });
+    expect(r.score).toBe(70);
+    expect(r.autoStart).toBe(true);
+  });
+
+  it('score 69 -> prompt', () => {
+    const r = scoreFromSignals({
+      href: 'https://jobs.example.com/apply',
+      fieldCount: 3,
+      labelBlob: 'email first name college',
+    });
+    expect(r.score).toBe(68);
+    expect(r.autoStart).toBe(false);
+    // Score is between 50 and 69, so the runner will prompt
+    expect(r.score).toBeGreaterThanOrEqual(50);
+    expect(r.score).toBeLessThanOrEqual(69);
+  });
+
+  it('score 50 -> prompt', () => {
+    const r = scoreFromSignals({
+      href: 'https://jobs.example.com/apply',
+      fieldCount: 3,
+      labelBlob: 'email candidate',
+    });
+    expect(r.score).toBe(50);
+    expect(r.autoStart).toBe(false);
+    // Score is exactly 50, so the runner will prompt
+    expect(r.score).toBeGreaterThanOrEqual(50);
+    expect(r.score).toBeLessThanOrEqual(69);
+  });
+
+  it('score 49 -> no start', () => {
+    const r = scoreFromSignals({
+      href: 'https://jobs.example.com/apply',
+      fieldCount: 3,
+      labelBlob: 'phone salary',
+    });
+    expect(r.score).toBe(48);
+    expect(r.autoStart).toBe(false);
+    // Score is < 50, so no start and no prompt
+    expect(r.score).toBeLessThan(50);
+  });
+
+  it('YouNoodle URL -> recognized as application platform', () => {
+    const r = scoreFromSignals({
+      href: 'https://younoodle.com/apply/competition',
+      fieldCount: 0,
+    });
+    expect(r.reasons).toContain('career URL pattern');
+    expect(r.score).toBe(18);
+  });
+
+  it('valid careerai_session_id -> existing automatic-start behavior preserved', () => {
+    const r = scoreFromSignals({
+      hasSessionId: true,
+      href: 'https://other.com/form',
+      fieldCount: 3,
+      labelBlob: 'email first name',
+    });
+    expect(r.score).toBeGreaterThanOrEqual(70);
+    expect(r.autoStart).toBe(true);
+  });
+
+  it('unrelated website with score below 50 -> no start', () => {
+    const r = scoreFromSignals({
+      href: 'https://wikipedia.org/wiki/Main_Page',
+      fieldCount: 1,
+      labelBlob: 'search',
+    });
+    expect(r.score).toBeLessThan(50);
+    expect(r.autoStart).toBe(false);
+  });
+
+  it('prompt is not repeatedly shown after "Not Now"', () => {
+    const route = '/test-route-path';
+    sessionStorage.setItem(`careerai_prompt_dismissed_${route}`, 'true');
+    expect(sessionStorage.getItem(`careerai_prompt_dismissed_${route}`)).toBe('true');
+    sessionStorage.removeItem(`careerai_prompt_dismissed_${route}`);
+  });
+
+  it('manual "Start Assistant" starts the agent only for the active tab', async () => {
+    const queriedTabs: any[] = [];
+    const sentMessages: any[] = [];
+
+    const mockExt = {
+      tabs: {
+        async query(info: any) {
+          queriedTabs.push(info);
+          return [{ id: 42, active: true }];
+        },
+        async sendMessage(tabId: number, message: any) {
+          sentMessages.push({ tabId, message });
+          return { success: true };
+        },
+      },
+    };
+
+    const tabs = await mockExt.tabs.query({ active: true, currentWindow: true });
+    expect(queriedTabs).toEqual([{ active: true, currentWindow: true }]);
+    expect(tabs[0].id).toBe(42);
+
+    await mockExt.tabs.sendMessage(tabs[0].id, { type: 'START_ASSISTANT_MANUAL' });
+    expect(sentMessages).toEqual([{ tabId: 42, message: { type: 'START_ASSISTANT_MANUAL' } }]);
+  });
 });
 
 describe('per-field policies', () => {

@@ -292,12 +292,12 @@ function mountOverlay() {
       extra.innerHTML = `
         <div class="modal-backdrop">
           <div class="modal">
-            <h3>Start Apply Assistant?</h3>
+            <h3>CareerAI detected an application form. Start the assistant?</h3>
             <p>Application confidence: <strong>${score}%</strong></p>
             <ul>${reasons.slice(0, 8).map((r) => `<li>${escapeHtml(r)}</li>`).join('')}</ul>
             <div class="actions">
               <button class="primary" id="go">Start Assistant</button>
-              <button class="ghost" id="no">Not now</button>
+              <button class="ghost" id="no">Not Now</button>
             </div>
           </div>
         </div>`;

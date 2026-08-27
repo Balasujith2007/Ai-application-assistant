@@ -110,8 +110,8 @@ export async function POST(req: Request) {
       where: { id: userId }
     });
 
-    if (!user || (user.role !== 'MENTOR' && user.role !== 'HOD' && user.role !== 'PLACEMENT_CELL' && user.role !== 'ADMIN')) {
-      return NextResponse.json({ message: 'Only Mentors and HODs can create opportunities.' }, { status: 403 });
+    if (!user || (user.role !== 'MENTOR' && user.role !== 'HOD' && user.role !== 'PLACEMENT_CELL' && user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
+      return NextResponse.json({ message: 'Only Mentors, HODs, and Admin can create opportunities.' }, { status: 403 });
     }
 
     const body = await req.json();

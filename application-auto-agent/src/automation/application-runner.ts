@@ -1,6 +1,7 @@
 import { AgentStateMachine } from './state-machine';
 import { waitForCaptchaClear, evaluateCaptcha, markCurrentCaptchaCompleted } from '../content/captcha-detector';
 import { getExtractedFields, scoreApplicationPage } from '../content/form-detector';
+import { PROMPT_THRESHOLD } from '../content/application-detector';
 import { highlight, fillAndVerify, tryAttachResume, ResumeAttachMeta, ResumeBytes } from '../content/autofill-engine';
 import { clickNext, findSubmitButton, findNextButton } from '../content/multi-page-manager';
 import { getSessionIdFromPage, wait } from '../content/dom-utils';
@@ -27,7 +28,7 @@ function asFormEl(el: HTMLElement | FormEl): FormEl {
   return el as FormEl;
 }
 
-export async function runApplicationAgent() {
+export async function runApplicationAgent(options?: { force?: boolean }) {
   const epoch = currentEpoch();
   const machine = new AgentStateMachine();
   const ui = getOverlay();
@@ -37,16 +38,25 @@ export async function runApplicationAgent() {
   applyLog('Detector', `kind=${detection.kind} score=${detection.score}`);
   audit('DETECTED', { detail: `confidence ${detection.score}` });
 
-  if (detection.kind === 'LANDING' || (detection.score < 40 && !getSessionIdFromPage() && !detection.autoStart)) {
-    machine.transition('IDLE', { detail: 'No application form detected on this page.' });
-    return;
-  }
+  if (!options?.force) {
+    const hasSession = !!getSessionIdFromPage();
+    const isEligibleSession = hasSession && detection.score >= 40 && detection.kind !== 'NONE';
+    const isEligiblePrompt = detection.score >= PROMPT_THRESHOLD && detection.kind !== 'NONE';
 
-  if (!detection.autoStart) {
-    const go = await ui.askStartAssistant(detection.score, detection.reasons);
-    if (!go) {
-      machine.transition('IDLE', { detail: `Application confidence ${detection.score}% — waiting for Start Assistant.` });
+    if (detection.kind === 'LANDING' || (!detection.autoStart && !isEligibleSession && !isEligiblePrompt)) {
+      machine.transition('IDLE', { detail: 'No application form detected on this page.' });
       return;
+    }
+
+    if (!detection.autoStart) {
+      const go = await ui.askStartAssistant(detection.score, detection.reasons);
+      if (!go) {
+        try {
+          sessionStorage.setItem(`careerai_prompt_dismissed_${location.pathname}${location.search}`, 'true');
+        } catch { /* ignore */ }
+        machine.transition('IDLE', { detail: `Application confidence ${detection.score}% — waiting for Start Assistant.` });
+        return;
+      }
     }
   }
 

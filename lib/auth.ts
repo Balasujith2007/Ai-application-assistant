@@ -40,6 +40,7 @@ export function getDashboardRoute(role: string): string {
     HOD: '/dashboard/hod',
     PLACEMENT_CELL: '/dashboard/placement',
     ADMIN: '/dashboard/admin',
+    SUPER_ADMIN: '/dashboard/super-admin',
   };
   return routes[role] || '/dashboard/student';
 }

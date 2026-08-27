@@ -39,8 +39,11 @@ export async function POST(req: Request) {
         user: userWithoutPassword,
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ 
+      message: error.message || 'Internal server error',
+      error: error.stack || error
+    }, { status: 500 });
   }
 }

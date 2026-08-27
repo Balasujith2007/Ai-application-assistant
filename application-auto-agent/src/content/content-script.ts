@@ -1,12 +1,12 @@
 import { isCareerAiAppShell, getSessionIdFromPage } from './dom-utils';
-import { scoreApplicationPage } from './application-detector';
+import { scoreApplicationPage, PROMPT_THRESHOLD } from './application-detector';
 import { runApplicationAgent } from '../automation/application-runner';
 import { bg } from '../api/api-client';
 import { bumpNavigation } from '../automation/nav-state';
 import { dismissOverlayModals } from '../ui/assistant/overlay';
 import { applyLog } from '../debug';
 import { clearSessionAnswers } from '../automation/session-answers';
-import { isExtensionRuntimeAvailable, mapRuntimeError } from '../browser/browser-api';
+import { isExtensionRuntimeAvailable, mapRuntimeError, ext } from '../browser/browser-api';
 
 /**
  * Content script = JavaScript injected into web pages.
@@ -94,14 +94,15 @@ function routeKey() {
   return `${location.pathname}${location.search}`;
 }
 
-function shouldStart(detection: ReturnType<typeof scoreApplicationPage>, sessionId: string | null): boolean {
+export function shouldStart(detection: ReturnType<typeof scoreApplicationPage>, sessionId: string | null): boolean {
   if (detection.kind === 'LANDING') return false;
   if (detection.autoStart) return true;
   if (sessionId && detection.score >= 40 && detection.kind !== 'NONE') return true;
+  if (detection.score >= PROMPT_THRESHOLD && detection.kind !== 'NONE') return true;
   return false;
 }
 
-async function maybeRun() {
+async function maybeRun(force = false) {
   if (isCareerAiAppShell()) return;
 
   const detection = scoreApplicationPage();
@@ -114,9 +115,16 @@ async function maybeRun() {
     clearSessionAnswers();
   }
 
-  if (!shouldStart(detection, sessionId)) {
-    applyLog('Runner', 'No automation start on this page');
-    return;
+  const isDismissed = sessionStorage.getItem(`careerai_prompt_dismissed_${route}`);
+  if (!force) {
+    if (isDismissed) {
+      applyLog('Runner', 'Prompt was previously dismissed on this page');
+      return;
+    }
+    if (!shouldStart(detection, sessionId)) {
+      applyLog('Runner', 'No automation start on this page');
+      return;
+    }
   }
 
   if (runnerBusy && activeRoute === route) {
@@ -124,7 +132,7 @@ async function maybeRun() {
     return;
   }
 
-  if (!runnerBusy && finishedRoute === route) {
+  if (!force && !runnerBusy && finishedRoute === route) {
     return;
   }
 
@@ -138,7 +146,7 @@ async function maybeRun() {
   runnerBusy = true;
   try {
     applyLog('Runner', `Starting automation (${detection.kind})`);
-    await runApplicationAgent();
+    await runApplicationAgent({ force });
     if (routeKey() === route) finishedRoute = route;
   } finally {
     if (activeRoute === route) runnerBusy = false;
@@ -186,6 +194,14 @@ async function boot() {
     applyLog('Runner', 'CareerAI app shell — bridge only');
     return;
   }
+
+  ext.runtime.onMessage.addListener((message: any) => {
+    if (message && message.type === 'START_ASSISTANT_MANUAL') {
+      applyLog('Runner', 'Manual start requested');
+      void maybeRun(true);
+    }
+  });
+
   installSpaWatch();
   await maybeRun();
 }

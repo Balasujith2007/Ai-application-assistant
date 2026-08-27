@@ -1,5 +1,6 @@
 import { bg } from '../../api/api-client';
 import type { StoredAuth, AgentSettings, FillPolicy } from '../../storage/storage-manager';
+import { ext } from '../../browser/browser-api';
 
 const loginView = document.getElementById('view-login')!;
 const homeView = document.getElementById('view-home')!;
@@ -39,6 +40,20 @@ document.getElementById('login-btn')!.addEventListener('click', async () => {
 document.getElementById('logout')!.addEventListener('click', async () => {
   await bg({ type: 'LOGOUT' });
   await refresh();
+});
+
+document.getElementById('manual-start')!.addEventListener('click', async () => {
+  const tabs = await ext.tabs.query({ active: true, currentWindow: true });
+  const activeTab = tabs && tabs[0];
+  if (activeTab?.id) {
+    try {
+      await ext.tabs.sendMessage(activeTab.id, { type: 'START_ASSISTANT_MANUAL' });
+      window.close();
+    } catch (e) {
+      console.error(e);
+      alert('Could not start the assistant. Ensure you are on an active application page and the extension content script is loaded.');
+    }
+  }
 });
 
 document.getElementById('open-profile')!.addEventListener('click', async () => {

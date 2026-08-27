@@ -236,6 +236,8 @@
   }
 
   // src/content/application-detector.ts
+  var AUTO_START_THRESHOLD = 70;
+  var PROMPT_THRESHOLD = 50;
   var LABEL_WEIGHTS = [
     { re: /email/, w: 14, reason: "email field" },
     { re: /first name|last name|full name|given name/, w: 14, reason: "name field" },
@@ -278,7 +280,7 @@
       reasons.push("CareerAI apply session");
     }
     const href = (input.href || "").toLowerCase();
-    if (/careers|jobs|apply|internship|hackathon|scholarship|greenhouse|lever\.co|workday|myworkday|unstop|hiretoday|dare2compete|smartrecruiters|icims|taleo|successfactors|jobvite|breezy\.hr|recruitee|ashby|rippling|bamboohr|ats\.|recruit\./.test(href)) {
+    if (/careers|jobs|apply|internship|hackathon|scholarship|greenhouse|lever\.co|workday|myworkday|unstop|hiretoday|dare2compete|smartrecruiters|icims|taleo|successfactors|jobvite|breezy\.hr|recruitee|ashby|rippling|bamboohr|younoodle|ats\.|recruit\./.test(href)) {
       score += 18;
       reasons.push("career URL pattern");
     }
@@ -306,7 +308,7 @@
     else if (fieldCount >= 1) kind = "FORM";
     score = Math.min(100, score);
     const autoStart = Boolean(
-      kind !== "NONE" && (score >= 70 || input.captchaBlocking || input.isTestApp && (kind === "FORM" || kind === "REVIEW" || kind === "CAPTCHA"))
+      kind !== "NONE" && (score >= AUTO_START_THRESHOLD || input.captchaBlocking || input.isTestApp && (kind === "FORM" || kind === "REVIEW" || kind === "CAPTCHA"))
     );
     return { score, reasons, autoStart, kind: kind || "NONE" };
   }
@@ -892,6 +894,25 @@
             reject(e);
           }
         });
+      },
+      async sendMessage(tabId, message) {
+        const api2 = getApi();
+        return new Promise((resolve, reject) => {
+          try {
+            const tabsApi = api2.tabs;
+            if (tabsApi && typeof tabsApi.sendMessage === "function") {
+              tabsApi.sendMessage(tabId, message, (response) => {
+                const last = api2.runtime?.lastError;
+                if (last?.message) reject(new Error(last.message));
+                else resolve(response);
+              });
+            } else {
+              reject(new Error("tabs.sendMessage unavailable"));
+            }
+          } catch (e) {
+            reject(e);
+          }
+        });
       }
     }
   };
@@ -1137,12 +1158,12 @@
         extra.innerHTML = `
         <div class="modal-backdrop">
           <div class="modal">
-            <h3>Start Apply Assistant?</h3>
+            <h3>CareerAI detected an application form. Start the assistant?</h3>
             <p>Application confidence: <strong>${score}%</strong></p>
             <ul>${reasons.slice(0, 8).map((r) => `<li>${escapeHtml(r)}</li>`).join("")}</ul>
             <div class="actions">
               <button class="primary" id="go">Start Assistant</button>
-              <button class="ghost" id="no">Not now</button>
+              <button class="ghost" id="no">Not Now</button>
             </div>
           </div>
         </div>`;
@@ -1493,7 +1514,7 @@
   function asFormEl(el) {
     return el;
   }
-  async function runApplicationAgent() {
+  async function runApplicationAgent(options) {
     const epoch2 = currentEpoch();
     const machine = new AgentStateMachine();
     const ui = getOverlay();
@@ -1501,15 +1522,24 @@
     const detection = scoreApplicationPage();
     applyLog("Detector", `kind=${detection.kind} score=${detection.score}`);
     audit("DETECTED", { detail: `confidence ${detection.score}` });
-    if (detection.kind === "LANDING" || detection.score < 40 && !getSessionIdFromPage() && !detection.autoStart) {
-      machine.transition("IDLE", { detail: "No application form detected on this page." });
-      return;
-    }
-    if (!detection.autoStart) {
-      const go = await ui.askStartAssistant(detection.score, detection.reasons);
-      if (!go) {
-        machine.transition("IDLE", { detail: `Application confidence ${detection.score}% \u2014 waiting for Start Assistant.` });
+    if (!options?.force) {
+      const hasSession = !!getSessionIdFromPage();
+      const isEligibleSession = hasSession && detection.score >= 40 && detection.kind !== "NONE";
+      const isEligiblePrompt = detection.score >= PROMPT_THRESHOLD && detection.kind !== "NONE";
+      if (detection.kind === "LANDING" || !detection.autoStart && !isEligibleSession && !isEligiblePrompt) {
+        machine.transition("IDLE", { detail: "No application form detected on this page." });
         return;
+      }
+      if (!detection.autoStart) {
+        const go = await ui.askStartAssistant(detection.score, detection.reasons);
+        if (!go) {
+          try {
+            sessionStorage.setItem(`careerai_prompt_dismissed_${location.pathname}${location.search}`, "true");
+          } catch {
+          }
+          machine.transition("IDLE", { detail: `Application confidence ${detection.score}% \u2014 waiting for Start Assistant.` });
+          return;
+        }
       }
     }
     const sessionId = getSessionIdFromPage();
@@ -2228,9 +2258,10 @@
     if (detection.kind === "LANDING") return false;
     if (detection.autoStart) return true;
     if (sessionId && detection.score >= 40 && detection.kind !== "NONE") return true;
+    if (detection.score >= PROMPT_THRESHOLD && detection.kind !== "NONE") return true;
     return false;
   }
-  async function maybeRun() {
+  async function maybeRun(force = false) {
     if (isCareerAiAppShell()) return;
     const detection = scoreApplicationPage();
     const sessionId = getSessionIdFromPage();
@@ -2239,15 +2270,22 @@
     if (detection.kind === "LANDING") {
       clearSessionAnswers();
     }
-    if (!shouldStart(detection, sessionId)) {
-      applyLog("Runner", "No automation start on this page");
-      return;
+    const isDismissed = sessionStorage.getItem(`careerai_prompt_dismissed_${route}`);
+    if (!force) {
+      if (isDismissed) {
+        applyLog("Runner", "Prompt was previously dismissed on this page");
+        return;
+      }
+      if (!shouldStart(detection, sessionId)) {
+        applyLog("Runner", "No automation start on this page");
+        return;
+      }
     }
     if (runnerBusy && activeRoute === route) {
       applyLog("Runner", "Already analyzing this page");
       return;
     }
-    if (!runnerBusy && finishedRoute === route) {
+    if (!force && !runnerBusy && finishedRoute === route) {
       return;
     }
     if (runnerBusy && activeRoute !== route) {
@@ -2259,7 +2297,7 @@
     runnerBusy = true;
     try {
       applyLog("Runner", `Starting automation (${detection.kind})`);
-      await runApplicationAgent();
+      await runApplicationAgent({ force });
       if (routeKey() === route) finishedRoute = route;
     } finally {
       if (activeRoute === route) runnerBusy = false;
@@ -2303,6 +2341,12 @@
       applyLog("Runner", "CareerAI app shell \u2014 bridge only");
       return;
     }
+    ext.runtime.onMessage.addListener((message) => {
+      if (message && message.type === "START_ASSISTANT_MANUAL") {
+        applyLog("Runner", "Manual start requested");
+        void maybeRun(true);
+      }
+    });
     installSpaWatch();
     await maybeRun();
   }

@@ -8,7 +8,8 @@ export type Role =
   | 'FACULTY'
   | 'HOD'
   | 'PLACEMENT_CELL'
-  | 'ADMIN';
+  | 'ADMIN'
+  | 'SUPER_ADMIN';
 
 export interface User {
   id: string;

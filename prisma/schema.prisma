@@ -20,6 +20,7 @@ enum Role {
   HOD
   PLACEMENT_CELL
   ADMIN
+  SUPER_ADMIN
 }
 
 enum ApplicationType {
@@ -88,6 +89,7 @@ model User {
   password  String?
   googleId  String?  @unique
   role      Role     @default(STUDENT)
+  active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   notificationPreferences Json?
@@ -112,6 +114,7 @@ model User {
   autofillAuditEvents  AutofillAuditEvent[]
   createdForms         Form[]                 @relation("FormCreator")
   formResponses        FormResponse[]
+  auditLogs            AuditLog[]
 
   // Mentor-Student relationship
   mentorId      String?
@@ -711,4 +714,55 @@ model FormResponseAnswer {
   field       FormField    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
 
   @@map("form_response_answers")
+}
+
+model AppFeature {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  enabled     Boolean  @default(true)
+  roles       Role[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("app_features")
+}
+
+model RolePermission {
+  id        String   @id @default(cuid())
+  role      Role
+  resource  String
+  action    String
+  allowed   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([role, resource, action])
+  @@map("role_permissions")
+}
+
+model RoleSidebarItem {
+  id        String   @id @default(cuid())
+  role      Role
+  title     String
+  path      String
+  order     Int
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([role, title])
+  @@map("role_sidebar_items")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  target    String?
+  details   String?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
 }

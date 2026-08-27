@@ -7,7 +7,7 @@ async function getHOD(req: Request) {
   const userId = getUserIdFromRequest(req);
   if (!userId) return null;
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user || (user.role !== 'HOD' && user.role !== 'ADMIN')) return null;
+  if (!user || (user.role !== 'HOD' && user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) return null;
   return user;
 }
 

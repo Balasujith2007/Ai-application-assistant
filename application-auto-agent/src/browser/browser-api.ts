@@ -167,6 +167,25 @@ export const ext = {
         }
       });
     },
+    async sendMessage(tabId: number, message: unknown): Promise<unknown> {
+      const api = getApi();
+      return new Promise((resolve, reject) => {
+        try {
+          const tabsApi = (api as any).tabs;
+          if (tabsApi && typeof tabsApi.sendMessage === 'function') {
+            tabsApi.sendMessage(tabId, message, (response: any) => {
+              const last = api.runtime?.lastError;
+              if (last?.message) reject(new Error(last.message));
+              else resolve(response);
+            });
+          } else {
+            reject(new Error('tabs.sendMessage unavailable'));
+          }
+        } catch (e) {
+          reject(e);
+        }
+      });
+    },
   },
 };
 
