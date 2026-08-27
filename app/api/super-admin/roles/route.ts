@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { checkAuthAndPermission } from '@/lib/serverAuth';
+import { ensureAllDefaults } from '@/lib/initializeDefaults';
 
 export async function GET(req: Request) {
   try {
@@ -14,6 +15,12 @@ export async function GET(req: Request) {
 
     if (!role) {
       return NextResponse.json({ message: 'Role is required' }, { status: 400 });
+    }
+
+    // Auto-initialize defaults if none exist
+    const count = await prisma.rolePermission.count();
+    if (count === 0) {
+      await ensureAllDefaults();
     }
 
     const permissions = await prisma.rolePermission.findMany({
@@ -41,33 +48,36 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'Role and permissions array are required' }, { status: 400 });
     }
 
-    for (const perm of permissions) {
-      await prisma.rolePermission.upsert({
-        where: {
-          role_resource_action: {
+    // Update in transaction
+    await prisma.$transaction(async (tx) => {
+      for (const perm of permissions) {
+        await tx.rolePermission.upsert({
+          where: {
+            role_resource_action: {
+              role: role as any,
+              resource: perm.resource,
+              action: perm.action
+            }
+          },
+          update: { allowed: perm.allowed },
+          create: {
             role: role as any,
             resource: perm.resource,
-            action: perm.action
+            action: perm.action,
+            allowed: perm.allowed
           }
-        },
-        update: { allowed: perm.allowed },
-        create: {
-          role: role as any,
-          resource: perm.resource,
-          action: perm.action,
-          allowed: perm.allowed
+        });
+      }
+
+      // Log action
+      await tx.auditLog.create({
+        data: {
+          userId: auth.user!.id,
+          action: 'PERMISSIONS_UPDATE',
+          target: role,
+          details: `Updated permissions matrix for role ${role}. Modified ${permissions.length} items.`,
         }
       });
-    }
-
-    // Log action
-    await prisma.auditLog.create({
-      data: {
-        userId: auth.user!.id,
-        action: 'PERMISSIONS_UPDATE',
-        target: role,
-        details: `Updated permissions matrix for role ${role}. Modified ${permissions.length} items.`,
-      }
     });
 
     return NextResponse.json({ success: true });

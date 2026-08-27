@@ -1,12 +1,19 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { checkAuthAndPermission } from '@/lib/serverAuth';
+import { ensureAllDefaults } from '@/lib/initializeDefaults';
 
 export async function GET(req: Request) {
   try {
     const auth = await checkAuthAndPermission(req, 'Feature Management', 'VIEW');
     if (!auth.allowed) {
       return NextResponse.json({ message: auth.message || 'Forbidden' }, { status: auth.status || 403 });
+    }
+
+    // Auto-initialize defaults if none exist
+    const count = await prisma.appFeature.count();
+    if (count === 0) {
+      await ensureAllDefaults();
     }
 
     const features = await prisma.appFeature.findMany({

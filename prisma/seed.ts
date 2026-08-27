@@ -350,6 +350,12 @@ async function main() {
   }
 
   console.log(`🎉 Successfully seeded ${count} class students assigned to Kavitha!`);
+
+  // Seed default sidebars, features, and permissions
+  console.log('⚙️ Seeding default sidebars, features, and permissions...');
+  const { ensureAllDefaults } = await import('../lib/initializeDefaults');
+  await ensureAllDefaults();
+  console.log('✅ Default configuration successfully seeded!');
 }
 
 main()

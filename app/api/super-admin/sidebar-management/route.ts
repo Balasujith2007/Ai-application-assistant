@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { checkAuthAndPermission } from '@/lib/serverAuth';
+import { ensureRoleSidebarDefaults } from '@/lib/initializeDefaults';
+import { Role } from '@prisma/client';
 
 export async function GET(req: Request) {
   try {
@@ -10,14 +12,17 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const role = searchParams.get('role');
+    const role = (searchParams.get('role') || 'STUDENT') as Role;
 
     if (!role) {
       return NextResponse.json({ message: 'Role is required' }, { status: 400 });
     }
 
+    // Auto-initialize defaults if none exist in the database for this role
+    await ensureRoleSidebarDefaults(role);
+
     const items = await prisma.roleSidebarItem.findMany({
-      where: { role: role as any },
+      where: { role },
       orderBy: { order: 'asc' }
     });
 
@@ -42,38 +47,40 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'Role and items array are required' }, { status: 400 });
     }
 
-    // Upsert each item
-    for (const item of items) {
-      await prisma.roleSidebarItem.upsert({
-        where: {
-          role_title: {
+    // Upsert each item in a transaction
+    await prisma.$transaction(async (tx) => {
+      for (const item of items) {
+        await tx.roleSidebarItem.upsert({
+          where: {
+            role_title: {
+              role: role as any,
+              title: item.title
+            }
+          },
+          update: {
+            path: item.path,
+            order: item.order,
+            enabled: item.enabled
+          },
+          create: {
             role: role as any,
-            title: item.title
+            title: item.title,
+            path: item.path,
+            order: item.order,
+            enabled: item.enabled
           }
-        },
-        update: {
-          path: item.path,
-          order: item.order,
-          enabled: item.enabled
-        },
-        create: {
-          role: role as any,
-          title: item.title,
-          path: item.path,
-          order: item.order,
-          enabled: item.enabled
+        });
+      }
+
+      // Log the event
+      await tx.auditLog.create({
+        data: {
+          userId: auth.user!.id,
+          action: 'SIDEBAR_UPDATE',
+          target: role,
+          details: `Updated sidebar configuration for role ${role}. Reordered and configured ${items.length} navigation items.`,
         }
       });
-    }
-
-    // Log the event
-    await prisma.auditLog.create({
-      data: {
-        userId: auth.user!.id,
-        action: 'SIDEBAR_UPDATE',
-        target: role,
-        details: `Updated sidebar configuration for role ${role}. Reordered and configured ${items.length} links.`,
-      }
     });
 
     return NextResponse.json({ success: true });
