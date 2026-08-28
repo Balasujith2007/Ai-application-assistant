@@ -22,7 +22,7 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const type = searchParams.get('type');
-    const filter = searchParams.get('filter'); // my, published, draft, closed
+    const filter = searchParams.get('filter'); // my, published, draft, closed, all
 
     let whereClause: any = {};
 
@@ -32,23 +32,31 @@ export async function GET(req: Request) {
         whereClause.type = type as any;
       }
     } else if (user.role === 'MENTOR') {
-      if (filter === 'my') {
-        whereClause.postedById = user.id;
-      }
+      // Data isolation: mentors see their own posted opportunities
+      whereClause.postedById = user.id;
+
       if (filter === 'draft') {
-        whereClause.postedById = user.id;
         whereClause.status = 'DRAFT';
       } else if (filter === 'closed') {
-        whereClause.postedById = user.id;
         whereClause.status = 'CLOSED';
       } else if (filter === 'published') {
-        whereClause.postedById = user.id;
         whereClause.status = 'PUBLISHED';
       }
       if (type && type !== 'ALL') {
         whereClause.type = type as any;
       }
-    } else { // HOD, PLACEMENT_CELL, ADMIN
+    } else { // HOD, PLACEMENT_CELL, ADMIN, SUPER_ADMIN
+      if (filter === 'my') {
+        whereClause.postedById = user.id;
+      } else if (filter === 'draft') {
+        whereClause.postedById = user.id;
+        whereClause.status = 'DRAFT';
+      } else if (filter === 'closed') {
+        whereClause.status = 'CLOSED';
+      } else if (filter === 'published') {
+        whereClause.status = 'PUBLISHED';
+      }
+
       if (type && type !== 'ALL') {
         whereClause.type = type as any;
       }
@@ -141,92 +149,137 @@ export async function POST(req: Request) {
       targetSection
     } = body;
 
-    if (!title || !organization || !description || !applicationDeadline) {
-      return NextResponse.json({ message: 'Title, Organization, Description, and Deadline are required.' }, { status: 400 });
+    if (!title || !title.trim()) {
+      return NextResponse.json({ message: 'Opportunity title is required.' }, { status: 400 });
     }
+    if (!organization || !organization.trim()) {
+      return NextResponse.json({ message: 'Company / Organization is required.' }, { status: 400 });
+    }
+    if (!description || !description.trim()) {
+      return NextResponse.json({ message: 'Opportunity description is required.' }, { status: 400 });
+    }
+    if (!applicationDeadline) {
+      return NextResponse.json({ message: 'Application deadline is required.' }, { status: 400 });
+    }
+
+    const deadlineDate = getNormalizedDeadline(applicationDeadline) || new Date(applicationDeadline);
+    if (isNaN(deadlineDate.getTime())) {
+      return NextResponse.json({ message: 'Please enter a valid application deadline.' }, { status: 400 });
+    }
+
+    // Helper to safely parse optional dates
+    const parseSafeDate = (d: any): Date | null => {
+      if (!d || typeof d !== 'string' && !(d instanceof Date)) return null;
+      if (typeof d === 'string' && !d.trim()) return null;
+      const parsed = new Date(d);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    };
+
+    // Helper to normalize opportunity type enum
+    const validTypes = ['JOB', 'FULL_TIME', 'INTERNSHIP', 'HACKATHON', 'COMPETITION', 'SCHOLARSHIP', 'WORKSHOP', 'OTHER'];
+    const normalizedType = type && validTypes.includes(type.toUpperCase()) ? type.toUpperCase() : 'JOB';
+
+    // Helper to normalize mode enum
+    const validModes = ['ONLINE', 'OFFLINE', 'HYBRID'];
+    const normalizedMode = mode && validModes.includes(mode.toUpperCase()) ? mode.toUpperCase() : 'ONLINE';
+
+    // Helper to normalize status enum
+    const validStatuses = ['DRAFT', 'PUBLISHED', 'CLOSED'];
+    const normalizedStatus = status && validStatuses.includes(status.toUpperCase()) ? status.toUpperCase() : 'PUBLISHED';
+
+    const parsedOpenings = openings && !isNaN(parseInt(openings)) ? parseInt(openings) : null;
+    const parsedYear = targetYear && !isNaN(parseInt(targetYear)) ? parseInt(targetYear) : null;
 
     const newOpportunity = await prisma.opportunity.create({
       data: {
-        title,
-        organization,
-        companyName: organization,
-        role: title,
-        type: type || 'JOB',
-        description,
-        opportunityUrl: opportunityUrl || registrationUrl || '',
-        registrationUrl: registrationUrl || opportunityUrl || '',
-        applyUrl: registrationUrl || opportunityUrl || '',
-        location: location || 'Online',
-        mode: mode || 'ONLINE',
-        salary,
-        stipend,
-        prize,
-        openings: openings ? parseInt(openings) : null,
-        eligibility,
-        additionalInfo,
-        applicationDeadline: getNormalizedDeadline(applicationDeadline) || new Date(applicationDeadline),
-        deadline: getNormalizedDeadline(applicationDeadline) || new Date(applicationDeadline),
-        startDate: startDate ? new Date(startDate) : null,
-        endDate: endDate ? new Date(endDate) : null,
-        requiredSkills: Array.isArray(requiredSkills) ? requiredSkills : [],
+        title: title.trim(),
+        organization: organization.trim(),
+        companyName: organization.trim(),
+        role: title.trim(),
+        type: normalizedType as any,
+        description: description.trim(),
+        opportunityUrl: (opportunityUrl || registrationUrl || '').trim(),
+        registrationUrl: (registrationUrl || opportunityUrl || '').trim(),
+        applyUrl: (registrationUrl || opportunityUrl || '').trim(),
+        location: (location || 'Online').trim(),
+        mode: normalizedMode as any,
+        salary: salary ? salary.trim() : null,
+        stipend: stipend ? stipend.trim() : null,
+        prize: prize ? prize.trim() : null,
+        openings: parsedOpenings,
+        eligibility: eligibility ? eligibility.trim() : null,
+        additionalInfo: additionalInfo ? additionalInfo.trim() : null,
+        applicationDeadline: deadlineDate,
+        deadline: deadlineDate,
+        startDate: parseSafeDate(startDate),
+        endDate: parseSafeDate(endDate),
+        requiredSkills: Array.isArray(requiredSkills)
+          ? requiredSkills.map((s: string) => s.trim()).filter(Boolean)
+          : typeof requiredSkills === 'string'
+          ? requiredSkills.split(',').map((s: string) => s.trim()).filter(Boolean)
+          : [],
         postedById: user.id,
         postedByRole: user.role,
-        status: status || 'PUBLISHED',
+        status: normalizedStatus as any,
         targetAudience: targetAudience || 'ALL_STUDENTS',
         targetDepartment: targetDepartment || null,
-        targetYear: targetYear ? parseInt(targetYear) : null,
+        targetYear: parsedYear,
         targetSection: targetSection || null
       }
     });
 
     // Create Broadcast Notifications if PUBLISHED
     if (newOpportunity.status === 'PUBLISHED') {
-      const recipientConditions: any[] = [];
+      try {
+        const recipientConditions: any[] = [];
 
-      const profileFilter: any = {};
-      if (newOpportunity.targetDepartment) {
-        profileFilter.department = { equals: newOpportunity.targetDepartment, mode: 'insensitive' };
-      }
-      if (newOpportunity.targetYear) {
-        profileFilter.year = newOpportunity.targetYear;
-      }
-      if (newOpportunity.targetSection) {
-        profileFilter.section = { equals: newOpportunity.targetSection, mode: 'insensitive' };
-      }
+        const profileFilter: any = {};
+        if (newOpportunity.targetDepartment) {
+          profileFilter.department = { equals: newOpportunity.targetDepartment, mode: 'insensitive' };
+        }
+        if (newOpportunity.targetYear) {
+          profileFilter.year = newOpportunity.targetYear;
+        }
+        if (newOpportunity.targetSection) {
+          profileFilter.section = { equals: newOpportunity.targetSection, mode: 'insensitive' };
+        }
 
-      const hasProfileFilter = Object.keys(profileFilter).length > 0;
-      const audience = newOpportunity.targetAudience || 'ALL_STUDENTS';
+        const hasProfileFilter = Object.keys(profileFilter).length > 0;
+        const audience = newOpportunity.targetAudience || 'ALL_STUDENTS';
 
-      if (audience === 'ALL_STUDENTS' || audience === 'BOTH' || audience === 'STUDENTS_MENTORS') {
-        recipientConditions.push({
-          role: 'STUDENT',
-          ...(hasProfileFilter ? { profile: profileFilter } : {})
+        if (audience === 'ALL_STUDENTS' || audience === 'BOTH' || audience === 'STUDENTS_MENTORS') {
+          recipientConditions.push({
+            role: 'STUDENT',
+            ...(hasProfileFilter ? { profile: profileFilter } : {})
+          });
+        }
+
+        if (audience === 'ALL_MENTORS' || audience === 'BOTH' || audience === 'STUDENTS_MENTORS') {
+          recipientConditions.push({
+            role: 'MENTOR'
+          });
+        }
+
+        if (recipientConditions.length === 0) {
+          recipientConditions.push({ role: 'STUDENT' });
+        }
+
+        const targetUsers = await prisma.user.findMany({
+          where: { OR: recipientConditions },
+          select: { id: true }
         });
-      }
 
-      if (audience === 'ALL_MENTORS' || audience === 'BOTH' || audience === 'STUDENTS_MENTORS') {
-        recipientConditions.push({
-          role: 'MENTOR'
-        });
-      }
+        const uniqueUserIds: string[] = Array.from(new Set(targetUsers.map((u: { id: string }) => u.id)));
 
-      if (recipientConditions.length === 0) {
-        recipientConditions.push({ role: 'STUDENT' });
-      }
-
-      const targetUsers = await prisma.user.findMany({
-        where: { OR: recipientConditions },
-        select: { id: true }
-      });
-
-      const uniqueUserIds: string[] = Array.from(new Set(targetUsers.map((u: { id: string }) => u.id)));
-
-      if (uniqueUserIds.length > 0) {
-        sendOpportunityNotification({
-          userIds: uniqueUserIds,
-          senderId: user.id,
-          opportunity: newOpportunity,
-        });
+        if (uniqueUserIds.length > 0) {
+          sendOpportunityNotification({
+            userIds: uniqueUserIds,
+            senderId: user.id,
+            opportunity: newOpportunity,
+          }).catch((err) => console.error('Notification dispatch error:', err));
+        }
+      } catch (notifErr) {
+        console.error('Error preparing notifications for opportunity:', notifErr);
       }
     }
 

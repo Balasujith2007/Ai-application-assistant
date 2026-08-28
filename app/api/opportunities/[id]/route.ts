@@ -60,36 +60,66 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user || (existing.postedById !== userId && user.role !== 'HOD' && user.role !== 'ADMIN')) {
+    if (!user || (existing.postedById !== userId && user.role !== 'HOD' && user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
       return NextResponse.json({ message: 'Forbidden: You cannot edit this opportunity.' }, { status: 403 });
     }
+
+    // Helper to safely parse optional dates
+    const parseSafeDate = (d: any): Date | null => {
+      if (!d || typeof d !== 'string' && !(d instanceof Date)) return null;
+      if (typeof d === 'string' && !d.trim()) return null;
+      const parsed = new Date(d);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    };
+
+    // Helper to normalize opportunity type enum
+    const validTypes = ['JOB', 'FULL_TIME', 'INTERNSHIP', 'HACKATHON', 'COMPETITION', 'SCHOLARSHIP', 'WORKSHOP', 'OTHER'];
+    const normalizedType = body.type && validTypes.includes(body.type.toUpperCase()) ? body.type.toUpperCase() : existing.type;
+
+    // Helper to normalize mode enum
+    const validModes = ['ONLINE', 'OFFLINE', 'HYBRID'];
+    const normalizedMode = body.mode && validModes.includes(body.mode.toUpperCase()) ? body.mode.toUpperCase() : existing.mode;
+
+    // Helper to normalize status enum
+    const validStatuses = ['DRAFT', 'PUBLISHED', 'CLOSED'];
+    const normalizedStatus = body.status && validStatuses.includes(body.status.toUpperCase()) ? body.status.toUpperCase() : existing.status;
+
+    const parsedOpenings = body.openings && !isNaN(parseInt(body.openings)) ? parseInt(body.openings) : existing.openings;
+
+    const updatedDeadline = body.applicationDeadline
+      ? (getNormalizedDeadline(body.applicationDeadline) || parseSafeDate(body.applicationDeadline) || existing.applicationDeadline)
+      : existing.applicationDeadline;
 
     const updated = await prisma.opportunity.update({
       where: { id },
       data: {
-        title: body.title ?? existing.title,
-        organization: body.organization ?? existing.organization,
-        companyName: body.organization ?? existing.organization,
-        role: body.title ?? existing.role,
-        type: body.type ?? existing.type,
-        description: body.description ?? existing.description,
-        opportunityUrl: body.opportunityUrl ?? existing.opportunityUrl,
-        registrationUrl: body.registrationUrl ?? existing.registrationUrl,
-        applyUrl: body.registrationUrl ?? existing.applyUrl,
-        location: body.location ?? existing.location,
-        mode: body.mode ?? existing.mode,
-        salary: body.salary ?? existing.salary,
-        stipend: body.stipend ?? existing.stipend,
-        prize: body.prize ?? existing.prize,
-        openings: body.openings ? parseInt(body.openings) : existing.openings,
-        eligibility: body.eligibility ?? existing.eligibility,
-        additionalInfo: body.additionalInfo ?? existing.additionalInfo,
-        applicationDeadline: body.applicationDeadline ? (getNormalizedDeadline(body.applicationDeadline) || new Date(body.applicationDeadline)) : existing.applicationDeadline,
-        deadline: body.applicationDeadline ? (getNormalizedDeadline(body.applicationDeadline) || new Date(body.applicationDeadline)) : existing.deadline,
-        startDate: body.startDate ? new Date(body.startDate) : existing.startDate,
-        endDate: body.endDate ? new Date(body.endDate) : existing.endDate,
-        requiredSkills: Array.isArray(body.requiredSkills) ? body.requiredSkills : existing.requiredSkills,
-        status: body.status ?? existing.status
+        title: body.title ? body.title.trim() : existing.title,
+        organization: body.organization ? body.organization.trim() : existing.organization,
+        companyName: body.organization ? body.organization.trim() : existing.companyName,
+        role: body.title ? body.title.trim() : existing.role,
+        type: normalizedType as any,
+        description: body.description ? body.description.trim() : existing.description,
+        opportunityUrl: body.opportunityUrl !== undefined ? body.opportunityUrl.trim() : existing.opportunityUrl,
+        registrationUrl: body.registrationUrl !== undefined ? body.registrationUrl.trim() : existing.registrationUrl,
+        applyUrl: body.registrationUrl !== undefined ? body.registrationUrl.trim() : existing.applyUrl,
+        location: body.location !== undefined ? body.location.trim() : existing.location,
+        mode: normalizedMode as any,
+        salary: body.salary !== undefined ? body.salary : existing.salary,
+        stipend: body.stipend !== undefined ? body.stipend : existing.stipend,
+        prize: body.prize !== undefined ? body.prize : existing.prize,
+        openings: parsedOpenings,
+        eligibility: body.eligibility !== undefined ? body.eligibility : existing.eligibility,
+        additionalInfo: body.additionalInfo !== undefined ? body.additionalInfo : existing.additionalInfo,
+        applicationDeadline: updatedDeadline,
+        deadline: updatedDeadline,
+        startDate: body.startDate !== undefined ? parseSafeDate(body.startDate) : existing.startDate,
+        endDate: body.endDate !== undefined ? parseSafeDate(body.endDate) : existing.endDate,
+        requiredSkills: Array.isArray(body.requiredSkills)
+          ? body.requiredSkills.map((s: string) => s.trim()).filter(Boolean)
+          : typeof body.requiredSkills === 'string'
+          ? body.requiredSkills.split(',').map((s: string) => s.trim()).filter(Boolean)
+          : existing.requiredSkills,
+        status: normalizedStatus as any
       }
     });
 
@@ -114,7 +144,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     }
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user || (existing.postedById !== userId && user.role !== 'HOD' && user.role !== 'ADMIN')) {
+    if (!user || (existing.postedById !== userId && user.role !== 'HOD' && user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
       return NextResponse.json({ message: 'Forbidden: You cannot delete this opportunity.' }, { status: 403 });
     }
 

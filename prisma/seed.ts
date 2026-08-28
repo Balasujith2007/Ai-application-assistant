@@ -168,8 +168,6 @@ async function main() {
     { role: Role.STUDENT, title: 'My Resume', path: '/resume', order: 4 },
     { role: Role.STUDENT, title: 'My Progress', path: '/dashboard/student/progress', order: 5 },
     { role: Role.STUDENT, title: 'Announcements', path: '/dashboard/student/announcements', order: 6 },
-    { role: Role.STUDENT, title: 'Notifications', path: '/dashboard/notifications', order: 7 },
-    { role: Role.STUDENT, title: 'Settings', path: '/dashboard/settings', order: 8 },
 
     // MENTOR
     { role: Role.MENTOR, title: 'Dashboard', path: '/dashboard/mentor', order: 0 },
@@ -180,8 +178,6 @@ async function main() {
     { role: Role.MENTOR, title: 'Student Progress', path: '/dashboard/mentor/progress', order: 5 },
     { role: Role.MENTOR, title: 'Reports', path: '/dashboard/mentor/reports', order: 6 },
     { role: Role.MENTOR, title: 'Forms', path: '/dashboard/mentor/forms', order: 7 },
-    { role: Role.MENTOR, title: 'Notifications', path: '/dashboard/notifications', order: 8 },
-    { role: Role.MENTOR, title: 'Settings', path: '/dashboard/settings', order: 9 },
 
     // HOD
     { role: Role.HOD, title: 'Dashboard', path: '/dashboard/hod', order: 0 },
@@ -195,7 +191,6 @@ async function main() {
     { role: Role.HOD, title: 'Announcements', path: '/dashboard/hod/announcements', order: 8 },
     { role: Role.HOD, title: 'Reports', path: '/dashboard/hod/reports', order: 9 },
     { role: Role.HOD, title: 'Forms', path: '/dashboard/hod/forms', order: 10 },
-    { role: Role.HOD, title: 'Settings', path: '/dashboard/settings', order: 11 },
 
     // SUPER_ADMIN
     { role: Role.SUPER_ADMIN, title: 'Dashboard', path: '/dashboard/super-admin', order: 0 },
@@ -209,7 +204,6 @@ async function main() {
     { role: Role.SUPER_ADMIN, title: 'Auto-Fill Agent', path: '/dashboard/super-admin/auto-fill-agent', order: 8 },
     { role: Role.SUPER_ADMIN, title: 'AI Features', path: '/dashboard/super-admin/ai-features', order: 9 },
     { role: Role.SUPER_ADMIN, title: 'System Health', path: '/dashboard/super-admin/system-health', order: 10 },
-    { role: Role.SUPER_ADMIN, title: 'Settings', path: '/dashboard/settings', order: 11 },
   ];
 
   for (const item of defaultSidebarItems) {

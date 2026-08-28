@@ -11,8 +11,6 @@ export const CANONICAL_SIDEBARS: Record<Role, Array<{ title: string; path: strin
     { title: 'My Resume', path: '/resume', order: 4, enabled: true },
     { title: 'My Progress', path: '/dashboard/student/progress', order: 5, enabled: true },
     { title: 'Announcements', path: '/dashboard/student/announcements', order: 6, enabled: true },
-    { title: 'Notifications', path: '/dashboard/notifications', order: 7, enabled: true },
-    { title: 'Settings', path: '/dashboard/settings', order: 8, enabled: true },
   ],
   MENTOR: [
     { title: 'Dashboard', path: '/dashboard/mentor', order: 0, enabled: true },
@@ -24,8 +22,6 @@ export const CANONICAL_SIDEBARS: Record<Role, Array<{ title: string; path: strin
     { title: 'Student Progress', path: '/dashboard/mentor/progress', order: 6, enabled: true },
     { title: 'Reports', path: '/dashboard/mentor/reports', order: 7, enabled: true },
     { title: 'Forms', path: '/dashboard/mentor/forms', order: 8, enabled: true },
-    { title: 'Notifications', path: '/dashboard/notifications', order: 9, enabled: true },
-    { title: 'Settings', path: '/dashboard/settings', order: 10, enabled: true },
   ],
   HOD: [
     { title: 'Dashboard', path: '/dashboard/hod', order: 0, enabled: true },
@@ -40,8 +36,6 @@ export const CANONICAL_SIDEBARS: Record<Role, Array<{ title: string; path: strin
     { title: 'Announcements', path: '/dashboard/hod/announcements', order: 9, enabled: true },
     { title: 'Reports', path: '/dashboard/hod/reports', order: 10, enabled: true },
     { title: 'Forms', path: '/dashboard/hod/forms', order: 11, enabled: true },
-    { title: 'Notifications', path: '/dashboard/notifications', order: 12, enabled: true },
-    { title: 'Settings', path: '/dashboard/settings', order: 13, enabled: true },
   ],
   SUPER_ADMIN: [
     { title: 'Dashboard', path: '/dashboard/super-admin', order: 0, enabled: true },
@@ -55,7 +49,6 @@ export const CANONICAL_SIDEBARS: Record<Role, Array<{ title: string; path: strin
     { title: 'AI Features', path: '/dashboard/super-admin/ai-features', order: 8, enabled: true },
     { title: 'Audit Logs', path: '/dashboard/super-admin/audit-logs', order: 9, enabled: true },
     { title: 'System Health', path: '/dashboard/super-admin/system-health', order: 10, enabled: true },
-    { title: 'Settings', path: '/dashboard/settings', order: 11, enabled: true },
   ],
   FACULTY: [],
   PLACEMENT_CELL: [],
@@ -148,6 +141,14 @@ export const RESOURCES_LIST = [
 export const ACTIONS_LIST = ['VIEW', 'CREATE', 'EDIT', 'DELETE', 'EXPORT', 'APPROVE'];
 
 export async function ensureRoleSidebarDefaults(role: Role) {
+  // Clean up any redundant Preferences items from main sidebar table
+  await prisma.roleSidebarItem.deleteMany({
+    where: {
+      role,
+      title: { in: ['Notifications', 'Settings'] }
+    }
+  });
+
   const count = await prisma.roleSidebarItem.count({ where: { role } });
   if (count > 0) return;
 

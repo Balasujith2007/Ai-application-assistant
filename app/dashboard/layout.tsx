@@ -166,7 +166,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="flex flex-1 flex-col overflow-y-auto px-4 py-6">
           <div className="space-y-1 mb-8">
             <p className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Main Menu</p>
-            {mainLinks.map((link) => {
+            {mainLinks
+              .filter((link) => link.title !== 'Notifications' && link.title !== 'Settings' && link.path !== '/dashboard/notifications' && link.path !== '/dashboard/settings')
+              .map((link) => {
               const isActive = pathname === link.path;
               const LinkIcon = ICON_MAP[link.title] || FileText;
               return (
