@@ -42,7 +42,7 @@ export function OpportunityBroadcastModal({
     applicationDeadline: '',
     stipend: '',
     requiredSkills: '',
-    targetAudience: 'ALL_STUDENTS', // ALL_STUDENTS, ALL_MENTORS, BOTH
+    targetAudience: mode === 'mentor' ? 'MY_STUDENTS' : 'ALL_STUDENTS', // MY_STUDENTS | OUR_STUDENTS for mentor, ALL_STUDENTS | ALL_MENTORS | BOTH for hod
     targetDepartment: '',
     targetYear: '',
     targetSection: '',
@@ -101,6 +101,11 @@ export function OpportunityBroadcastModal({
       return;
     }
 
+    if (mode === 'mentor' && form.targetAudience !== 'MY_STUDENTS' && form.targetAudience !== 'OUR_STUDENTS') {
+      setErrorMsg('Please select target audience: "My Students" or "Our Students".');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -110,6 +115,10 @@ export function OpportunityBroadcastModal({
         organization: form.organization.trim(),
         description: form.description.trim(),
         status: 'PUBLISHED',
+        targetAudience: mode === 'mentor' ? form.targetAudience : form.targetAudience,
+        targetDepartment: mode === 'mentor' ? '' : form.targetDepartment,
+        targetYear: mode === 'mentor' ? '' : form.targetYear,
+        targetSection: mode === 'mentor' ? '' : form.targetSection,
         requiredSkills: form.requiredSkills
           .split(',')
           .map((s) => s.trim())
@@ -130,7 +139,7 @@ export function OpportunityBroadcastModal({
           applicationDeadline: '',
           stipend: '',
           requiredSkills: '',
-          targetAudience: 'ALL_STUDENTS',
+          targetAudience: mode === 'mentor' ? 'MY_STUDENTS' : 'ALL_STUDENTS',
           targetDepartment: '',
           targetYear: '',
           targetSection: '',
@@ -162,7 +171,7 @@ export function OpportunityBroadcastModal({
           <div className="flex items-center justify-between border-b border-gray-100 pb-3">
             <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
               <Send className="h-5 w-5 text-kit-600" />
-              {mode === 'hod' ? 'Broadcast New Opportunity' : 'Broadcast New Opportunity'}
+              Broadcast New Opportunity
             </h3>
             <button
               onClick={onClose}
@@ -294,90 +303,124 @@ export function OpportunityBroadcastModal({
               required
             />
 
-            {/* Target Audience Controls (Same in HOD & Mentor) */}
-            <div className="rounded-xl border border-kit-200 bg-kit-50/50 p-4 space-y-3">
-              <h4 className="text-xs font-bold text-kit-900 uppercase tracking-wider">
-                Target Audience & Broadcast Scope
-              </h4>
+            {/* Target Audience Controls: Role-Specific */}
+            {mode === 'mentor' ? (
+              <div className="rounded-xl border border-kit-200 bg-kit-50/50 p-4 space-y-3">
+                <h4 className="text-xs font-bold text-kit-900 uppercase tracking-wider">
+                  Target Audience
+                </h4>
 
-              <div className="flex flex-wrap gap-4 text-xs font-semibold text-gray-700">
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="broadcastTarget"
-                    checked={form.targetAudience === 'ALL_STUDENTS'}
-                    onChange={() => setForm({ ...form, targetAudience: 'ALL_STUDENTS' })}
-                  />
-                  All Students
-                </label>
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="broadcastTarget"
-                    checked={form.targetAudience === 'ALL_MENTORS'}
-                    onChange={() => setForm({ ...form, targetAudience: 'ALL_MENTORS' })}
-                  />
-                  All Mentors
-                </label>
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="broadcastTarget"
-                    checked={form.targetAudience === 'BOTH'}
-                    onChange={() => setForm({ ...form, targetAudience: 'BOTH' })}
-                  />
-                  Students + Mentors
-                </label>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 pt-1">
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-gray-700">Department</label>
-                  <select
-                    value={form.targetDepartment}
-                    onChange={(e) => setForm({ ...form, targetDepartment: e.target.value })}
-                    className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-medium focus:border-kit-500 focus:outline-none"
-                  >
-                    <option value="">All Departments</option>
-                    {availableDepartments.map((dept) => (
-                      <option key={dept} value={dept}>
-                        {dept}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-gray-700">Year</label>
-                  <select
-                    value={form.targetYear}
-                    onChange={(e) => setForm({ ...form, targetYear: e.target.value })}
-                    className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-medium focus:border-kit-500 focus:outline-none"
-                  >
-                    <option value="">All Years</option>
-                    {availableYears.map((yr) => (
-                      <option key={yr} value={yr}>
-                        Year {yr}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-gray-700">Section</label>
-                  <select
-                    value={form.targetSection}
-                    onChange={(e) => setForm({ ...form, targetSection: e.target.value })}
-                    className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-medium focus:border-kit-500 focus:outline-none"
-                  >
-                    <option value="">All Sections</option>
-                    {availableSections.map((sec) => (
-                      <option key={sec} value={sec}>
-                        Section {sec}
-                      </option>
-                    ))}
-                  </select>
+                <div className="flex gap-4 text-xs font-semibold text-gray-700">
+                  <label className="flex items-center gap-2 cursor-pointer bg-white px-3.5 py-2.5 rounded-xl border border-gray-200 hover:border-kit-400 transition-colors">
+                    <input
+                      type="radio"
+                      name="mentorTargetAudience"
+                      value="MY_STUDENTS"
+                      checked={form.targetAudience === 'MY_STUDENTS'}
+                      onChange={() => setForm({ ...form, targetAudience: 'MY_STUDENTS' })}
+                      className="text-kit-600 focus:ring-kit-500"
+                    />
+                    My Students
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer bg-white px-3.5 py-2.5 rounded-xl border border-gray-200 hover:border-kit-400 transition-colors">
+                    <input
+                      type="radio"
+                      name="mentorTargetAudience"
+                      value="OUR_STUDENTS"
+                      checked={form.targetAudience === 'OUR_STUDENTS'}
+                      onChange={() => setForm({ ...form, targetAudience: 'OUR_STUDENTS' })}
+                      className="text-kit-600 focus:ring-kit-500"
+                    />
+                    Our Students
+                  </label>
                 </div>
               </div>
-            </div>
+            ) : (
+              /* HOD Targeting Controls */
+              <div className="rounded-xl border border-kit-200 bg-kit-50/50 p-4 space-y-3">
+                <h4 className="text-xs font-bold text-kit-900 uppercase tracking-wider">
+                  Target Audience & Broadcast Scope
+                </h4>
+
+                <div className="flex flex-wrap gap-4 text-xs font-semibold text-gray-700">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="hodBroadcastTarget"
+                      checked={form.targetAudience === 'ALL_STUDENTS'}
+                      onChange={() => setForm({ ...form, targetAudience: 'ALL_STUDENTS' })}
+                    />
+                    All Students
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="hodBroadcastTarget"
+                      checked={form.targetAudience === 'ALL_MENTORS'}
+                      onChange={() => setForm({ ...form, targetAudience: 'ALL_MENTORS' })}
+                    />
+                    All Mentors
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="hodBroadcastTarget"
+                      checked={form.targetAudience === 'BOTH'}
+                      onChange={() => setForm({ ...form, targetAudience: 'BOTH' })}
+                    />
+                    Students + Mentors
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 pt-1">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-gray-700">Department</label>
+                    <select
+                      value={form.targetDepartment}
+                      onChange={(e) => setForm({ ...form, targetDepartment: e.target.value })}
+                      className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-medium focus:border-kit-500 focus:outline-none"
+                    >
+                      <option value="">All Departments</option>
+                      {availableDepartments.map((dept) => (
+                        <option key={dept} value={dept}>
+                          {dept}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-gray-700">Year</label>
+                    <select
+                      value={form.targetYear}
+                      onChange={(e) => setForm({ ...form, targetYear: e.target.value })}
+                      className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-medium focus:border-kit-500 focus:outline-none"
+                    >
+                      <option value="">All Years</option>
+                      {availableYears.map((yr) => (
+                        <option key={yr} value={yr}>
+                          Year {yr}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-gray-700">Section</label>
+                    <select
+                      value={form.targetSection}
+                      onChange={(e) => setForm({ ...form, targetSection: e.target.value })}
+                      className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-medium focus:border-kit-500 focus:outline-none"
+                    >
+                      <option value="">All Sections</option>
+                      {availableSections.map((sec) => (
+                        <option key={sec} value={sec}>
+                          Section {sec}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">

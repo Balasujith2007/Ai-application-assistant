@@ -27,7 +27,67 @@ export async function GET(req: Request) {
     let whereClause: any = {};
 
     if (user.role === 'STUDENT') {
-      whereClause.status = 'PUBLISHED';
+      const studentDept = user.profile?.department;
+      const studentYear = user.profile?.year;
+      const studentSection = user.profile?.section;
+
+      const studentTargetConditions: any[] = [
+        // 1. Opportunities from HOD / Admins (preserve existing department/year/section filters if set)
+        {
+          postedByRole: { not: 'MENTOR' },
+          AND: [
+            {
+              OR: [
+                { targetDepartment: null },
+                { targetDepartment: '' },
+                ...(studentDept ? [{ targetDepartment: { equals: studentDept, mode: 'insensitive' } }] : [])
+              ]
+            },
+            {
+              OR: [
+                { targetYear: null },
+                ...(studentYear ? [{ targetYear: studentYear }] : [])
+              ]
+            },
+            {
+              OR: [
+                { targetSection: null },
+                { targetSection: '' },
+                ...(studentSection ? [{ targetSection: { equals: studentSection, mode: 'insensitive' } }] : [])
+              ]
+            }
+          ]
+        },
+        // 2. Opportunities from mentor targeted to "My Students"
+        ...(user.mentorId ? [
+          {
+            postedById: user.mentorId,
+            targetAudience: 'MY_STUDENTS'
+          }
+        ] : []),
+        // 3. Opportunities from mentor targeted to "Our Students"
+        {
+          targetAudience: 'OUR_STUDENTS',
+          OR: [
+            ...(user.mentorId ? [{ postedById: user.mentorId }] : []),
+            ...(studentDept ? [
+              { targetDepartment: { equals: studentDept, mode: 'insensitive' } },
+              { postedBy: { profile: { department: { equals: studentDept, mode: 'insensitive' } } } }
+            ] : [])
+          ]
+        },
+        // 4. Opportunities from mentor with general/all students targeting (fallback)
+        {
+          postedByRole: 'MENTOR',
+          targetAudience: { in: ['ALL_STUDENTS', 'BOTH', 'STUDENTS_MENTORS'] }
+        }
+      ];
+
+      whereClause = {
+        status: 'PUBLISHED',
+        OR: studentTargetConditions
+      };
+
       if (type && type !== 'ALL') {
         whereClause.type = type as any;
       }
@@ -190,6 +250,30 @@ export async function POST(req: Request) {
     const parsedOpenings = openings && !isNaN(parseInt(openings)) ? parseInt(openings) : null;
     const parsedYear = targetYear && !isNaN(parseInt(targetYear)) ? parseInt(targetYear) : null;
 
+    let finalAudience = targetAudience || (user.role === 'MENTOR' ? 'MY_STUDENTS' : 'ALL_STUDENTS');
+    let finalDepartment = targetDepartment || null;
+
+    if (user.role === 'MENTOR') {
+      if (finalAudience === 'OUR_STUDENTS') {
+        // Resolve mentor's department if not explicitly set
+        const mentorProfile = await prisma.profile.findUnique({ where: { userId: user.id } });
+        if (mentorProfile?.department) {
+          finalDepartment = mentorProfile.department;
+        } else {
+          const firstAssigned = await prisma.user.findFirst({
+            where: { mentorId: user.id, profile: { isNot: null } },
+            include: { profile: true }
+          });
+          if (firstAssigned?.profile?.department) {
+            finalDepartment = firstAssigned.profile.department;
+          }
+        }
+      } else {
+        finalAudience = 'MY_STUDENTS';
+        finalDepartment = null;
+      }
+    }
+
     const newOpportunity = await prisma.opportunity.create({
       data: {
         title: title.trim(),
@@ -221,10 +305,10 @@ export async function POST(req: Request) {
         postedById: user.id,
         postedByRole: user.role,
         status: normalizedStatus as any,
-        targetAudience: targetAudience || 'ALL_STUDENTS',
-        targetDepartment: targetDepartment || null,
-        targetYear: parsedYear,
-        targetSection: targetSection || null
+        targetAudience: finalAudience,
+        targetDepartment: user.role === 'MENTOR' ? finalDepartment : (targetDepartment || null),
+        targetYear: user.role === 'MENTOR' ? null : parsedYear,
+        targetSection: user.role === 'MENTOR' ? null : (targetSection || null)
       }
     });
 
@@ -233,31 +317,51 @@ export async function POST(req: Request) {
       try {
         const recipientConditions: any[] = [];
 
-        const profileFilter: any = {};
-        if (newOpportunity.targetDepartment) {
-          profileFilter.department = { equals: newOpportunity.targetDepartment, mode: 'insensitive' };
-        }
-        if (newOpportunity.targetYear) {
-          profileFilter.year = newOpportunity.targetYear;
-        }
-        if (newOpportunity.targetSection) {
-          profileFilter.section = { equals: newOpportunity.targetSection, mode: 'insensitive' };
-        }
-
-        const hasProfileFilter = Object.keys(profileFilter).length > 0;
-        const audience = newOpportunity.targetAudience || 'ALL_STUDENTS';
-
-        if (audience === 'ALL_STUDENTS' || audience === 'BOTH' || audience === 'STUDENTS_MENTORS') {
+        if (newOpportunity.targetAudience === 'MY_STUDENTS') {
+          // Send notification ONLY to students assigned to this mentor
           recipientConditions.push({
             role: 'STUDENT',
-            ...(hasProfileFilter ? { profile: profileFilter } : {})
+            mentorId: user.id
           });
-        }
-
-        if (audience === 'ALL_MENTORS' || audience === 'BOTH' || audience === 'STUDENTS_MENTORS') {
+        } else if (newOpportunity.targetAudience === 'OUR_STUDENTS') {
+          // Send notification to assigned students and students in the mentor's department
           recipientConditions.push({
-            role: 'MENTOR'
+            role: 'STUDENT',
+            OR: [
+              { mentorId: user.id },
+              ...(newOpportunity.targetDepartment ? [
+                { profile: { department: { equals: newOpportunity.targetDepartment, mode: 'insensitive' } } }
+              ] : [])
+            ]
           });
+        } else {
+          // HOD / Placement target scoping
+          const profileFilter: any = {};
+          if (newOpportunity.targetDepartment) {
+            profileFilter.department = { equals: newOpportunity.targetDepartment, mode: 'insensitive' };
+          }
+          if (newOpportunity.targetYear) {
+            profileFilter.year = newOpportunity.targetYear;
+          }
+          if (newOpportunity.targetSection) {
+            profileFilter.section = { equals: newOpportunity.targetSection, mode: 'insensitive' };
+          }
+
+          const hasProfileFilter = Object.keys(profileFilter).length > 0;
+          const audience = newOpportunity.targetAudience || 'ALL_STUDENTS';
+
+          if (audience === 'ALL_STUDENTS' || audience === 'BOTH' || audience === 'STUDENTS_MENTORS') {
+            recipientConditions.push({
+              role: 'STUDENT',
+              ...(hasProfileFilter ? { profile: profileFilter } : {})
+            });
+          }
+
+          if (audience === 'ALL_MENTORS' || audience === 'BOTH' || audience === 'STUDENTS_MENTORS') {
+            recipientConditions.push({
+              role: 'MENTOR'
+            });
+          }
         }
 
         if (recipientConditions.length === 0) {

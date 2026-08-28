@@ -339,7 +339,11 @@ export default function MentorOpportunitiesPage() {
             const isClosed = opp.status === 'CLOSED';
 
             // Target formatting
-            const targetLabel = opp.targetDepartment
+            const targetLabel = opp.targetAudience === 'MY_STUDENTS'
+              ? 'My Students'
+              : opp.targetAudience === 'OUR_STUDENTS'
+              ? 'Our Students'
+              : opp.targetDepartment
               ? `${opp.targetDepartment}${opp.targetYear ? ` · Yr ${opp.targetYear}` : ''}`
               : opp.targetAudience === 'BOTH'
               ? 'Students + Mentors'
