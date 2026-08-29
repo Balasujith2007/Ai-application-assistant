@@ -254,38 +254,25 @@ export default function MentorReportsPage() {
         const filename = `CareerAI_Mentor_${safeTitle}_Report_${currentDateStr}.xlsx`;
         XLSX.writeFile(workbook, filename);
       } else {
-        // PDF Export
-        const jsPDFModule = await import('jspdf');
-        const autoTableModule = await import('jspdf-autotable');
-        const jsPDF = jsPDFModule.default || jsPDFModule;
-        const autoTable = autoTableModule.default || autoTableModule;
+        // PDF Export using Official KIT Template
+        const { generateKitOfficialPdf } = await import('@/lib/kitReportPdf');
 
-        const doc = new jsPDF({ orientation: report.id === 'assigned-career' || report.id === 'application-placement' ? 'landscape' : 'portrait' });
-
-        // Header
-        doc.setFontSize(16);
-        doc.setTextColor(30, 41, 59);
-        doc.text('CareerAI — Mentor Report', 14, 16);
-
-        doc.setFontSize(12);
-        doc.setTextColor(79, 70, 229);
-        doc.text(report.title, 14, 23);
-
-        doc.setFontSize(9);
-        doc.setTextColor(71, 85, 105);
-        doc.text(`Mentor: ${currentMentor?.name || 'Logged-in Mentor'} (${currentMentor?.email || ''})`, 14, 29);
-        doc.text(`Generated: ${generatedDateText}  |  Total Records: ${rawData.length}`, 14, 34);
-
-        const filterSummary = `Applied Filters: Opportunity Type: ${selectedOpportunityType} | Reg Status: ${selectedRegStatus} | Resume Status: ${selectedResumeStatus}`;
-        doc.setFontSize(8);
-        doc.setTextColor(148, 163, 184);
-        doc.text(filterSummary, 14, 39);
-
-        let pdfHead: string[][] = [];
+        let columns: { header: string }[] = [];
         let pdfBody: any[][] = [];
 
         if (report.id === 'assigned-career') {
-          pdfHead = [['Student Name', 'Reg No', 'Dept', 'Yr', 'Sec', 'CGPA', 'Resume', 'Apps', 'Regs', 'Status']];
+          columns = [
+            { header: 'Student Name' },
+            { header: 'Reg No' },
+            { header: 'Dept' },
+            { header: 'Yr' },
+            { header: 'Sec' },
+            { header: 'CGPA' },
+            { header: 'Resume' },
+            { header: 'Apps' },
+            { header: 'Regs' },
+            { header: 'Status' }
+          ];
           pdfBody = rawData.map((s: any) => [
             s.name || 'N/A',
             s.registerNo || 'N/A',
@@ -299,7 +286,16 @@ export default function MentorReportsPage() {
             s.studentStatus || 'N/A',
           ]);
         } else if (report.id === 'internship-hackathon') {
-          pdfHead = [['Student Name', 'Reg No', 'Opportunity Name', 'Type', 'Company', 'Status', 'Reg Date', 'Deadline']];
+          columns = [
+            { header: 'Student Name' },
+            { header: 'Reg No' },
+            { header: 'Opportunity Name' },
+            { header: 'Type' },
+            { header: 'Company' },
+            { header: 'Status' },
+            { header: 'Reg Date' },
+            { header: 'Deadline' }
+          ];
           pdfBody = rawData.map((r: any) => [
             r.studentName || 'N/A',
             r.registerNo || 'N/A',
@@ -311,7 +307,17 @@ export default function MentorReportsPage() {
             r.deadline || 'N/A',
           ]);
         } else if (report.id === 'application-placement') {
-          pdfHead = [['Student Name', 'Reg No', 'Opportunity Name', 'Type', 'Company', 'App Status', 'Applied Date', 'Interview', 'Offer Status']];
+          columns = [
+            { header: 'Student Name' },
+            { header: 'Reg No' },
+            { header: 'Opportunity Name' },
+            { header: 'Type' },
+            { header: 'Company' },
+            { header: 'App Status' },
+            { header: 'Applied Date' },
+            { header: 'Interview' },
+            { header: 'Offer Status' }
+          ];
           pdfBody = rawData.map((a: any) => [
             a.studentName || 'N/A',
             a.registerNo || 'N/A',
@@ -324,7 +330,16 @@ export default function MentorReportsPage() {
             a.offerStatus || 'N/A',
           ]);
         } else if (report.id === 'resume-readiness') {
-          pdfHead = [['Student Name', 'Reg No', 'Uploaded', 'Resume Status', 'Upload Date', 'Skills', 'Readiness', 'Mentor Comments']];
+          columns = [
+            { header: 'Student Name' },
+            { header: 'Reg No' },
+            { header: 'Uploaded' },
+            { header: 'Resume Status' },
+            { header: 'Upload Date' },
+            { header: 'Skills' },
+            { header: 'Readiness' },
+            { header: 'Mentor Comments' }
+          ];
           pdfBody = rawData.map((r: any) => [
             r.studentName || 'N/A',
             r.registerNo || 'N/A',
@@ -337,21 +352,19 @@ export default function MentorReportsPage() {
           ]);
         }
 
-        autoTable(doc, {
-          startY: 44,
-          head: pdfHead,
-          body: pdfBody,
-          theme: 'grid',
-          headStyles: { fillColor: [79, 70, 229], textColor: 255, fontSize: 8, fontStyle: 'bold' },
-          bodyStyles: { fontSize: 7.5 },
-          alternateRowStyles: { fillColor: [248, 250, 252] },
-          margin: { left: 14, right: 14 },
-          pageBreak: 'auto',
-        });
-
         const safeTitle = report.id.replace(/-/g, '_');
-        const filename = `CareerAI_Mentor_${safeTitle}_Report_${currentDateStr}.pdf`;
-        doc.save(filename);
+        const filename = `KIT_Mentor_${safeTitle}_Report_${currentDateStr}.pdf`;
+
+        await generateKitOfficialPdf({
+          orientation: report.id === 'assigned-career' || report.id === 'application-placement' ? 'landscape' : 'portrait',
+          reportTitle: report.title,
+          mentorName: currentMentor?.name,
+          mentorEmail: currentMentor?.email,
+          academicYear: '2025 - 2026',
+          columns,
+          data: pdfBody,
+          filename,
+        });
       }
     } catch (err: any) {
       console.error(`Failed to download report:`, err);

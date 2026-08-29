@@ -236,31 +236,23 @@ export default function HODReportsPage() {
         const filename = `${safeDept}_Year${selectedYear}_Section${selectedSection}_${safeTitle}.xlsx`;
         XLSX.writeFile(workbook, filename);
       } else {
-        // PDF Export
-        const jsPDFModule = await import('jspdf');
-        const autoTableModule = await import('jspdf-autotable');
-        const jsPDF = jsPDFModule.default || jsPDFModule;
-        const autoTable = autoTableModule.default || autoTableModule;
+        // PDF Export using Official KIT Template
+        const { generateKitOfficialPdf } = await import('@/lib/kitReportPdf');
 
-        const doc = new jsPDF();
-        doc.setFontSize(16);
-        doc.setTextColor(30, 41, 59);
-        doc.text(report.title, 14, 18);
-
-        doc.setFontSize(10);
-        doc.setTextColor(79, 70, 229);
-        doc.text(`Department: ${selectedDepartment}`, 14, 25);
-        doc.text(`Year: ${selectedYear}   |   Section: ${selectedSection}`, 14, 31);
-
-        doc.setFontSize(8);
-        doc.setTextColor(100, 116, 139);
-        doc.text(`CareerAI Class Report | Generated: ${new Date().toLocaleDateString()}`, 14, 37);
-
-        let pdfHead: string[][] = [];
+        let columns: { header: string }[] = [];
         let pdfBody: any[][] = [];
 
         if (report.id === 'student-readiness') {
-          pdfHead = [['Student Name', 'Register No', 'Department', 'Year', 'Section', 'Mentor', 'Resume Status', 'Apps']];
+          columns = [
+            { header: 'Student Name' },
+            { header: 'Register No' },
+            { header: 'Department' },
+            { header: 'Year' },
+            { header: 'Section' },
+            { header: 'Mentor' },
+            { header: 'Resume Status' },
+            { header: 'Apps' }
+          ];
           pdfBody = rawData.map((s: any) => [
             s.name || '—',
             s.registerNo || '—',
@@ -272,7 +264,14 @@ export default function HODReportsPage() {
             String(s.applicationsCount || 0),
           ]);
         } else if (report.id === 'mentor-workload') {
-          pdfHead = [['Mentor Name', 'Email', 'Employee ID', 'Department', 'Students Count', 'Assigned Students']];
+          columns = [
+            { header: 'Mentor Name' },
+            { header: 'Email' },
+            { header: 'Employee ID' },
+            { header: 'Department' },
+            { header: 'Students' },
+            { header: 'Assigned Students List' }
+          ];
           pdfBody = rawData.map((m: any) => [
             m.name || '—',
             m.email || '—',
@@ -282,7 +281,16 @@ export default function HODReportsPage() {
             (m.assignedStudents || []).map((st: any) => st.name).join(', ') || 'None',
           ]);
         } else if (report.id === 'application-placement') {
-          pdfHead = [['Student Name', 'Register No', 'Department', 'Company', 'Position', 'Type', 'Status', 'Applied Date']];
+          columns = [
+            { header: 'Student Name' },
+            { header: 'Register No' },
+            { header: 'Department' },
+            { header: 'Company' },
+            { header: 'Position' },
+            { header: 'Type' },
+            { header: 'Status' },
+            { header: 'Applied Date' }
+          ];
           pdfBody = rawData.map((a: any) => [
             a.user?.name || '—',
             a.user?.profile?.registerNo || '—',
@@ -294,7 +302,16 @@ export default function HODReportsPage() {
             a.appliedDate ? new Date(a.appliedDate).toLocaleDateString() : '—',
           ]);
         } else if (report.id === 'resume-audit') {
-          pdfHead = [['Student Name', 'Register No', 'Department', 'Year', 'Section', 'Mentor', 'Resume Status', 'File Name']];
+          columns = [
+            { header: 'Student Name' },
+            { header: 'Register No' },
+            { header: 'Department' },
+            { header: 'Year' },
+            { header: 'Section' },
+            { header: 'Mentor' },
+            { header: 'Resume Status' },
+            { header: 'File Name' }
+          ];
           pdfBody = rawData.map((r: any) => [
             r.studentName || '—',
             r.registerNo || '—',
@@ -307,21 +324,21 @@ export default function HODReportsPage() {
           ]);
         }
 
-        autoTable(doc, {
-          startY: 42,
-          head: pdfHead,
-          body: pdfBody,
-          theme: 'grid',
-          headStyles: { fillColor: [79, 70, 229], textColor: 255, fontSize: 8, fontStyle: 'bold' },
-          bodyStyles: { fontSize: 7.5 },
-          alternateRowStyles: { fillColor: [248, 250, 252] },
-          margin: { left: 14, right: 14 },
-        });
-
         const safeDept = selectedDepartment.replace(/[^a-zA-Z0-9]/g, '_');
         const safeTitle = report.title.replace(/\s+/g, '_');
-        const filename = `${safeDept}_Year${selectedYear}_Section${selectedSection}_${safeTitle}.pdf`;
-        doc.save(filename);
+        const filename = `KIT_${safeDept}_Year${selectedYear}_Section${selectedSection}_${safeTitle}.pdf`;
+
+        await generateKitOfficialPdf({
+          orientation: report.id === 'application-placement' || report.id === 'mentor-workload' ? 'landscape' : 'portrait',
+          reportTitle: report.title,
+          department: selectedDepartment,
+          year: selectedYear,
+          section: selectedSection,
+          academicYear: '2025 - 2026',
+          columns,
+          data: pdfBody,
+          filename,
+        });
       }
     } catch (err: any) {
       console.error(`Failed to download report:`, err);

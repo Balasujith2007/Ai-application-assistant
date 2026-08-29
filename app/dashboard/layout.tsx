@@ -153,11 +153,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  const commonLinks = [
-    { name: 'Notifications', href: '/dashboard/notifications', icon: Bell },
-    { name: 'Settings', href: '/dashboard/settings', icon: Settings },
-  ];
-
   return (
     <div className="flex min-h-screen bg-gray-50/50 font-[var(--font-inter)]">
       {/* Mobile Sidebar Overlay */}
@@ -214,25 +209,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             })}
           </div>
 
-          <div className="space-y-1 mt-auto">
-            <p className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Preferences</p>
-            {commonLinks.map((link) => {
-              const isActive = pathname === link.href;
-              return (
-                <Link
-                  key={link.name}
-                  href={link.href}
-                  className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                    isActive
-                      ? 'bg-kit-100 text-kit-700'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                >
-                  <link.icon className={`h-5 w-5 shrink-0 ${isActive ? 'text-kit-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
-                  {link.name}
-                </Link>
-              );
-            })}
+          <div className="mt-auto pt-4 border-t border-gray-100">
             <button
               onClick={logout}
               className="w-full group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 transition-all duration-200 hover:bg-red-50"
