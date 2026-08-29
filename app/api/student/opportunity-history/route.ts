@@ -26,8 +26,8 @@ export async function GET(req: Request) {
     });
 
     const history = registrations
-      .map((reg) => {
-        const opp = reg.opportunity;
+      .map((reg: any) => {
+        const opp = reg.opportunity || {};
         const computedStatus = getStudentOpportunityStatus(opp, reg);
 
         return {
@@ -49,6 +49,11 @@ export async function GET(req: Request) {
           startedAt: reg.startedAt || opp.startDate || null,
           completedAt: reg.completedAt || (computedStatus === 'COMPLETED' ? opp.endDate || reg.updatedAt : null),
           status: computedStatus,
+          rawStatus: reg.status,
+          verificationMethod: reg.verificationMethod || null,
+          verifiedAt: reg.verifiedAt || null,
+          confirmedAt: reg.confirmedAt || null,
+          externalRegistrationId: reg.externalRegistrationId || null,
           outcome: reg.outcome || (computedStatus === 'COMPLETED' ? 'Completed' : null),
           certificateUrl: reg.certificateUrl || null,
           notes: reg.notes || null,

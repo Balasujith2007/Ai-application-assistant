@@ -3,14 +3,19 @@ import { getUserIdFromRequest } from '@/lib/serverAuth';
 import prisma from '@/lib/prisma';
 import { getStudentOpportunityStatus } from '@/lib/opportunityUtils';
 
-export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, context: { params: Promise<{ id: string }> | { id: string } }) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id: opportunityId } = await params;
+    const resolvedParams = await context.params;
+    const opportunityId = resolvedParams?.id;
+
+    if (!opportunityId) {
+      return NextResponse.json({ message: 'Opportunity ID is required.' }, { status: 400 });
+    }
 
     const opportunity = await prisma.opportunity.findUnique({
       where: { id: opportunityId },
@@ -32,19 +37,31 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ message: 'Opportunity not found.' }, { status: 404 });
     }
 
-    const registration = await prisma.opportunityRegistration.findFirst({
+    const registration: any = await prisma.opportunityRegistration.findFirst({
       where: {
         opportunityId,
         studentId: userId
       }
     });
 
+    const isVerified = registration?.status === 'VERIFIED';
+    const isStudentConfirmed = registration?.status === 'STUDENT_CONFIRMED';
+    const isInProgress = registration?.status === 'IN_PROGRESS';
+    const isStarted = registration?.status === 'STARTED' || registration?.status === 'INITIATED';
+    const isRegistered = Boolean(
+      registration && ['VERIFIED', 'STUDENT_CONFIRMED', 'REGISTERED', 'SHORTLISTED', 'SELECTED', 'COMPLETED'].includes(registration.status)
+    );
+
     const calculatedStatus = getStudentOpportunityStatus(opportunity, registration);
 
     return NextResponse.json({
       success: true,
       opportunityId,
-      isRegistered: !!registration && (registration.status === 'REGISTERED' || registration.status === 'SHORTLISTED' || registration.status === 'SELECTED' || registration.status === 'COMPLETED'),
+      isRegistered,
+      isVerified,
+      isStudentConfirmed,
+      isInProgress,
+      isStarted,
       status: calculatedStatus,
       rawStatus: registration?.status || 'NOT_REGISTERED',
       registration: registration || null

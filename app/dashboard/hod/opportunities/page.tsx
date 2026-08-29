@@ -5,7 +5,6 @@ import { motion } from 'framer-motion';
 import {
   Megaphone, Plus, Building, Calendar, Loader2
 } from 'lucide-react';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/Button';
 import { OpportunityBroadcastModal } from '@/components/opportunities/OpportunityBroadcastModal';
 import api from '@/lib/api';
@@ -33,8 +32,16 @@ export default function HODOpportunitiesPage() {
   }, [fetchOpportunities]);
 
   return (
-    <DashboardLayout title="HOD Opportunities & Broadcast System" subtitle="Publish organization-wide opportunities & broadcast targeted notifications">
-      <div className="space-y-6 pb-12">
+    <div className="space-y-6 pb-12">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">
+          HOD Opportunities & Broadcast System
+        </h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Publish organization-wide opportunities & broadcast targeted notifications
+        </p>
+      </div>
         {/* Banner Alert */}
         {notice && (
           <div className={`rounded-2xl p-4 text-sm font-semibold flex items-center justify-between shadow-sm border ${
@@ -108,6 +115,5 @@ export default function HODOpportunitiesPage() {
           mode="hod"
         />
       </div>
-    </DashboardLayout>
-  );
-}
+    );
+  }

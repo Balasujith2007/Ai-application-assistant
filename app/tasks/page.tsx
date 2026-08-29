@@ -13,7 +13,6 @@ import {
   ListChecks,
   Filter,
 } from 'lucide-react';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/Button';
 import { usePlacement } from '@/context/PlacementContext';
 import { Task, TaskCategory, TaskPriority } from '@/types/placement';
@@ -81,23 +80,17 @@ export default function TasksPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout title="Tasks" subtitle="Loading your tasks...">
-        <div className="flex h-[60vh] items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-kit-200 border-t-kit-600"></div>
-            <p className="text-sm font-medium text-gray-500">Loading tasks...</p>
-          </div>
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-kit-200 border-t-kit-600"></div>
+          <p className="text-sm font-medium text-gray-500">Loading tasks...</p>
         </div>
-      </DashboardLayout>
+      </div>
     );
   }
 
   return (
-    <DashboardLayout
-      title="Tasks"
-      subtitle="Stay organized and complete every important placement activity on time."
-    >
-      <div className="space-y-8 pb-12">
+    <div className="space-y-8 pb-12">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -266,6 +259,5 @@ export default function TasksPage() {
           initialData={editingTask}
         />
       </div>
-    </DashboardLayout>
-  );
-}
+    );
+  }

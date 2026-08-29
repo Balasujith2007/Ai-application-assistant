@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Upload, FileText, Trash2, Check, AlertCircle, RefreshCw } from 'lucide-react';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import Link from 'next/link';
+import { Upload, FileText, Trash2, Check, AlertCircle, RefreshCw, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner, EmptyState } from '@/components/ui/index';
 import { formatDate, formatFileSize } from '@/lib/utils';
@@ -72,8 +72,22 @@ export default function ResumePage() {
   };
 
   return (
-    <DashboardLayout title="Resume" subtitle="Upload and manage your resumes">
-      <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6 pb-12">
+      {/* Back to Dashboard */}
+      <div>
+        <Link
+          href="/dashboard/student"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-kit-600 transition-colors group"
+        >
+          <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+          Back to Dashboard
+        </Link>
+      </div>
+
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Resume</h1>
+        <p className="mt-1 text-sm text-gray-500">Upload and manage your resumes</p>
+      </div>
         {/* Upload zone */}
         <div
           onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
@@ -185,6 +199,5 @@ export default function ResumePage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
   );
 }

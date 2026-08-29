@@ -2,14 +2,20 @@ import { NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
 import prisma from '@/lib/prisma';
 
-export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: Request, context: { params: Promise<{ id: string }> | { id: string } }) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id: opportunityId } = await params;
+    const resolvedParams = await context.params;
+    const opportunityId = resolvedParams?.id;
+
+    if (!opportunityId) {
+      return NextResponse.json({ message: 'Opportunity ID is required.' }, { status: 400 });
+    }
+
     const student = await prisma.user.findUnique({
       where: { id: userId },
       include: { profile: true }

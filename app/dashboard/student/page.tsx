@@ -125,7 +125,7 @@ export default function StudentDashboard() {
               Career Readiness: {careerReadiness}%
             </span>
             <span className="text-gray-300">•</span>
-            <span>2 announcements</span>
+            <span>2 notifications</span>
             <span className="text-gray-300">•</span>
             <span>{upcomingDeadlines.length} upcoming deadlines</span>
           </p>
@@ -372,7 +372,7 @@ export default function StudentDashboard() {
             )}
           </motion.div>
 
-          {/* Department Announcements & Reminders */}
+          {/* Notifications & Reminders */}
           <motion.div
             initial={{ opacity: 0, x: 15 }}
             animate={{ opacity: 1, x: 0 }}
@@ -380,9 +380,9 @@ export default function StudentDashboard() {
           >
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                <Megaphone className="h-4 w-4 text-kit-600" /> Announcements & Reminders
+                <Bell className="h-4 w-4 text-kit-600" /> Notifications & Reminders
               </h2>
-              <Link href="/dashboard/student/announcements" className="text-xs font-semibold text-kit-600 hover:text-kit-700">
+              <Link href="/dashboard/notifications" className="text-xs font-semibold text-kit-600 hover:text-kit-700">
                 View All →
               </Link>
             </div>

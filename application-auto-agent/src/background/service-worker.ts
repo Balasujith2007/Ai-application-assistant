@@ -98,6 +98,41 @@ async function handle(message: BgRequest): Promise<unknown> {
       return downloadResume(apiBase, message.downloadUrl);
     case 'UPLOAD_RESUME':
       return uploadResume(apiBase, message.fileName, message.mimeType, message.base64);
+    case 'REPORT_REGISTRATION_VERIFIED': {
+      try {
+        const payload = message.payload || {};
+        const key = `careerai_verified_${payload.opportunityId || payload.sessionId || 'last'}`;
+        await chrome.storage.local.set({ [key]: { ...payload, verifiedAt: Date.now() } });
+
+        // If opportunityId is present and extension is authenticated, notify server
+        if (payload.opportunityId) {
+          await authFetch(apiBase, `/api/opportunities/${payload.opportunityId}/confirm`, {
+            method: 'POST',
+            body: JSON.stringify({
+              action: 'VERIFY',
+              verificationMethod: 'EXTENSION',
+              registrationId: payload.registrationId || null
+            })
+          }, true).catch(() => {});
+        }
+        return { success: true, verified: true };
+      } catch (e) {
+        return { success: false, error: String(e) };
+      }
+    }
+    case 'CHECK_REGISTRATION_VERIFIED': {
+      try {
+        const key = `careerai_verified_${message.opportunityId || message.sessionId || 'last'}`;
+        const stored = await chrome.storage.local.get(key);
+        const data = stored[key];
+        if (data && (Date.now() - (data.verifiedAt || 0)) < 3600000) {
+          return { success: true, verified: true, data };
+        }
+        return { success: true, verified: false };
+      } catch (e) {
+        return { success: false, error: String(e) };
+      }
+    }
     default:
       return { success: false, error: 'Unknown message' };
   }

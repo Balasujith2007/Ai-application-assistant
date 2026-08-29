@@ -6,7 +6,6 @@ import {
   Trophy, Calendar, MapPin, Search, CheckCircle2, ExternalLink, Loader2,
   Building, Award, Clock, ArrowUpRight, CheckCheck, FileText, PlusCircle, Filter
 } from 'lucide-react';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { CompleteOpportunityModal } from '@/components/opportunities/CompleteOpportunityModal';
 import api from '@/lib/api';
 import { formatDate } from '@/lib/utils';
@@ -30,7 +29,7 @@ export interface HistoryItem {
   registeredAt?: string | null;
   startedAt?: string | null;
   completedAt?: string | null;
-  status: 'INITIATED' | 'REGISTERED' | 'ONGOING' | 'COMPLETED' | 'SHORTLISTED' | 'SELECTED' | 'REJECTED' | 'WITHDRAWN';
+  status: 'VERIFIED' | 'STUDENT_CONFIRMED' | 'IN_PROGRESS' | 'STARTED' | 'INITIATED' | 'REGISTERED' | 'ONGOING' | 'COMPLETED' | 'SHORTLISTED' | 'SELECTED' | 'REJECTED' | 'WITHDRAWN';
   outcome?: string | null;
   certificateUrl?: string | null;
   notes?: string | null;
@@ -103,6 +102,15 @@ export default function OpportunityHistoryPage() {
 
   const getStatusBadge = (status: HistoryItem['status']) => {
     switch (status) {
+      case 'VERIFIED':
+        return <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-200"><CheckCircle2 className="h-3.5 w-3.5" /> Verified ✓</span>;
+      case 'STUDENT_CONFIRMED':
+        return <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-800 border border-blue-200"><CheckCircle2 className="h-3.5 w-3.5" /> Student Confirmed</span>;
+      case 'IN_PROGRESS':
+        return <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800 border border-amber-200"><Clock className="h-3.5 w-3.5" /> In Progress</span>;
+      case 'STARTED':
+      case 'INITIATED':
+        return <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-700 border border-gray-200"><Clock className="h-3.5 w-3.5" /> Started</span>;
       case 'COMPLETED':
         return <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-200"><CheckCircle2 className="h-3.5 w-3.5" /> Completed</span>;
       case 'ONGOING':
@@ -119,11 +127,16 @@ export default function OpportunityHistoryPage() {
   };
 
   return (
-    <DashboardLayout
-      title="Opportunity History"
-      subtitle="Track your hackathons, internships, competitions and other career activities."
-    >
-      <div className="space-y-6 pb-12">
+    <div className="space-y-6 pb-12">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Opportunity History
+        </h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Track your hackathons, internships, competitions and other career activities.
+        </p>
+      </div>
         {/* Notice Alert */}
         {notice && (
           <div
@@ -331,6 +344,5 @@ export default function OpportunityHistoryPage() {
           }}
         />
       </div>
-    </DashboardLayout>
-  );
-}
+    );
+  }

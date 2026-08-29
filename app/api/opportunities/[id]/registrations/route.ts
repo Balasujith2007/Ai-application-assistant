@@ -2,14 +2,19 @@ import { NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
 import prisma from '@/lib/prisma';
 
-export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, context: { params: Promise<{ id: string }> | { id: string } }) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id: opportunityId } = await params;
+    const resolvedParams = await context.params;
+    const opportunityId = resolvedParams?.id;
+
+    if (!opportunityId) {
+      return NextResponse.json({ message: 'Opportunity ID is required.' }, { status: 400 });
+    }
 
     const opportunity = await prisma.opportunity.findUnique({
       where: { id: opportunityId }
@@ -20,7 +25,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     }
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user || (user.role !== 'MENTOR' && user.role !== 'HOD' && user.role !== 'PLACEMENT_CELL' && user.role !== 'ADMIN')) {
+    if (!user || (user.role !== 'MENTOR' && user.role !== 'HOD' && user.role !== 'PLACEMENT_CELL' && user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 
@@ -51,7 +56,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
           }
         }
       },
-      orderBy: { registeredAt: 'desc' }
+      orderBy: { initiatedAt: 'desc' }
     });
 
     return NextResponse.json({

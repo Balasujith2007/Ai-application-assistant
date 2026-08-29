@@ -3,14 +3,19 @@ import { getUserIdFromRequest } from '@/lib/serverAuth';
 import prisma from '@/lib/prisma';
 import { getNormalizedDeadline } from '@/lib/utils';
 
-export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, context: { params: Promise<{ id: string }> | { id: string } }) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = await params;
+    const resolvedParams = await context.params;
+    const id = resolvedParams?.id;
+
+    if (!id) {
+      return NextResponse.json({ message: 'Opportunity ID is required.' }, { status: 400 });
+    }
 
     const opportunity = await prisma.opportunity.update({
       where: { id },
@@ -44,14 +49,19 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   }
 }
 
-export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(req: Request, context: { params: Promise<{ id: string }> | { id: string } }) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = await params;
+    const resolvedParams = await context.params;
+    const id = resolvedParams?.id;
+
+    if (!id) {
+      return NextResponse.json({ message: 'Opportunity ID is required.' }, { status: 400 });
+    }
     const body = await req.json();
 
     const existing = await prisma.opportunity.findUnique({ where: { id } });
@@ -130,14 +140,19 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: Request, context: { params: Promise<{ id: string }> | { id: string } }) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = await params;
+    const resolvedParams = await context.params;
+    const id = resolvedParams?.id;
+
+    if (!id) {
+      return NextResponse.json({ message: 'Opportunity ID is required.' }, { status: 400 });
+    }
     const existing = await prisma.opportunity.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ message: 'Opportunity not found.' }, { status: 404 });

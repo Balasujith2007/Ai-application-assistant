@@ -68,7 +68,11 @@ enum OpportunityStatus {
 }
 
 enum OpportunityRegistrationStatus {
+  STARTED
   INITIATED
+  IN_PROGRESS
+  STUDENT_CONFIRMED
+  VERIFIED
   REGISTERED
   ONGOING
   COMPLETED
@@ -76,6 +80,8 @@ enum OpportunityRegistrationStatus {
   SELECTED
   REJECTED
   WITHDRAWN
+  FAILED
+  CANCELLED
 }
 
 // ============================================================
@@ -437,20 +443,25 @@ model Opportunity {
 // ============================================================
 
 model OpportunityRegistration {
-  id            String                        @id @default(cuid())
-  opportunityId String
-  studentId     String
-  status        OpportunityRegistrationStatus @default(INITIATED)
-  notes         String?
-  outcome       String?                       // Participated, Finalist, Winner, Runner-up, Selected, Completed, Other
-  role          String?                       // Role or Position
-  certificateUrl String?
-  initiatedAt   DateTime                      @default(now())
-  appliedAt     DateTime?
-  registeredAt  DateTime?
-  startedAt     DateTime?
-  completedAt   DateTime?
-  updatedAt     DateTime                      @updatedAt
+  id                      String                        @id @default(cuid())
+  opportunityId           String
+  studentId               String
+  status                  OpportunityRegistrationStatus @default(STARTED)
+  verificationMethod      String?                       // EXTENSION, STUDENT_CONFIRMATION, MANUAL, SYSTEM
+  verifiedAt              DateTime?
+  confirmedAt             DateTime?
+  startedAt               DateTime?                     @default(now())
+  externalRegistrationId  String?                       // Detected or entered registration/application ID
+  confirmationEvidenceUrl String?                       // Screenshot / proof URL
+  notes                   String?
+  outcome                 String?                       // Participated, Finalist, Winner, Runner-up, Selected, Completed, Other
+  role                    String?                       // Role or Position
+  certificateUrl          String?
+  initiatedAt             DateTime                      @default(now())
+  appliedAt               DateTime?
+  registeredAt            DateTime?
+  completedAt             DateTime?
+  updatedAt               DateTime                      @updatedAt
 
   opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
   student     User        @relation(fields: [studentId], references: [id], onDelete: Cascade)

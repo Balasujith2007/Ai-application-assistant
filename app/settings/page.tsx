@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { SettingsSidebar } from '@/components/settings/SettingsSidebar';
 import { AccountSettings } from '@/components/settings/AccountSettings';
 import { CareerPreferences } from '@/components/settings/CareerPreferences';
@@ -36,7 +35,6 @@ export default function SettingsPage() {
     try {
       const res = await api.put('/settings', data);
       setUserSettings(res.data.data);
-      // Optional: Add toast success here
       alert('Settings updated successfully.');
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -62,7 +60,11 @@ export default function SettingsPage() {
   };
 
   return (
-    <DashboardLayout title="Settings" subtitle="Manage your account preferences and settings.">
+    <div className="space-y-6 pb-12">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Settings</h1>
+        <p className="mt-1 text-sm text-gray-500">Manage your account preferences and settings.</p>
+      </div>
       <div className="mx-auto max-w-6xl py-6 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row gap-6">
           {/* Sidebar */}
@@ -76,6 +78,6 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

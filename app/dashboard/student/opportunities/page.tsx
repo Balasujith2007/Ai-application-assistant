@@ -6,7 +6,6 @@ import {
   Briefcase, Calendar, MapPin, Search, CheckCircle2,
   ExternalLink, Loader2, Building, AlertCircle, ArrowUpRight, CheckCheck, Clock
 } from 'lucide-react';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/Button';
 import { ProfileCompletionModal } from '@/components/opportunities/ProfileCompletionModal';
 import { ApplicationAssistantModal, ApplicationAssistantOpportunity } from '@/components/opportunities/ApplicationAssistantModal';
@@ -195,6 +194,35 @@ export default function StudentOpportunitiesPage() {
       opp.userRegistrationStatus
     );
 
+    if (stateInfo.registrationStatus === 'VERIFIED') {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-xl bg-emerald-100 px-3 py-2 text-xs font-bold text-emerald-800 border border-emerald-300">
+          <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Verified ✓
+        </span>
+      );
+    }
+
+    if (stateInfo.registrationStatus === 'STUDENT_CONFIRMED') {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-xl bg-blue-100 px-3 py-2 text-xs font-bold text-blue-800 border border-blue-300">
+          <CheckCircle2 className="h-4 w-4 text-blue-600" /> Student Confirmed
+        </span>
+      );
+    }
+
+    if (stateInfo.registrationStatus === 'IN_PROGRESS' || stateInfo.registrationStatus === 'STARTED' || stateInfo.registrationStatus === 'INITIATED') {
+      return (
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => setAssistantOpp(opp as any)}
+          className="bg-amber-600 hover:bg-amber-700 text-xs font-bold text-white shadow-sm flex items-center gap-1"
+        >
+          <CheckCheck className="h-4 w-4" /> Verify Registration
+        </Button>
+      );
+    }
+
     if (stateInfo.registrationStatus === 'REGISTERED' || stateInfo.registrationStatus === 'SHORTLISTED' || stateInfo.registrationStatus === 'SELECTED') {
       return (
         <span className="inline-flex items-center gap-1 rounded-xl bg-emerald-100 px-3 py-2 text-xs font-bold text-emerald-800 border border-emerald-300">
@@ -208,19 +236,6 @@ export default function StudentOpportunitiesPage() {
         <span className="inline-flex items-center gap-1 rounded-xl bg-rose-100 px-3 py-2 text-xs font-bold text-rose-800 border border-rose-300">
           Application Rejected
         </span>
-      );
-    }
-
-    if (stateInfo.registrationStatus === 'INITIATED') {
-      return (
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={() => setAssistantOpp(opp as any)}
-          className="bg-amber-600 hover:bg-amber-700 text-xs font-bold text-white shadow-sm flex items-center gap-1"
-        >
-          <CheckCheck className="h-4 w-4" /> Continue Registration
-        </Button>
       );
     }
 
@@ -245,8 +260,16 @@ export default function StudentOpportunitiesPage() {
   };
 
   return (
-    <DashboardLayout title="Campus Opportunities" subtitle="Explore jobs, internships, hackathons & competitions">
-      <div className="space-y-6 pb-12">
+    <div className="space-y-6 pb-12">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Campus Opportunities
+        </h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Explore jobs, internships, hackathons & competitions
+        </p>
+      </div>
         {/* Profile Completion Modal */}
         <ProfileCompletionModal
           isOpen={showProfileModal}
@@ -466,6 +489,5 @@ export default function StudentOpportunitiesPage() {
           onSuccess={() => fetchOpportunities()}
         />
       </div>
-    </DashboardLayout>
-  );
-}
+    );
+  }

@@ -18,7 +18,9 @@ export type BgRequest =
   | { type: 'REPORT_SESSION'; payload: Record<string, unknown> }
   | { type: 'REPORT_AUDIT'; payload: Record<string, unknown> }
   | { type: 'DOWNLOAD_RESUME'; downloadUrl?: string }
-  | { type: 'UPLOAD_RESUME'; fileName: string; mimeType?: string; base64: string };
+  | { type: 'UPLOAD_RESUME'; fileName: string; mimeType?: string; base64: string }
+  | { type: 'REPORT_REGISTRATION_VERIFIED'; payload: { sessionId?: string | null; opportunityId?: string | null; registrationId?: string | null; url?: string; reason?: string } }
+  | { type: 'CHECK_REGISTRATION_VERIFIED'; opportunityId?: string; sessionId?: string };
 
 export async function bg<T = unknown>(message: BgRequest): Promise<T> {
   return ext.runtime.sendMessage<T>(message);

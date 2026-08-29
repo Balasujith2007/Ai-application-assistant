@@ -13,8 +13,16 @@ export async function GET(req: Request) {
       include: { profile: true }
     });
 
-    return NextResponse.json({ data: user });
-  } catch (error) { return NextResponse.json({ message: 'Error' }, { status: 500 }); }
+    if (!user) {
+      return NextResponse.json({ message: 'User not found' }, { status: 404 });
+    }
+
+    const { password, ...safeUser } = user;
+    return NextResponse.json({ data: safeUser });
+  } catch (error: any) {
+    console.error('Settings GET API Error:', error);
+    return NextResponse.json({ message: 'Error fetching settings', error: error?.message || String(error) }, { status: 500 });
+  }
 }
 
 export async function PUT(req: Request) {
@@ -33,26 +41,45 @@ export async function PUT(req: Request) {
     if (Object.keys(updateData).length > 0) {
       user = await prisma.user.update({
         where: { id: userId },
-        data: updateData
+        data: updateData,
+        include: { profile: true }
       });
     } else {
-      user = await prisma.user.findUnique({ where: { id: userId } });
+      user = await prisma.user.findUnique({ 
+        where: { id: userId },
+        include: { profile: true }
+      });
     }
 
     if (body.careerPreferences !== undefined) {
       let profile = await prisma.profile.findUnique({ where: { userId } });
       if (profile) {
-        await prisma.profile.update({
+        profile = await prisma.profile.update({
           where: { userId },
           data: { careerPreferences: body.careerPreferences } as any
         });
+      } else {
+        profile = await prisma.profile.create({
+          data: {
+            userId,
+            careerPreferences: body.careerPreferences
+          }
+        });
+      }
+      if (user) {
+        user = { ...user, profile };
       }
     }
 
-    return NextResponse.json({ data: user });
-  } catch (error) { 
-    console.error('Settings API Error:', error);
-    return NextResponse.json({ message: 'Error' }, { status: 500 }); 
+    if (!user) {
+      return NextResponse.json({ message: 'User not found' }, { status: 404 });
+    }
+
+    const { password, ...safeUser } = user;
+    return NextResponse.json({ data: safeUser });
+  } catch (error: any) { 
+    console.error('Settings PUT API Error:', error);
+    return NextResponse.json({ message: 'Error saving settings', error: error?.message || String(error) }, { status: 500 }); 
   }
 }
 

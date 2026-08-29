@@ -11,7 +11,6 @@ import {
   CheckCircle,
   Circle,
 } from 'lucide-react';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/Button';
 import { StatusBadge, TypeBadge } from '@/components/ui/StatusBadge';
 import { LoadingSpinner } from '@/components/ui/index';
@@ -69,11 +68,9 @@ export default function ApplicationDetailPage() {
 
   if (loading) {
     return (
-      <DashboardLayout title="Application Detail">
-        <div className="flex h-64 items-center justify-center">
-          <LoadingSpinner size="lg" />
-        </div>
-      </DashboardLayout>
+      <div className="flex h-64 items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
     );
   }
 
@@ -83,7 +80,7 @@ export default function ApplicationDetailPage() {
   const daysLeft = getDaysUntil(app.deadline);
 
   return (
-    <DashboardLayout title="Application Detail">
+    <div className="space-y-6 pb-12">
       {/* Back */}
       <button
         onClick={() => router.back()}
@@ -227,6 +224,6 @@ export default function ApplicationDetailPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

@@ -1,12 +1,16 @@
 'use client';
 
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StatCard } from '@/components/ui/Card';
 import { Users, GraduationCap, Briefcase, Shield } from 'lucide-react';
 
 export default function AdminDashboard() {
   return (
-    <DashboardLayout title="Admin Dashboard" subtitle="System overview and user management">
+    <div className="space-y-6 pb-12">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Admin Dashboard</h1>
+        <p className="mt-1 text-sm text-gray-500">System overview and user management</p>
+      </div>
+
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard title="Total Users" value={1024} icon={<Users className="h-5 w-5" />} color="indigo" />
         <StatCard title="Students" value={856} icon={<GraduationCap className="h-5 w-5" />} color="blue" />
@@ -51,6 +55,6 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

@@ -2,12 +2,17 @@ import { isOpportunityOpen, getNormalizedDeadline } from './utils';
 
 export type StudentRegistrationStatus =
   | 'NOT_REGISTERED'
+  | 'STARTED'
   | 'INITIATED'
+  | 'IN_PROGRESS'
+  | 'STUDENT_CONFIRMED'
+  | 'VERIFIED'
   | 'REGISTERED'
   | 'SHORTLISTED'
   | 'SELECTED'
   | 'REJECTED'
-  | 'WITHDRAWN';
+  | 'WITHDRAWN'
+  | 'COMPLETED';
 
 export interface OpportunityRegistrationStateInfo {
   isOpen: boolean;
@@ -16,19 +21,11 @@ export interface OpportunityRegistrationStateInfo {
   buttonText: string;
   isButtonDisabled: boolean;
   badgeText: string;
-  badgeVariant: 'open' | 'closed' | 'registered' | 'shortlisted' | 'selected' | 'rejected' | 'initiated';
+  badgeVariant: 'open' | 'closed' | 'verified' | 'student_confirmed' | 'in_progress' | 'registered' | 'shortlisted' | 'selected' | 'rejected' | 'initiated' | 'completed';
 }
 
 /**
  * Single source of truth for calculating opportunity availability & student registration status.
- *
- * Rules:
- * 1. Opportunity availability (OPEN vs CLOSED) is based strictly on:
- *    - opportunity.status !== 'CLOSED'
- *    - AND normalized applicationDeadline has not passed.
- * 2. Student registration status is handled independently.
- * 3. Registered / Shortlisted / Selected students ALWAYS see "Registered ✓" / "Shortlisted ✓" / "Selected ✓",
- *    even if the opportunity is closed or past deadline.
  */
 export function getOpportunityRegistrationState(
   opportunity: {
@@ -48,15 +45,20 @@ export function getOpportunityRegistrationState(
   const isClosed = !isOpen;
 
   // Determine student registration status
-  const rawStatus = registration?.status || userRegistrationStatus;
+  const rawStatus = (registration?.status || userRegistrationStatus || '').toUpperCase();
   let registrationStatus: StudentRegistrationStatus = 'NOT_REGISTERED';
 
-  if (rawStatus === 'REGISTERED') registrationStatus = 'REGISTERED';
+  if (rawStatus === 'VERIFIED') registrationStatus = 'VERIFIED';
+  else if (rawStatus === 'STUDENT_CONFIRMED') registrationStatus = 'STUDENT_CONFIRMED';
+  else if (rawStatus === 'IN_PROGRESS') registrationStatus = 'IN_PROGRESS';
+  else if (rawStatus === 'STARTED') registrationStatus = 'STARTED';
+  else if (rawStatus === 'REGISTERED') registrationStatus = 'REGISTERED';
   else if (rawStatus === 'SHORTLISTED') registrationStatus = 'SHORTLISTED';
   else if (rawStatus === 'SELECTED') registrationStatus = 'SELECTED';
   else if (rawStatus === 'REJECTED') registrationStatus = 'REJECTED';
   else if (rawStatus === 'WITHDRAWN') registrationStatus = 'WITHDRAWN';
   else if (rawStatus === 'INITIATED') registrationStatus = 'INITIATED';
+  else if (rawStatus === 'COMPLETED') registrationStatus = 'COMPLETED';
 
   // Compute exact button labels and states
   let buttonText = 'Apply Now';
@@ -64,9 +66,31 @@ export function getOpportunityRegistrationState(
   let badgeText = isOpen ? 'Open' : 'Closed';
   let badgeVariant: OpportunityRegistrationStateInfo['badgeVariant'] = isOpen ? 'open' : 'closed';
 
-  if (registrationStatus === 'REGISTERED') {
+  if (registrationStatus === 'VERIFIED') {
+    buttonText = 'Verified ✓';
+    isButtonDisabled = false;
+    badgeText = 'Verified ✓';
+    badgeVariant = 'verified';
+  } else if (registrationStatus === 'STUDENT_CONFIRMED') {
+    buttonText = 'Student Confirmed';
+    isButtonDisabled = false;
+    badgeText = 'Student Confirmed';
+    badgeVariant = 'student_confirmed';
+  } else if (registrationStatus === 'IN_PROGRESS' || registrationStatus === 'STARTED' || registrationStatus === 'INITIATED') {
+    if (isOpen) {
+      buttonText = 'Verify Registration';
+      isButtonDisabled = false;
+      badgeText = registrationStatus === 'IN_PROGRESS' ? 'In Progress' : 'Started';
+      badgeVariant = registrationStatus === 'IN_PROGRESS' ? 'in_progress' : 'initiated';
+    } else {
+      buttonText = 'Registration Incomplete';
+      isButtonDisabled = true;
+      badgeText = 'Closed';
+      badgeVariant = 'closed';
+    }
+  } else if (registrationStatus === 'REGISTERED') {
     buttonText = 'Registered ✓';
-    isButtonDisabled = false; // allow viewing/clicking
+    isButtonDisabled = false;
     badgeText = 'Registered ✓';
     badgeVariant = 'registered';
   } else if (registrationStatus === 'SHORTLISTED') {
@@ -84,18 +108,6 @@ export function getOpportunityRegistrationState(
     isButtonDisabled = true;
     badgeText = 'Rejected';
     badgeVariant = 'rejected';
-  } else if (registrationStatus === 'INITIATED') {
-    if (isOpen) {
-      buttonText = 'Continue Registration';
-      isButtonDisabled = false;
-      badgeText = 'Registration Pending';
-      badgeVariant = 'initiated';
-    } else {
-      buttonText = 'Registration Incomplete';
-      isButtonDisabled = true;
-      badgeText = 'Closed';
-      badgeVariant = 'closed';
-    }
   } else {
     // NOT_REGISTERED
     if (isOpen) {
@@ -124,12 +136,6 @@ export function getOpportunityRegistrationState(
 
 /**
  * Dynamic calculation of student participation status (REGISTERED, ONGOING, COMPLETED).
- * Rules:
- * - If manually completed (completedAt exists or status === 'COMPLETED'), status = COMPLETED.
- * - Else if registered (status === 'REGISTERED' or 'SHORTLISTED' or 'SELECTED'):
- *   - If opportunity.endDate has passed, status = COMPLETED.
- *   - Else if opportunity.startDate has arrived (now >= startDate), status = ONGOING.
- *   - Otherwise = REGISTERED.
  */
 export function getStudentOpportunityStatus(
   opportunity?: {
@@ -140,7 +146,7 @@ export function getStudentOpportunityStatus(
     status?: string | null;
     completedAt?: string | Date | null;
   } | null
-): 'NOT_REGISTERED' | 'INITIATED' | 'REGISTERED' | 'ONGOING' | 'COMPLETED' | 'SHORTLISTED' | 'SELECTED' | 'REJECTED' | 'WITHDRAWN' {
+): string {
   if (!registration || !registration.status) return 'NOT_REGISTERED';
 
   const regStatus = registration.status;
@@ -149,9 +155,11 @@ export function getStudentOpportunityStatus(
     return 'COMPLETED';
   }
 
-  if (regStatus === 'REJECTED' || regStatus === 'WITHDRAWN' || regStatus === 'INITIATED') {
-    return regStatus as any;
-  }
+  if (regStatus === 'VERIFIED') return 'VERIFIED';
+  if (regStatus === 'STUDENT_CONFIRMED') return 'STUDENT_CONFIRMED';
+  if (regStatus === 'IN_PROGRESS') return 'IN_PROGRESS';
+  if (regStatus === 'STARTED' || regStatus === 'INITIATED') return 'STARTED';
+  if (regStatus === 'REJECTED' || regStatus === 'WITHDRAWN') return regStatus;
 
   const now = new Date().getTime();
 
@@ -173,4 +181,3 @@ export function getStudentOpportunityStatus(
   if (regStatus === 'SELECTED') return 'SELECTED';
   return 'REGISTERED';
 }
-

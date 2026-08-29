@@ -20,7 +20,6 @@ import {
   FileCheck,
   TrendingUp,
 } from 'lucide-react';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/Button';
 import { StatusBadge, TypeBadge } from '@/components/ui/StatusBadge';
 import { EmptyState } from '@/components/ui/index';
@@ -103,23 +102,17 @@ export default function ApplicationsPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout title="Applications" subtitle="Loading your applications...">
-        <div className="flex h-[60vh] items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-kit-200 border-t-kit-600"></div>
-            <p className="text-sm font-medium text-gray-500">Loading applications...</p>
-          </div>
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-kit-200 border-t-kit-600"></div>
+          <p className="text-sm font-medium text-gray-500">Loading applications...</p>
         </div>
-      </DashboardLayout>
+      </div>
     );
   }
 
   return (
-    <DashboardLayout
-      title="Applications"
-      subtitle="Track and manage all your internship and job applications in one place."
-    >
-      <div className="space-y-8 pb-12">
+    <div className="space-y-8 pb-12">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -390,6 +383,5 @@ export default function ApplicationsPage() {
           initialData={editingApp}
         />
       </div>
-    </DashboardLayout>
-  );
-}
+    );
+  }

@@ -61,13 +61,23 @@ const TYPE_CONFIG: Record<
   },
 };
 
+const STATUS_FALLBACK = {
+  label: 'Unknown',
+  className: 'bg-gray-50 text-gray-500 border-gray-200',
+};
+
+const TYPE_FALLBACK = {
+  label: 'Other',
+  className: 'bg-gray-50 text-gray-600 border-gray-200',
+};
+
 interface StatusBadgeProps {
   status: ApplicationStatus;
   className?: string;
 }
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
-  const config = STATUS_CONFIG[status];
+  const config = STATUS_CONFIG[status] ?? STATUS_FALLBACK;
   return (
     <span
       className={cn(
@@ -87,7 +97,7 @@ interface TypeBadgeProps {
 }
 
 export function TypeBadge({ type, className }: TypeBadgeProps) {
-  const config = TYPE_CONFIG[type];
+  const config = TYPE_CONFIG[type] ?? TYPE_FALLBACK;
   return (
     <span
       className={cn(

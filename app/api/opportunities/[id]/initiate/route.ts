@@ -71,14 +71,20 @@ async function getStudentProfileData(userId: string) {
   };
 }
 
-export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, context: { params: Promise<{ id: string }> | { id: string } }) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
       return NextResponse.json({ success: false, error: 'Unauthorized', message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id: opportunityId } = await params;
+    const resolvedParams = await context.params;
+    const opportunityId = resolvedParams?.id;
+
+    if (!opportunityId) {
+      return NextResponse.json({ success: false, error: 'Opportunity ID is required.', message: 'Opportunity ID is required.' }, { status: 400 });
+    }
+
     const opportunity = await prisma.opportunity.findUnique({
       where: { id: opportunityId }
     });
@@ -93,7 +99,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     }
 
     // Check existing registration
-    const existingRegistration = await prisma.opportunityRegistration.findUnique({
+    const existingRegistration: any = await prisma.opportunityRegistration.findUnique({
       where: {
         opportunityId_studentId: {
           opportunityId,
@@ -107,15 +113,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       where: { userId, opportunityId }
     });
 
-    const isAlreadyRegistered = Boolean(
-      existingRegistration &&
-      ['REGISTERED', 'SHORTLISTED', 'SELECTED', 'COMPLETED'].includes(String(existingRegistration.status))
-    );
+    const isVerified = existingRegistration?.status === 'VERIFIED';
+    const isStudentConfirmed = existingRegistration?.status === 'STUDENT_CONFIRMED';
+    const isInProgress = existingRegistration?.status === 'IN_PROGRESS';
+    const isStarted = existingRegistration?.status === 'STARTED' || existingRegistration?.status === 'INITIATED';
 
-    const isAlreadyApplied = Boolean(
-      existingApplication &&
-      String(existingApplication.status) !== 'INITIATED' &&
-      String(existingApplication.status) !== 'SAVED'
+    const isAlreadyCompleted = Boolean(
+      existingRegistration &&
+      ['VERIFIED', 'STUDENT_CONFIRMED', 'REGISTERED', 'SHORTLISTED', 'SELECTED', 'COMPLETED'].includes(String(existingRegistration.status))
     );
 
     const isOpen = isOpportunityOpen(opportunity.applicationDeadline, opportunity.status);
@@ -146,6 +151,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       existingRegistration: existingRegistration ? {
         id: existingRegistration.id,
         status: existingRegistration.status,
+        verificationMethod: existingRegistration.verificationMethod,
+        verifiedAt: existingRegistration.verifiedAt,
+        confirmedAt: existingRegistration.confirmedAt,
+        startedAt: existingRegistration.startedAt || existingRegistration.initiatedAt,
+        externalRegistrationId: existingRegistration.externalRegistrationId,
         initiatedAt: existingRegistration.initiatedAt,
         registeredAt: existingRegistration.registeredAt
       } : null,
@@ -154,8 +164,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         status: existingApplication.status,
         createdAt: existingApplication.createdAt
       } : null,
-      alreadyExists: isAlreadyRegistered || isAlreadyApplied,
-      alreadyInitiated: !!existingRegistration && existingRegistration.status === 'INITIATED'
+      isVerified,
+      isStudentConfirmed,
+      isInProgress,
+      isStarted,
+      alreadyExists: isAlreadyCompleted,
+      alreadyInitiated: isStarted || isInProgress
     });
   } catch (error: unknown) {
     console.error('Error fetching initiate details:', error);
@@ -164,14 +178,19 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   }
 }
 
-export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: Request, context: { params: Promise<{ id: string }> | { id: string } }) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
       return NextResponse.json({ success: false, error: 'Unauthorized', message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id: opportunityId } = await params;
+    const resolvedParams = await context.params;
+    const opportunityId = resolvedParams?.id;
+
+    if (!opportunityId) {
+      return NextResponse.json({ success: false, error: 'Opportunity ID is required.', message: 'Opportunity ID is required.' }, { status: 400 });
+    }
     const body = await req.json().catch(() => ({}));
 
     const opportunity = await prisma.opportunity.findUnique({
@@ -192,7 +211,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
 
     // Check duplicate or existing registration
-    const existingReg = await prisma.opportunityRegistration.findUnique({
+    const existingReg: any = await prisma.opportunityRegistration.findUnique({
       where: {
         opportunityId_studentId: {
           opportunityId,
@@ -202,11 +221,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     });
 
     if (existingReg) {
-      if (String(existingReg.status) === 'INITIATED') {
+      if (existingReg.status === 'VERIFIED') {
         return NextResponse.json({
           success: true,
-          status: 'INITIATED',
-          alreadyInitiated: true,
+          status: 'VERIFIED',
+          alreadyExists: true,
+          isVerified: true,
           opportunityId,
           registrationId: existingReg.id,
           registrationUrl,
@@ -214,11 +234,24 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         });
       }
 
-      if (['REGISTERED', 'SHORTLISTED', 'SELECTED', 'COMPLETED'].includes(String(existingReg.status))) {
+      if (existingReg.status === 'STUDENT_CONFIRMED') {
+        return NextResponse.json({
+          success: true,
+          status: 'STUDENT_CONFIRMED',
+          alreadyExists: true,
+          isStudentConfirmed: true,
+          opportunityId,
+          registrationId: existingReg.id,
+          registrationUrl,
+          registration: existingReg
+        });
+      }
+
+      if (existingReg.status === 'IN_PROGRESS' || existingReg.status === 'STARTED' || existingReg.status === 'INITIATED') {
         return NextResponse.json({
           success: true,
           status: existingReg.status,
-          alreadyExists: true,
+          alreadyInitiated: true,
           opportunityId,
           registrationId: existingReg.id,
           registrationUrl,
@@ -244,7 +277,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }
     }
 
-    // Upsert Registration with INITIATED status
+    const now = new Date();
+
+    // Upsert Registration with STARTED status
     const registration = await prisma.opportunityRegistration.upsert({
       where: {
         opportunityId_studentId: {
@@ -253,14 +288,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         }
       },
       update: {
-        status: 'INITIATED' as OpportunityRegistrationStatus,
-        initiatedAt: new Date()
+        status: 'STARTED' as any,
+        startedAt: now,
+        initiatedAt: now
       },
       create: {
         opportunityId,
         studentId: userId,
-        status: 'INITIATED' as OpportunityRegistrationStatus,
-        initiatedAt: new Date()
+        status: 'STARTED' as any,
+        startedAt: now,
+        initiatedAt: now
       }
     });
 
@@ -308,13 +345,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     return NextResponse.json({
       success: true,
-      status: 'INITIATED',
+      status: 'STARTED',
       opportunityId,
       registrationId: registration.id,
       registrationUrl,
       registration,
       application,
-      message: 'Registration initiated.'
+      message: 'Application Started ✓'
     });
 
   } catch (error: unknown) {

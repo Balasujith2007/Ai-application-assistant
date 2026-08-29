@@ -335,6 +335,108 @@
     });
   }
 
+  // src/content/registration-verifier.ts
+  var SUCCESS_URL_PATTERNS = [
+    /\/done\b/i,
+    /\/submitted\b/i,
+    /\/success\b/i,
+    /\/thank-you\b/i,
+    /\/thankyou\b/i,
+    /\/confirmation\b/i,
+    /\/registered\b/i,
+    /\/app\/completed\b/i,
+    /\/application-received\b/i,
+    /formResponse/i,
+    /[?&]status=success/i,
+    /[?&]submitted=true/i,
+    /[?&]submission_id=/i
+  ];
+  var SUCCESS_TEXT_PATTERNS = [
+    /application\s+(?:has\s+been\s+)?submitted/i,
+    /registration\s+(?:has\s+been\s+)?successful/i,
+    /successfully\s+(?:registered|submitted|applied)/i,
+    /thank\s+you\s+for\s+(?:registering|applying|your\s+submission|your\s+application)/i,
+    /your\s+(?:response|application|submission)\s+has\s+been\s+recorded/i,
+    /we\s+have\s+received\s+your\s+application/i,
+    /application\s+received/i,
+    /registration\s+confirmed/i,
+    /submission\s+confirmed/i
+  ];
+  var ID_EXTRACT_PATTERNS = [
+    /(?:application|registration|reference|candidate|submission|ticket|order)\s*(?:id|number|no|#)?[:\s-]*([A-Za-z0-9_-]{4,32})/i,
+    /id[:\s-]*([A-Za-z0-9_-]{6,32})/i
+  ];
+  function detectRegistrationSuccess(doc = document) {
+    const href = typeof location !== "undefined" ? location.href : "";
+    const pathname = typeof location !== "undefined" ? location.pathname : "";
+    const title = doc.title || "";
+    let score = 0;
+    const reasons = [];
+    let extractedId = null;
+    for (const pattern of SUCCESS_URL_PATTERNS) {
+      if (pattern.test(href) || pattern.test(pathname)) {
+        score += 45;
+        reasons.push(`URL matched ${pattern.source}`);
+        break;
+      }
+    }
+    for (const pattern of SUCCESS_TEXT_PATTERNS) {
+      if (pattern.test(title)) {
+        score += 35;
+        reasons.push(`Title matched: "${title}"`);
+        break;
+      }
+    }
+    const candidateElements = Array.from(
+      doc.querySelectorAll('h1, h2, h3, h4, [role="alert"], .alert, .success, .confirmation, .submitted, [data-careerai-success]')
+    );
+    for (const el of candidateElements) {
+      const text = (el.textContent || "").trim();
+      if (!text || text.length > 300) continue;
+      for (const pattern of SUCCESS_TEXT_PATTERNS) {
+        if (pattern.test(text)) {
+          score += 40;
+          reasons.push(`Heading/Alert text: "${text.slice(0, 60)}"`);
+          break;
+        }
+      }
+    }
+    const idElements = Array.from(
+      doc.querySelectorAll(
+        "[data-application-id], [data-registration-id], #application-id, #registration-id, .application-id, .registration-id, .reference-number"
+      )
+    );
+    for (const el of idElements) {
+      const val = el.getAttribute("data-application-id") || el.getAttribute("data-registration-id") || (el.textContent || "").trim();
+      if (val && val.length >= 4 && val.length <= 40) {
+        extractedId = val.replace(/^[^A-Za-z0-9]+/, "");
+        score += 25;
+        reasons.push(`Found ID element: ${extractedId}`);
+        break;
+      }
+    }
+    if (!extractedId) {
+      const bodyText = (doc.body?.innerText || doc.body?.textContent || "").slice(0, 4e3);
+      for (const pattern of ID_EXTRACT_PATTERNS) {
+        const match = bodyText.match(pattern);
+        if (match && match[1]) {
+          extractedId = match[1].trim();
+          score += 20;
+          reasons.push(`Extracted ID from text: ${extractedId}`);
+          break;
+        }
+      }
+    }
+    const confidence = Math.min(100, score);
+    const isSuccess = confidence >= 40;
+    return {
+      isSuccess,
+      registrationId: isSuccess ? extractedId : null,
+      confidence,
+      reason: reasons.join("; ") || "No success indicators detected"
+    };
+  }
+
   // src/automation/state-machine.ts
   var AgentStateMachine = class {
     state = "IDLE";
@@ -2210,6 +2312,36 @@
         reply("CAREERAI_PONG");
         return;
       }
+      if (data.type === "CAREERAI_CHECK_VERIFICATION") {
+        if (!isExtensionRuntimeAvailable()) {
+          reply("CAREERAI_VERIFICATION_RESULT", {
+            ok: false,
+            verified: false,
+            error: "Extension runtime unavailable."
+          });
+          return;
+        }
+        try {
+          const res = await bg({
+            type: "CHECK_REGISTRATION_VERIFIED",
+            opportunityId: data.opportunityId,
+            sessionId: data.sessionId
+          });
+          reply("CAREERAI_VERIFICATION_RESULT", {
+            ok: !!res?.success,
+            verified: !!res?.verified,
+            registrationId: res?.data?.registrationId || null,
+            data: res?.data
+          });
+        } catch (e) {
+          reply("CAREERAI_VERIFICATION_RESULT", {
+            ok: false,
+            verified: false,
+            error: mapRuntimeError(e)
+          });
+        }
+        return;
+      }
       if (data.type === "CAREERAI_CONNECT") {
         if (data.token && !data.code) {
           reply("CAREERAI_CONNECTED", {
@@ -2261,8 +2393,32 @@
     if (detection.score >= PROMPT_THRESHOLD && detection.kind !== "NONE") return true;
     return false;
   }
+  async function checkAndReportVerification() {
+    try {
+      const successResult = detectRegistrationSuccess();
+      if (successResult.isSuccess) {
+        const sessionId = getSessionIdFromPage();
+        const oppIdMatch = location.search.match(/opportunity_?id=([A-Za-z0-9_-]+)/i);
+        const opportunityId = oppIdMatch ? oppIdMatch[1] : null;
+        applyLog("Verifier", `Success detected! ID: ${successResult.registrationId}, confidence=${successResult.confidence}`);
+        await bg({
+          type: "REPORT_REGISTRATION_VERIFIED",
+          payload: {
+            sessionId,
+            opportunityId,
+            registrationId: successResult.registrationId,
+            url: location.href,
+            reason: successResult.reason
+          }
+        });
+      }
+    } catch (e) {
+      applyLog("Verifier", `Verification check error: ${e}`);
+    }
+  }
   async function maybeRun(force = false) {
     if (isCareerAiAppShell()) return;
+    void checkAndReportVerification();
     const detection = scoreApplicationPage();
     const sessionId = getSessionIdFromPage();
     const route = routeKey();

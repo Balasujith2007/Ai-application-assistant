@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Check, AlertCircle, ExternalLink, Sparkles, User, FileText,
   Building, GraduationCap, ShieldCheck, Loader2,
-  CheckCircle2, Clock, AlertTriangle, ArrowRight
+  CheckCircle2, Clock, AlertTriangle, ArrowRight, HelpCircle, UploadCloud
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
@@ -55,7 +55,17 @@ interface StudentData {
   skillsList: string[];
 }
 
-type Step = 'REVIEW' | 'STARTED' | 'COMPLETED' | 'ALREADY_EXISTS' | 'EXPIRED' | 'NO_URL';
+type Step =
+  | 'REVIEW'
+  | 'STARTED'
+  | 'VERIFYING'
+  | 'VERIFIED'
+  | 'UNABLE_TO_VERIFY'
+  | 'STUDENT_CONFIRMED'
+  | 'IN_PROGRESS_SAVED'
+  | 'ALREADY_EXISTS'
+  | 'EXPIRED'
+  | 'NO_URL';
 
 export function ApplicationAssistantModal({
   isOpen,
@@ -70,7 +80,13 @@ export function ApplicationAssistantModal({
 
   const [studentData, setStudentData] = useState<StudentData | null>(null);
   const [effectiveUrl, setEffectiveUrl] = useState<string>('');
-  const [alreadyExists, setAlreadyExists] = useState(false);
+  const [existingRegStatus, setExistingRegStatus] = useState<string | null>(null);
+  const [detectedAppId, setDetectedAppId] = useState<string | null>(null);
+
+  // Manual Confirmation State
+  const [manualAppId, setManualAppId] = useState('');
+  const [manualNotes, setManualNotes] = useState('');
+  const [showManualForm, setShowManualForm] = useState(false);
 
   // Missing fields input state
   const [missingFields, setMissingFields] = useState({
@@ -80,7 +96,6 @@ export function ApplicationAssistantModal({
     location: ''
   });
   const [saveToProfile, setSaveToProfile] = useState(true);
-  const [isEditingMissing, setIsEditingMissing] = useState(false);
 
   useEffect(() => {
     if (isOpen && opportunity) {
@@ -97,10 +112,13 @@ export function ApplicationAssistantModal({
     setErrorMessage(null);
     setStudentData(null);
     setEffectiveUrl('');
-    setAlreadyExists(false);
+    setExistingRegStatus(null);
+    setDetectedAppId(null);
+    setManualAppId('');
+    setManualNotes('');
+    setShowManualForm(false);
     setMissingFields({ phone: '', department: '', college: '', location: '' });
     setSaveToProfile(true);
-    setIsEditingMissing(false);
   };
 
   const loadInitiateData = async () => {
@@ -121,21 +139,38 @@ export function ApplicationAssistantModal({
       const res = await api.get(`/opportunities/${opportunity.id}/initiate`);
       if (res.data.success) {
         setStudentData(res.data.studentData);
-        setAlreadyExists(!!res.data.alreadyExists);
         if (res.data.opportunity?.effectiveRegistrationUrl) {
           setEffectiveUrl(res.data.opportunity.effectiveRegistrationUrl);
         }
 
-        if (res.data.alreadyExists) {
-          setStep('ALREADY_EXISTS');
-        } else {
-          // Check deadline for new registrations only
-          const deadlineVal = opportunity.applicationDeadline || opportunity.deadline;
-          if (deadlineVal && !isOpportunityOpen(deadlineVal, opportunity.status)) {
-            setStep('EXPIRED');
-          } else {
-            setStep('REVIEW');
+        const existingReg = res.data.existingRegistration;
+        if (existingReg) {
+          setExistingRegStatus(existingReg.status);
+          if (existingReg.externalRegistrationId) {
+            setDetectedAppId(existingReg.externalRegistrationId);
           }
+
+          if (existingReg.status === 'VERIFIED') {
+            setStep('VERIFIED');
+            setLoading(false);
+            return;
+          } else if (existingReg.status === 'STUDENT_CONFIRMED') {
+            setStep('STUDENT_CONFIRMED');
+            setLoading(false);
+            return;
+          } else if (existingReg.status === 'IN_PROGRESS' || existingReg.status === 'STARTED' || existingReg.status === 'INITIATED') {
+            setStep('STARTED');
+            setLoading(false);
+            return;
+          }
+        }
+
+        // Check deadline for new registrations only
+        const deadlineVal = opportunity.applicationDeadline || opportunity.deadline;
+        if (deadlineVal && !isOpportunityOpen(deadlineVal, opportunity.status)) {
+          setStep('EXPIRED');
+        } else {
+          setStep('REVIEW');
         }
       } else {
         setErrorMessage(res.data.message || 'Unable to load profile data.');
@@ -156,7 +191,6 @@ export function ApplicationAssistantModal({
       return;
     }
 
-    console.log("Initiating opportunity:", opportunity.id);
     setActionLoading(true);
     setErrorMessage(null);
 
@@ -172,7 +206,7 @@ export function ApplicationAssistantModal({
         console.warn('Agent session initialization warning, falling back to direct URL:', agentErr);
       }
 
-      // Step 2: Record application initiate status
+      // Step 2: Record application initiate / started status
       const res = await api.post(`/opportunities/${opportunity.id}/initiate`, {
         saveToProfile,
         missingFields: {
@@ -184,12 +218,6 @@ export function ApplicationAssistantModal({
       });
 
       if (res.data.success) {
-        if (res.data.alreadyExists && res.data.status !== 'INITIATED') {
-          setAlreadyExists(true);
-          setStep('ALREADY_EXISTS');
-          return;
-        }
-
         // Open official registration page with CareerAI Agent session handoff
         window.open(targetUrl, '_blank', 'noopener,noreferrer');
 
@@ -208,21 +236,123 @@ export function ApplicationAssistantModal({
     }
   };
 
-  const handleConfirmCompletion = async () => {
+  /**
+   * STEP 2 & 3: Extension-based Verification Check
+   */
+  const handleVerifyRegistration = async () => {
+    if (!opportunity) return;
+    setStep('VERIFYING');
+    setActionLoading(true);
+    setErrorMessage(null);
+
+    try {
+      // Try to check with the browser extension bridge
+      let extensionVerified = false;
+      let extAppId: string | null = null;
+
+      try {
+        const verifyPromise = new Promise<{ verified: boolean; registrationId?: string }>((resolve) => {
+          const timeout = setTimeout(() => resolve({ verified: false }), 2500);
+
+          const handler = (e: MessageEvent) => {
+            if (e.source === window && e.data?.source === 'careerai-extension' && e.data?.type === 'CAREERAI_VERIFICATION_RESULT') {
+              window.removeEventListener('message', handler);
+              clearTimeout(timeout);
+              resolve({
+                verified: !!e.data.verified,
+                registrationId: e.data.registrationId || undefined
+              });
+            }
+          };
+
+          window.addEventListener('message', handler);
+          window.postMessage({
+            source: 'careerai-web',
+            type: 'CAREERAI_CHECK_VERIFICATION',
+            opportunityId: opportunity.id
+          }, window.location.origin);
+        });
+
+        const extResult = await verifyPromise;
+        if (extResult.verified) {
+          extensionVerified = true;
+          extAppId = extResult.registrationId || null;
+        }
+      } catch (extCheckErr) {
+        console.warn('Extension check failed or timed out:', extCheckErr);
+      }
+
+      if (extensionVerified) {
+        // Confirm with EXTENSION verification method
+        const res = await api.post(`/opportunities/${opportunity.id}/confirm`, {
+          action: 'VERIFY',
+          verificationMethod: 'EXTENSION',
+          registrationId: extAppId
+        });
+
+        if (res.data.success) {
+          setDetectedAppId(extAppId);
+          setStep('VERIFIED');
+          if (onSuccess) onSuccess();
+          return;
+        }
+      }
+
+      // If automatic verification unavailable -> show controlled manual confirmation flow
+      setStep('UNABLE_TO_VERIFY');
+      setShowManualForm(false);
+    } catch (err: any) {
+      setStep('UNABLE_TO_VERIFY');
+      setShowManualForm(false);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  /**
+   * STEP 5: Student Manual Confirmation Flow
+   */
+  const handleStudentConfirmed = async () => {
     if (!opportunity) return;
     setActionLoading(true);
     setErrorMessage(null);
 
     try {
-      const res = await api.post(`/opportunities/${opportunity.id}/confirm`);
+      const res = await api.post(`/opportunities/${opportunity.id}/confirm`, {
+        action: 'CONFIRM',
+        verificationMethod: 'STUDENT_CONFIRMATION',
+        registrationId: manualAppId.trim() || undefined,
+        notes: manualNotes.trim() || undefined
+      });
+
       if (res.data.success) {
-        setStep('COMPLETED');
+        setDetectedAppId(manualAppId.trim() || null);
+        setStep('STUDENT_CONFIRMED');
         if (onSuccess) onSuccess();
       } else {
-        setErrorMessage(res.data.message || 'Failed to mark application as completed.');
+        setErrorMessage(res.data.message || 'Failed to submit confirmation.');
       }
     } catch (err: any) {
-      setErrorMessage(err?.response?.data?.message || 'Failed to confirm application completion.');
+      setErrorMessage(err?.response?.data?.message || 'Failed to confirm registration.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  /**
+   * Handle "Not yet" -> keep IN_PROGRESS
+   */
+  const handleNotYetSubmitted = async () => {
+    if (!opportunity) return;
+    setActionLoading(true);
+    try {
+      await api.post(`/opportunities/${opportunity.id}/confirm`, {
+        action: 'IN_PROGRESS'
+      });
+      setStep('IN_PROGRESS_SAVED');
+      if (onSuccess) onSuccess();
+    } catch (err) {
+      setStep('IN_PROGRESS_SAVED');
     } finally {
       setActionLoading(false);
     }
@@ -233,7 +363,6 @@ export function ApplicationAssistantModal({
   const title = opportunity.title || opportunity.role || 'Opportunity';
   const org = opportunity.organization || opportunity.companyName || 'Company / Host';
 
-  // Calculate ready vs missing field counts
   const availableFieldsList = [
     { label: 'Full Name', value: studentData?.name, key: 'name' },
     { label: 'Email', value: studentData?.email, key: 'email' },
@@ -315,40 +444,8 @@ export function ApplicationAssistantModal({
                   Application link is not available for this opportunity.
                 </p>
               </div>
-            ) : step === 'ALREADY_EXISTS' ? (
-              <div className="py-6 space-y-4 text-center">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-kit-100 text-kit-600">
-                  <CheckCircle2 className="h-6 w-6" />
-                </div>
-                <div>
-                  <h4 className="text-lg font-bold text-gray-900">Application Already Exists</h4>
-                  <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">
-                    You have already initiated or submitted an application for <strong>{title}</strong> at <strong>{org}</strong>.
-                  </p>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
-                  <Link
-                    href="/applications"
-                    onClick={onClose}
-                    className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-kit-600 border border-kit-200 rounded-xl hover:bg-kit-50 transition-colors"
-                  >
-                    View Application
-                  </Link>
-                  {effectiveUrl && (
-                    <button
-                      onClick={() => {
-                        window.open(effectiveUrl, '_blank', 'noopener,noreferrer');
-                        setStep('STARTED');
-                      }}
-                      className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-white bg-kit-600 rounded-xl hover:bg-kit-700 transition-colors flex items-center justify-center gap-2"
-                    >
-                      Continue Application <ExternalLink className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-              </div>
             ) : step === 'STARTED' ? (
+              /* STEP 1 & 2: APPLICATION STARTED */
               <div className="py-6 space-y-5">
                 <div className="flex items-center gap-3 rounded-2xl bg-kit-50/80 border border-kit-100 p-4">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-kit-600 text-white font-bold">
@@ -362,27 +459,188 @@ export function ApplicationAssistantModal({
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 text-xs text-gray-600 space-y-2">
+                <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 text-xs text-gray-600 space-y-2.5">
                   <p className="font-semibold text-gray-900">Next Steps:</p>
-                  <ol className="list-decimal list-inside space-y-1">
-                    <li>If the CareerAI Apply Agent extension is installed, it will detect the form, pause on CAPTCHA, autofill known fields, and ask only for missing info.</li>
-                    <li>Complete and <strong>submit the external form yourself</strong> — the agent never submits for you.</li>
-                    <li>Return here and click <strong>&quot;I Completed My Registration&quot;</strong>.</li>
+                  <ol className="list-decimal list-inside space-y-1.5 leading-relaxed">
+                    <li>Complete the registration form in the newly opened tab.</li>
+                    <li>Submit the external form yourself — CareerAI never submits external applications without your action.</li>
+                    <li>Return here and click <strong>&quot;Verify My Registration&quot;</strong>.</li>
                   </ol>
-                  <p className="pt-1">
-                    No extension yet? Open <a href="/connect-extension" className="font-semibold text-kit-700 underline">/connect-extension</a> after loading <code>application-auto-agent/dist</code>.
+                  <div className="pt-2 text-[11px] text-gray-500 border-t border-gray-200/60 flex items-center justify-between">
+                    <span>Target URL: <strong className="text-gray-700">{org}</strong></span>
+                    <button
+                      onClick={() => window.open(effectiveUrl, '_blank', 'noopener,noreferrer')}
+                      className="text-kit-600 font-semibold hover:underline flex items-center gap-1"
+                    >
+                      Reopen Registration Page <ExternalLink className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : step === 'VERIFYING' ? (
+              /* VERIFYING LOADER */
+              <div className="py-12 text-center space-y-4">
+                <Loader2 className="h-10 w-10 animate-spin text-kit-600 mx-auto" />
+                <div>
+                  <h4 className="text-base font-bold text-gray-900">Checking registration status...</h4>
+                  <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                    Inspecting connection with CareerAI Apply Agent and verified submission records.
                   </p>
                 </div>
               </div>
-            ) : step === 'COMPLETED' ? (
+            ) : step === 'VERIFIED' ? (
+              /* AUTOMATICALLY VERIFIED */
               <div className="py-8 text-center space-y-4">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 shadow-xs">
                   <CheckCircle2 className="h-8 w-8 stroke-[2.5]" />
                 </div>
                 <div>
-                  <h4 className="text-xl font-bold text-gray-900">✓ Registration Confirmed</h4>
-                  <p className="text-xs text-gray-500 mt-1.5 max-w-md mx-auto">
-                    You have successfully registered for: <strong>{title}</strong> at <strong>{org}</strong>. Your placement status is updated to <strong>REGISTERED ✓</strong>.
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold mb-2">
+                    <ShieldCheck className="h-3.5 w-3.5" /> Automatically Verified
+                  </div>
+                  <h4 className="text-xl font-bold text-gray-900">Registration Verified ✓</h4>
+                  <p className="text-xs text-gray-600 mt-1.5 max-w-md mx-auto">
+                    CareerAI detected that your registration for <strong>{title}</strong> was successfully submitted on the external website.
+                  </p>
+                  {detectedAppId && (
+                    <div className="mt-3 inline-block rounded-xl bg-gray-50 border border-gray-200 px-4 py-2 text-xs text-gray-700">
+                      Application / Registration ID: <strong className="font-mono text-gray-900">{detectedAppId}</strong>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : step === 'UNABLE_TO_VERIFY' ? (
+              /* UNABLE TO VERIFY - CONTROLLED CONFIRMATION FLOW */
+              <div className="py-6 space-y-5">
+                <div className="flex items-start gap-3 rounded-2xl bg-amber-50/80 border border-amber-200 p-4">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-600 text-white font-bold">
+                    <HelpCircle className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-amber-900">Unable to Automatically Verify</h4>
+                    <p className="text-xs text-amber-800 mt-0.5">
+                      CareerAI could not automatically confirm submission on the external website.
+                    </p>
+                  </div>
+                </div>
+
+                {!showManualForm ? (
+                  <div className="rounded-2xl border border-gray-200 bg-white p-5 space-y-4 text-center">
+                    <h5 className="text-sm font-bold text-gray-900">
+                      Did you successfully submit the registration?
+                    </h5>
+                    <p className="text-xs text-gray-500 max-w-md mx-auto">
+                      Please be honest. If you have completed and submitted the external form, you can confirm it below.
+                    </p>
+
+                    <div className="flex items-center justify-center gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={handleNotYetSubmitted}
+                        disabled={actionLoading}
+                        className="rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        Not yet
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowManualForm(true)}
+                        className="rounded-xl bg-kit-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-kit-700 transition-colors"
+                      >
+                        Yes, I submitted it
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* Manual Submission Details */
+                  <div className="rounded-2xl border border-gray-200 bg-gray-50/50 p-5 space-y-4">
+                    <div>
+                      <h5 className="text-sm font-bold text-gray-900">Manual Registration Confirmation</h5>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        This registration will be marked as <strong className="text-gray-800">Student Confirmed</strong> in your dashboard and visible to your mentor.
+                      </p>
+                    </div>
+
+                    <div className="space-y-3 text-xs">
+                      <div>
+                        <label className="block font-semibold text-gray-700 mb-1">
+                          Registration / Application ID (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. APP-2026-98124"
+                          value={manualAppId}
+                          onChange={(e) => setManualAppId(e.target.value)}
+                          className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs focus:border-kit-500 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-semibold text-gray-700 mb-1">
+                          Confirmation Notes / Reference (Optional)
+                        </label>
+                        <textarea
+                          placeholder="Provide any reference, confirmation email details, or notes..."
+                          value={manualNotes}
+                          onChange={(e) => setManualNotes(e.target.value)}
+                          rows={2}
+                          className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs focus:border-kit-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowManualForm(false)}
+                        className="text-xs text-gray-500 hover:text-gray-700 font-semibold"
+                      >
+                        ← Back
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleStudentConfirmed}
+                        disabled={actionLoading}
+                        className="rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 transition-colors flex items-center gap-2"
+                      >
+                        {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                        Confirm Registration
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : step === 'STUDENT_CONFIRMED' ? (
+              /* STUDENT CONFIRMED STATE */
+              <div className="py-8 text-center space-y-4">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-blue-600 shadow-xs">
+                  <CheckCircle2 className="h-8 w-8 stroke-[2.5]" />
+                </div>
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs font-bold mb-2">
+                    <User className="h-3.5 w-3.5" /> Student Confirmed
+                  </div>
+                  <h4 className="text-xl font-bold text-gray-900">Registration Marked as Student Confirmed</h4>
+                  <p className="text-xs text-gray-600 mt-1.5 max-w-md mx-auto">
+                    You confirmed submitting your registration for <strong>{title}</strong>. Your mentor has been notified.
+                  </p>
+                  {detectedAppId && (
+                    <div className="mt-3 inline-block rounded-xl bg-gray-50 border border-gray-200 px-4 py-2 text-xs text-gray-700">
+                      Application ID: <strong className="font-mono text-gray-900">{detectedAppId}</strong>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : step === 'IN_PROGRESS_SAVED' ? (
+              /* IN PROGRESS SAVED */
+              <div className="py-8 text-center space-y-4">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                  <Clock className="h-8 w-8 stroke-[2.5]" />
+                </div>
+                <div>
+                  <h4 className="text-lg font-bold text-gray-900">Registration In Progress</h4>
+                  <p className="text-xs text-gray-600 mt-1.5 max-w-md mx-auto">
+                    No problem! Your progress is saved. You can complete the external form and click <strong>Verify My Registration</strong> anytime.
                   </p>
                 </div>
               </div>
@@ -440,103 +698,25 @@ export function ApplicationAssistantModal({
                   </div>
 
                   <div className="rounded-xl border border-gray-200 bg-white divide-y divide-gray-100 text-xs">
-                    {[
-                      { label: 'Full Name', val: studentData?.name },
-                      { label: 'Email', val: studentData?.email },
-                      { label: 'Phone', val: studentData?.phone || missingFields.phone },
-                      { label: 'College', val: studentData?.college || missingFields.college },
-                      { label: 'Department', val: studentData?.department || missingFields.department },
-                      { label: 'Year', val: studentData?.year },
-                      { label: 'CGPA', val: studentData?.cgpa }
-                    ].map((field) => (
-                      <div key={field.label} className="flex items-center justify-between p-2.5">
-                        <span className="text-gray-500">{field.label}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-gray-900 flex items-center gap-1.5">
-                            {field.val || '—'}
-                            {field.val && <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-bold">Available from Profile ✓</span>}
-                          </span>
-                          {field.val && (
-                            <button
-                              type="button"
-                              onClick={() => navigator.clipboard.writeText(field.val || '')}
-                              className="text-[10px] font-bold text-kit-600 bg-kit-50 hover:bg-kit-100 px-2 py-0.5 rounded transition-colors"
-                            >
-                              Copy
-                            </button>
-                          )}
-                        </div>
+                    {availableFieldsList.map((f) => (
+                      <div key={f.key} className="flex items-center justify-between px-3.5 py-2">
+                        <span className="font-medium text-gray-500">{f.label}</span>
+                        <span className="font-semibold text-gray-800 truncate max-w-[260px]">
+                          {f.value || <span className="text-amber-600 font-normal italic">Missing</span>}
+                        </span>
                       </div>
                     ))}
-
-                    <div className="flex items-center justify-between p-2.5">
-                      <span className="text-gray-500">GitHub Profile</span>
-                      <span className="font-semibold text-gray-900 flex items-center gap-1">
-                        {studentData?.verifiedGitHub ? (
-                          <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-bold text-[11px]">
-                            Verified ✓
-                          </span>
-                        ) : (
-                          studentData?.githubUrl || '—'
-                        )}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between p-2.5">
-                      <span className="text-gray-500">LinkedIn Profile</span>
-                      <span className="font-semibold text-gray-900 flex items-center gap-1">
-                        {studentData?.verifiedLinkedIn ? (
-                          <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-bold text-[11px]">
-                            Verified ✓
-                          </span>
-                        ) : (
-                          studentData?.linkedinUrl || '—'
-                        )}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between p-2.5">
-                      <span className="text-gray-500">Codolio Profile</span>
-                      <span className="font-semibold text-gray-900 flex items-center gap-1">
-                        {studentData?.verifiedCodolio ? (
-                          <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-bold text-[11px]">
-                            Verified ✓
-                          </span>
-                        ) : (
-                          studentData?.codolioUrl || '—'
-                        )}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between p-2.5">
-                      <span className="text-gray-500">Active Resume</span>
-                      <span className="font-semibold text-gray-900 flex items-center gap-1">
-                        {studentData?.resumeName ? (
-                          <span className="text-kit-700 bg-kit-50 px-2 py-0.5 rounded-md font-bold text-[11px] truncate max-w-[200px]">
-                            📄 {studentData.resumeName} Attached ✓
-                          </span>
-                        ) : (
-                          <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md font-medium text-[11px]">
-                            No active resume uploaded
-                          </span>
-                        )}
-                      </span>
-                    </div>
                   </div>
                 </div>
 
-                {/* Missing Details Form Inputs */}
-                {(!studentData?.phone || !studentData?.department || !studentData?.college) && (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 space-y-3">
-                    <div className="flex items-center gap-2 text-xs font-bold text-amber-900">
-                      <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-                      <span>Some profile information is incomplete</span>
-                    </div>
-                    <p className="text-xs text-amber-800">
-                      Provide missing details below for your registration:
-                    </p>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                {/* Missing Fields Inline Capture */}
+                {missingCount > 0 && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-4 space-y-3 text-xs">
+                    <h5 className="font-bold text-amber-900 flex items-center gap-1.5">
+                      <AlertCircle className="h-4 w-4 text-amber-600" />
+                      Fill in Missing Details for Seamless Autofill
+                    </h5>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {!studentData?.phone && (
                         <div>
                           <label className="block font-medium text-gray-700 mb-1">Phone Number</label>
@@ -595,18 +775,11 @@ export function ApplicationAssistantModal({
 
           {/* Fixed Footer */}
           <div className="border-t border-gray-100 bg-gray-50 px-6 py-4 flex items-center justify-between">
-            {step === 'EXPIRED' || step === 'NO_URL' ? (
-              <button
-                onClick={onClose}
-                className="w-full rounded-xl bg-gray-200 px-4 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-300 transition-colors"
-              >
-                Close
-              </button>
-            ) : step === 'ALREADY_EXISTS' ? (
-              <div className="flex items-center justify-end w-full gap-3">
+            {step === 'EXPIRED' || step === 'NO_URL' || step === 'VERIFIED' || step === 'STUDENT_CONFIRMED' || step === 'IN_PROGRESS_SAVED' ? (
+              <div className="flex items-center justify-end w-full">
                 <button
                   onClick={onClose}
-                  className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="rounded-xl bg-kit-600 px-6 py-2.5 text-xs font-bold text-white hover:bg-kit-700 transition-colors"
                 >
                   Close
                 </button>
@@ -620,19 +793,19 @@ export function ApplicationAssistantModal({
                   Continue Later
                 </button>
                 <button
-                  onClick={handleConfirmCompletion}
+                  onClick={handleVerifyRegistration}
                   disabled={actionLoading}
-                  className="rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                  className="rounded-xl bg-kit-600 px-5 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-kit-700 transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
-                  {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                  I Completed My Registration
+                  {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                  Verify My Registration
                 </button>
               </div>
-            ) : step === 'COMPLETED' ? (
-              <div className="flex items-center justify-end w-full">
+            ) : step === 'UNABLE_TO_VERIFY' ? (
+              <div className="flex items-center justify-between w-full">
                 <button
                   onClick={onClose}
-                  className="rounded-xl bg-kit-600 px-6 py-2.5 text-xs font-bold text-white hover:bg-kit-700 transition-colors"
+                  className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   Close
                 </button>

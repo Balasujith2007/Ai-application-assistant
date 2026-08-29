@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Sparkles } from 'lucide-react';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
@@ -94,7 +93,11 @@ export default function AIAssistantPage() {
   };
 
   return (
-    <DashboardLayout title="AI Assistant" subtitle="Your intelligent career companion">
+    <div className="space-y-6 pb-12">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">AI Assistant</h1>
+        <p className="mt-1 text-sm text-gray-500">Your intelligent career companion</p>
+      </div>
       <div className="mx-auto flex max-w-3xl flex-col" style={{ height: 'calc(100vh - 10rem)' }}>
         {/* Header note */}
         <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
@@ -179,6 +182,6 @@ export default function AIAssistantPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

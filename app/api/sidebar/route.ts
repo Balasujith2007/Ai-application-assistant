@@ -59,6 +59,11 @@ export async function GET(req: Request) {
       item => item.title !== 'Notifications' && item.title !== 'Settings' && item.path !== '/dashboard/notifications' && item.path !== '/dashboard/settings'
     );
 
+    // Remove Announcements for Student role
+    if (user.role === 'STUDENT') {
+      dbItems = dbItems.filter(item => item.title !== 'Announcements' && item.path !== '/dashboard/student/announcements');
+    }
+
     // Super Admin sees all enabled items in its list
     if (user.role === 'SUPER_ADMIN') {
       return NextResponse.json({ data: dbItems.filter(i => i.enabled) });

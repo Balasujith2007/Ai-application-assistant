@@ -1,16 +1,23 @@
 import { NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
 import prisma from '@/lib/prisma';
-import { isOpportunityOpen, formatDate } from '@/lib/utils';
+import { isOpportunityOpen } from '@/lib/utils';
 
-export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: Request, context: { params: Promise<{ id: string }> | { id: string } }) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
       return NextResponse.json({ success: false, error: 'Unauthorized', message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id: opportunityId } = await params;
+    const resolvedParams = await context.params;
+    const opportunityId = resolvedParams?.id;
+
+    if (!opportunityId) {
+      return NextResponse.json({ success: false, error: 'Opportunity ID is required.', message: 'Opportunity ID is required.' }, { status: 400 });
+    }
+
+    const body = await req.json().catch(() => ({}));
 
     const student = await prisma.user.findUnique({
       where: { id: userId },
@@ -36,10 +43,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ success: false, error: 'Opportunity not found.', message: 'Opportunity not found.' }, { status: 404 });
     }
 
-    if (!isOpportunityOpen(opportunity.applicationDeadline, opportunity.status)) {
-      return NextResponse.json({ success: false, error: 'Application deadline has passed.', message: 'Application deadline has passed.' }, { status: 400 });
-    }
-
     const now = new Date();
     const formattedNow = `${now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}, ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
 
@@ -50,10 +53,51 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     const registrationUrl = opportunity.registrationUrl || opportunity.opportunityUrl || opportunity.applyUrl || '';
 
+    // Extract requested action / verification method
+    const requestedAction = body.action || (body.verificationMethod === 'EXTENSION' ? 'VERIFY' : 'CONFIRM');
+    const registrationId = body.registrationId || body.externalRegistrationId || null;
+    const notes = body.notes || null;
+    const evidenceUrl = body.evidenceUrl || body.confirmationEvidenceUrl || null;
+
+    // Handle "Not yet" -> Set status to IN_PROGRESS
+    if (requestedAction === 'IN_PROGRESS') {
+      const updatedReg = await prisma.opportunityRegistration.upsert({
+        where: {
+          opportunityId_studentId: {
+            opportunityId,
+            studentId: userId
+          }
+        },
+        update: {
+          status: 'IN_PROGRESS' as any,
+          updatedAt: now
+        },
+        create: {
+          opportunityId,
+          studentId: userId,
+          status: 'IN_PROGRESS' as any,
+          startedAt: now,
+          initiatedAt: now
+        }
+      });
+
+      return NextResponse.json({
+        success: true,
+        status: 'IN_PROGRESS',
+        message: 'Registration marked as In Progress.',
+        registration: updatedReg
+      });
+    }
+
+    // Determine target status and verification method
+    const isExtensionVerified = requestedAction === 'VERIFY' || body.verificationMethod === 'EXTENSION';
+    const targetStatus: any = isExtensionVerified ? 'VERIFIED' : 'STUDENT_CONFIRMED';
+    const verificationMethod = isExtensionVerified ? 'EXTENSION' : 'STUDENT_CONFIRMATION';
+
     // Execute in a transaction to guarantee data integrity
-    const [registration, application] = await prisma.$transaction(async (tx) => {
-      // 1. Check existing OpportunityRegistration and its status before updating
-      const existingReg = await tx.opportunityRegistration.findUnique({
+    const [registration, application] = await prisma.$transaction(async (tx: any) => {
+      // 1. Upsert OpportunityRegistration
+      const existingReg: any = await tx.opportunityRegistration.findUnique({
         where: {
           opportunityId_studentId: {
             opportunityId,
@@ -62,7 +106,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         }
       });
 
-      const isAlreadyRegistered = existingReg?.status === 'REGISTERED';
+      const wasAlreadyCompleted = existingReg && ['VERIFIED', 'STUDENT_CONFIRMED', 'REGISTERED'].includes(existingReg.status);
 
       let reg;
       if (!existingReg) {
@@ -70,27 +114,38 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           data: {
             opportunityId,
             studentId: userId,
-            status: 'REGISTERED',
+            status: targetStatus as any,
+            verificationMethod,
+            verifiedAt: isExtensionVerified ? now : null,
+            confirmedAt: !isExtensionVerified ? now : null,
+            externalRegistrationId: registrationId,
+            confirmationEvidenceUrl: evidenceUrl,
+            notes,
+            startedAt: now,
             initiatedAt: now,
             appliedAt: now,
             registeredAt: now
           }
         });
-      } else if (!isAlreadyRegistered) {
+      } else {
         reg = await tx.opportunityRegistration.update({
           where: { id: existingReg.id },
           data: {
-            status: 'REGISTERED',
-            registeredAt: now,
-            appliedAt: now
+            status: targetStatus as any,
+            verificationMethod,
+            verifiedAt: isExtensionVerified ? now : existingReg.verifiedAt,
+            confirmedAt: !isExtensionVerified ? now : existingReg.confirmedAt,
+            externalRegistrationId: registrationId || existingReg.externalRegistrationId,
+            confirmationEvidenceUrl: evidenceUrl || existingReg.confirmationEvidenceUrl,
+            notes: notes || existingReg.notes,
+            appliedAt: existingReg.appliedAt || now,
+            registeredAt: existingReg.registeredAt || now
           }
         });
-      } else {
-        reg = existingReg;
       }
 
       // 2. Upsert Application record to APPLIED
-      let existingApp = await tx.application.findFirst({
+      const existingApp: any = await tx.application.findFirst({
         where: { userId, opportunityId }
       });
 
@@ -118,23 +173,27 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           where: { id: existingApp.id },
           data: {
             status: 'APPLIED',
-            appliedDate: now,
+            appliedDate: existingApp.appliedDate || now,
             applicationUrl: registrationUrl
           }
         });
       }
 
-      // 3. Create Notifications ONLY IF not already registered
-      if (!isAlreadyRegistered) {
-        // Send notification ONLY to assigned mentor if present
+      // 3. Create Notifications if newly completed
+      if (!wasAlreadyCompleted) {
+        const titlePrefix = isExtensionVerified ? '✓ Registration Verified' : 'Registration Confirmed (Student)';
+        const mentorMsg = isExtensionVerified
+          ? `${student.name} registration for ${opportunity.title} was automatically verified by CareerAI Apply Agent.`
+          : `${student.name} marked registration as Student Confirmed for ${opportunity.title}${registrationId ? ` (ID: ${registrationId})` : ''}.`;
+
         if (student.mentorId) {
           await tx.notification.create({
             data: {
               userId: student.mentorId,
               senderId: userId,
               type: 'OPPORTUNITY_REGISTERED',
-              title: 'New Registration',
-              message: `${student.name} registered for ${opportunity.title} (${opportunity.type}).`,
+              title: titlePrefix,
+              message: mentorMsg,
               relatedEntityId: opportunity.id,
               relatedEntityType: 'OPPORTUNITY',
               link: '/dashboard/mentor/opportunities'
@@ -147,8 +206,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           data: {
             userId: userId,
             type: 'REGISTRATION_CONFIRMED',
-            title: '✓ Registration Confirmed',
-            message: `You successfully registered for: ${opportunity.title} on ${formattedNow}`,
+            title: isExtensionVerified ? '✓ Registration Verified' : 'Registration Marked as Student Confirmed',
+            message: isExtensionVerified
+              ? `CareerAI detected your successful registration for: ${opportunity.title} on ${formattedNow}`
+              : `Your registration for ${opportunity.title} was marked as Student Confirmed on ${formattedNow}.`,
             relatedEntityId: opportunity.id,
             relatedEntityType: 'OPPORTUNITY',
             link: '/dashboard/student/opportunity-history'
@@ -161,15 +222,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     return NextResponse.json({
       success: true,
-      message: '✓ Registration Confirmed',
+      status: targetStatus,
+      verificationMethod,
+      message: isExtensionVerified
+        ? '✓ Registration Verified'
+        : 'Registration marked as Student Confirmed.',
       registeredAt: now.toISOString(),
       formattedRegisteredAt: formattedNow,
+      externalRegistrationId: registrationId,
       registration,
       application
     });
 
   } catch (error) {
-    console.error('Error confirming opportunity registration:', error);
+    console.error('Error verifying/confirming opportunity registration:', error);
     return NextResponse.json({ success: false, error: 'Registration confirmation failed.', message: 'Registration confirmation failed.' }, { status: 500 });
   }
 }

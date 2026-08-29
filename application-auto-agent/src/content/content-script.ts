@@ -1,5 +1,6 @@
 import { isCareerAiAppShell, getSessionIdFromPage } from './dom-utils';
 import { scoreApplicationPage, PROMPT_THRESHOLD } from './application-detector';
+import { detectRegistrationSuccess } from './registration-verifier';
 import { runApplicationAgent } from '../automation/application-runner';
 import { bg } from '../api/api-client';
 import { bumpNavigation } from '../automation/nav-state';
@@ -43,6 +44,37 @@ function setupCareerAiBridge() {
         return;
       }
       reply('CAREERAI_PONG');
+      return;
+    }
+
+    if (data.type === 'CAREERAI_CHECK_VERIFICATION') {
+      if (!isExtensionRuntimeAvailable()) {
+        reply('CAREERAI_VERIFICATION_RESULT', {
+          ok: false,
+          verified: false,
+          error: 'Extension runtime unavailable.',
+        });
+        return;
+      }
+      try {
+        const res = await bg<{ success: boolean; verified?: boolean; data?: any; error?: string }>({
+          type: 'CHECK_REGISTRATION_VERIFIED',
+          opportunityId: data.opportunityId,
+          sessionId: data.sessionId,
+        });
+        reply('CAREERAI_VERIFICATION_RESULT', {
+          ok: !!res?.success,
+          verified: !!res?.verified,
+          registrationId: res?.data?.registrationId || null,
+          data: res?.data,
+        });
+      } catch (e) {
+        reply('CAREERAI_VERIFICATION_RESULT', {
+          ok: false,
+          verified: false,
+          error: mapRuntimeError(e),
+        });
+      }
       return;
     }
 
@@ -102,8 +134,37 @@ export function shouldStart(detection: ReturnType<typeof scoreApplicationPage>, 
   return false;
 }
 
+async function checkAndReportVerification() {
+  try {
+    const successResult = detectRegistrationSuccess();
+    if (successResult.isSuccess) {
+      const sessionId = getSessionIdFromPage();
+      const oppIdMatch = location.search.match(/opportunity_?id=([A-Za-z0-9_-]+)/i);
+      const opportunityId = oppIdMatch ? oppIdMatch[1] : null;
+
+      applyLog('Verifier', `Success detected! ID: ${successResult.registrationId}, confidence=${successResult.confidence}`);
+
+      await bg({
+        type: 'REPORT_REGISTRATION_VERIFIED',
+        payload: {
+          sessionId,
+          opportunityId,
+          registrationId: successResult.registrationId,
+          url: location.href,
+          reason: successResult.reason,
+        },
+      });
+    }
+  } catch (e) {
+    applyLog('Verifier', `Verification check error: ${e}`);
+  }
+}
+
 async function maybeRun(force = false) {
   if (isCareerAiAppShell()) return;
+
+  // Run verification check on every page inspection
+  void checkAndReportVerification();
 
   const detection = scoreApplicationPage();
   const sessionId = getSessionIdFromPage();

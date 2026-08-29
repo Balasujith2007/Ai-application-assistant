@@ -17,7 +17,6 @@ import {
   ExternalLink
 } from 'lucide-react';
 import Link from 'next/link';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/Button';
 import { Input, Textarea } from '@/components/ui/Input';
 import { LoadingSpinner } from '@/components/ui/index';
@@ -44,11 +43,9 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <DashboardLayout title="My Profile">
-        <div className="flex h-64 items-center justify-center">
-          <LoadingSpinner size="lg" />
-        </div>
-      </DashboardLayout>
+      <div className="flex h-64 items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
     );
   }
 
@@ -63,7 +60,11 @@ export default function ProfilePage() {
   ];
 
   return (
-    <DashboardLayout title="My Profile" subtitle="Manage your career profile">
+    <div className="space-y-6 pb-12">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">My Profile</h1>
+        <p className="mt-1 text-sm text-gray-500">Manage your career profile</p>
+      </div>
       <div className="flex gap-6">
         {/* Sidebar nav */}
         <div className="hidden w-56 flex-shrink-0 lg:block">
@@ -110,7 +111,7 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }
 

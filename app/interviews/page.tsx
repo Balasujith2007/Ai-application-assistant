@@ -16,7 +16,6 @@ import {
   TrendingUp,
   CalendarCheck,
 } from 'lucide-react';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/Button';
 import { usePlacement } from '@/context/PlacementContext';
 import { Interview } from '@/types/placement';
@@ -64,23 +63,17 @@ export default function InterviewsPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout title="Interviews" subtitle="Loading your interviews...">
-        <div className="flex h-[60vh] items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-kit-200 border-t-kit-600"></div>
-            <p className="text-sm font-medium text-gray-500">Loading interviews...</p>
-          </div>
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-kit-200 border-t-kit-600"></div>
+          <p className="text-sm font-medium text-gray-500">Loading interviews...</p>
         </div>
-      </DashboardLayout>
+      </div>
     );
   }
 
   return (
-    <DashboardLayout
-      title="Interviews"
-      subtitle="Prepare, schedule, and track all your placement interviews."
-    >
-      <div className="space-y-8 pb-12">
+    <div className="space-y-8 pb-12">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -271,6 +264,5 @@ export default function InterviewsPage() {
           companyName={mockCompany}
         />
       </div>
-    </DashboardLayout>
-  );
-}
+    );
+  }
