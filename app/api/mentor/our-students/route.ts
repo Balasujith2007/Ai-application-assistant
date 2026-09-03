@@ -33,6 +33,23 @@ export function normalizeSection(sec?: string | null): string {
   return match ? match[1] : s;
 }
 
+const CLASS_STUDENT_REGISTER_NUMBERS = [
+  '711524BAD008', '711524BAD010', '711524BAD013', '711524BAD015', '711524BAD016',
+  '711524BAD017', '711524BAD019', '711524BAD026', '711524BAD023', '711524BAD032',
+  '711524BAD033', '711524BAD038', '711524BAD042', '711524BAD043', '711524BAD045',
+  '711524BAD048', '711524BAD054', '711524BAD057', '711524BAD058', '711524BAD059',
+  '711524BAD065', '711524BAD066', '711524BAD071', '711524BAD072', '711524BAD074',
+  '711524BAD079', '711524BAD080', '711524BAD082', '711524BAD090', '711524BAD091',
+  '711524BAD092', '711524BAD093', '711524BAD095', '711524BAD097', '711524BAD103',
+  '711524BAD104', '711524BAD105', '711524BAD107', '711524BAD113', '711524BAD116',
+  '711524BAD115', '711524BAD118', '711524BAD123', '711524BAD126', '711524BAD128',
+  '711524BAD129', '711524BAD131', '711524BAD132', '711524BAD133', '711524BAD134',
+  '711524BAD139', '711524BAD140', '711524BAD150', '711524BAD151', '711524BAD153',
+  '711524BAD154', '711524BAD160', '711524BAD162', '711524BAD168', '711524BAD171',
+  '711524BAD176', '711524BAD188', '711524BAD189', '711524BAD306', '711524BAD308',
+  '711524BAD309', '711524BAD311',
+];
+
 async function getMentor(req: Request) {
   const userId = getUserIdFromRequest(req);
   if (!userId) return { user: null, status: 401 };
@@ -61,96 +78,44 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const search = searchParams.get('search') || '';
+    const search = (searchParams.get('search') || '').trim().toLowerCase();
 
-    // Smart Resolution of Mentor's Class (Department, Year, Section)
-    let rawDept = null;
-    let rawYear = null;
-    let rawSec = null;
-
-    // 1. Check assigned students' profiles first (highest confidence for mentor's active section)
-    if (mentor.students.length > 0) {
-      const assignedWithProf = mentor.students.find((s) => s.profile);
-      if (assignedWithProf?.profile) {
-        rawDept = assignedWithProf.profile.department;
-        rawYear = assignedWithProf.profile.year;
-        rawSec = assignedWithProf.profile.section;
-      }
-    }
-
-    // 2. Fall back to mentor profile fields if not specified by assigned students
-    if (!rawDept && mentor.profile?.department) rawDept = mentor.profile.department;
-    if (!rawYear && mentor.profile?.year) rawYear = mentor.profile.year;
-    if (!rawSec && mentor.profile?.section) rawSec = mentor.profile.section;
-
-    // Normalize
-    let mentorNormDept = normalizeDepartment(rawDept);
-    let mentorNormYear = normalizeYear(rawYear);
-    let mentorNormSec = normalizeSection(rawSec);
-
-    // Fetch all student records with profile
-    const allStudents = await prisma.user.findMany({
-      where: { role: 'STUDENT' },
+    // Fetch all 67 class students from the database
+    const classStudents = await prisma.user.findMany({
+      where: {
+        role: 'STUDENT',
+        profile: {
+          registerNo: {
+            in: CLASS_STUDENT_REGISTER_NUMBERS,
+            mode: 'insensitive',
+          },
+        },
+      },
       include: { profile: true },
       orderBy: { name: 'asc' },
     });
 
-    // Map student normalized values
-    const normalizedStudents = allStudents.map((s) => ({
-      student: s,
-      normDept: normalizeDepartment(s.profile?.department),
-      normYear: normalizeYear(s.profile?.year),
-      normSec: normalizeSection(s.profile?.section),
-    }));
-
-    // Perform primary class filtering
-    let matched = normalizedStudents.filter((ns) => {
-      const deptMatch = !mentorNormDept || ns.normDept === mentorNormDept;
-      const yearMatch = mentorNormYear === null || ns.normYear === mentorNormYear;
-      const secMatch = !mentorNormSec || ns.normSec === mentorNormSec;
-      return deptMatch && yearMatch && secMatch;
-    });
-
-    // Fallback: If 0 students match (e.g. mentor profile states CSE but primary student dataset is AI_DS), match primary class dataset
-    if (matched.length === 0) {
-      mentorNormDept = 'AI_DS';
-      if (!mentorNormYear) mentorNormYear = 2;
-      if (!mentorNormSec) mentorNormSec = 'A';
-
-      matched = normalizedStudents.filter((ns) => {
-        const deptMatch = ns.normDept === mentorNormDept;
-        const yearMatch = ns.normYear === mentorNormYear;
-        const secMatch = ns.normSec === mentorNormSec;
-        return deptMatch && yearMatch && secMatch;
-      });
-    }
-
     // Filter by search query if provided
-    const searchClean = search.trim().toLowerCase();
-    const filtered = searchClean
-      ? matched.filter((ms) => {
-          const s = ms.student;
-          const nameMatch = s.name.toLowerCase().includes(searchClean);
-          const emailMatch = s.email.toLowerCase().includes(searchClean);
-          const regMatch = s.profile?.registerNo?.toLowerCase().includes(searchClean);
+    const filtered = search
+      ? classStudents.filter((s) => {
+          const nameMatch = s.name.toLowerCase().includes(search);
+          const emailMatch = s.email.toLowerCase().includes(search);
+          const regMatch = (s.profile?.registerNo || '').toLowerCase().includes(search);
           return nameMatch || emailMatch || regMatch;
         })
-      : matched;
+      : classStudents;
 
-    const data = filtered.map((ms) => {
-      const s = ms.student;
-      return {
-        id: s.id,
-        userId: s.id,
-        name: s.name,
-        email: s.email,
-        registerNo: s.profile?.registerNo ?? '—',
-        department: s.profile?.department ?? rawDept ?? 'Artificial Intelligence & Data Science',
-        year: s.profile?.year ?? rawYear ?? 2,
-        section: s.profile?.section ?? rawSec ?? 'A',
-        isAssigned: s.mentorId === mentor.id,
-      };
-    });
+    const data = filtered.map((s) => ({
+      id: s.id,
+      userId: s.id,
+      name: s.name,
+      email: s.email,
+      registerNo: s.profile?.registerNo ?? '—',
+      department: s.profile?.department ?? 'Artificial Intelligence & Data Science',
+      year: s.profile?.year ?? 2,
+      section: s.profile?.section ?? 'A',
+      isAssigned: s.mentorId === mentor.id,
+    }));
 
     return NextResponse.json({
       success: true,
@@ -158,9 +123,9 @@ export async function GET(req: Request) {
       total: data.length,
       configured: true,
       classInfo: {
-        department: rawDept || 'Artificial Intelligence & Data Science',
-        year: rawYear || 2,
-        section: rawSec || 'A',
+        department: mentor.profile?.department || 'Artificial Intelligence & Data Science',
+        year: mentor.profile?.year || 2,
+        section: mentor.profile?.section || 'A',
       },
     });
   } catch (error) {

@@ -123,8 +123,9 @@ export default function MentorStudentsPage() {
           <table className="w-full text-sm">
             <thead className="border-b border-gray-100 bg-gray-50/50">
               <tr className="text-gray-500">
-                <th className="px-6 py-4 text-left font-semibold w-12">No.</th>
+                <th className="px-6 py-4 text-left font-semibold w-12">S.No</th>
                 <th className="px-6 py-4 text-left font-semibold">Student Name</th>
+                <th className="px-6 py-4 text-left font-semibold">Email</th>
                 <th className="px-6 py-4 text-left font-semibold">Register Number</th>
                 <th className="px-6 py-4 text-left font-semibold hidden md:table-cell">Department</th>
                 <th className="px-6 py-4 text-left font-semibold hidden sm:table-cell">Year</th>
@@ -143,9 +144,11 @@ export default function MentorStudentsPage() {
                       </div>
                       <div>
                         <p className="font-semibold text-gray-900">{s.name}</p>
-                        <p className="text-xs text-gray-400 flex items-center gap-1"><Mail className="h-3 w-3" />{s.email}</p>
                       </div>
                     </div>
+                  </td>
+                  <td className="px-6 py-4 text-xs text-gray-500 font-medium">
+                    <span className="flex items-center gap-1"><Mail className="h-3 w-3 text-gray-400" />{s.email}</span>
                   </td>
                   <td className="px-6 py-4 font-mono text-xs font-bold text-kit-700">{s.registerNo}</td>
                   <td className="px-6 py-4 hidden md:table-cell text-gray-600 text-xs">

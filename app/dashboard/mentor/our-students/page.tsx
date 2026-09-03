@@ -129,8 +129,9 @@ export default function OurStudentsPage() {
           <table className="w-full text-sm">
             <thead className="border-b border-gray-100 bg-gray-50/50">
               <tr className="text-gray-500">
-                <th className="px-6 py-4 text-left font-semibold w-12">No.</th>
+                <th className="px-6 py-4 text-left font-semibold w-12">S.No</th>
                 <th className="px-6 py-4 text-left font-semibold">Student Name</th>
+                <th className="px-6 py-4 text-left font-semibold">Email</th>
                 <th className="px-6 py-4 text-left font-semibold">Register Number</th>
                 <th className="px-6 py-4 text-left font-semibold hidden md:table-cell">Department</th>
                 <th className="px-6 py-4 text-left font-semibold hidden sm:table-cell">Year</th>
@@ -151,6 +152,9 @@ export default function OurStudentsPage() {
                         <p className="font-semibold text-gray-900">{s.name}</p>
                       </div>
                     </div>
+                  </td>
+                  <td className="px-6 py-4 text-xs text-gray-500 font-medium">
+                    <span className="flex items-center gap-1"><Mail className="h-3 w-3 text-gray-400" />{s.email}</span>
                   </td>
                   <td className="px-6 py-4 font-mono text-xs font-bold text-kit-700">{s.registerNo}</td>
                   <td className="px-6 py-4 hidden md:table-cell text-gray-600 text-xs">
@@ -219,6 +223,10 @@ export default function OurStudentsPage() {
               </div>
 
               <div className="rounded-xl bg-gray-50 p-4 space-y-3 text-xs border border-gray-100">
+                <div className="flex justify-between">
+                  <span className="text-gray-500 font-medium">Email</span>
+                  <span className="font-semibold text-gray-900">{selectedBasicInfoStudent.email}</span>
+                </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500 font-medium">Department</span>
                   <span className="font-semibold text-gray-900">{selectedBasicInfoStudent.department}</span>
