@@ -26,12 +26,19 @@ export async function POST(req: Request) {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const resetLink = `${baseUrl}/reset-password?email=${encodeURIComponent(user.email)}&otp=${otp}`;
 
-    await sendPasswordResetNotification({
+    const result = await sendPasswordResetNotification({
       email: user.email,
       recipientName: user.name,
       resetLink,
       otp,
     });
+
+    if (result && !result.success) {
+      return NextResponse.json({
+        success: false,
+        message: result.error || 'Unable to send password reset email to this address.'
+      }, { status: 400 });
+    }
 
     return NextResponse.json({
       success: true,

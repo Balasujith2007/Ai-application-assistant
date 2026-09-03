@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma';
-import { sendEmail, isValidEmail } from './email.service';
+import { sendEmail, isValidEmail, isDeliverableEmail, validateRecipientEmail } from './email.service';
 import {
   getOpportunityEmailTemplate,
   getHODAnnouncementEmailTemplate,
@@ -15,16 +15,19 @@ function getBaseUrl(): AppUrl {
   return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 }
 
-function deduplicateByEmail<T extends { email: string | null }>(users: T[]): T[] {
+function deduplicateDeliverableUsers<T extends { email: string | null; name?: string | null; id?: string }>(users: T[]): T[] {
   const seen = new Set<string>();
   const result: T[] = [];
   for (const user of users) {
-    if (user.email && isValidEmail(user.email)) {
+    if (user.email && isDeliverableEmail(user.email)) {
       const cleanEmail = user.email.trim().toLowerCase();
       if (!seen.has(cleanEmail)) {
         seen.add(cleanEmail);
         result.push(user);
       }
+    } else {
+      const validation = validateRecipientEmail(user.email);
+      console.warn(`[NotificationService] No valid deliverable recipient email for ${user.name || user.id || 'user'} (${user.email || 'empty'}: ${validation.message || 'skipped'}). In-app notification created; real email skipped.`);
     }
   }
   return result;
@@ -51,7 +54,7 @@ export async function sendOpportunityNotification(params: {
     select: { id: true, email: true, name: true, role: true },
   });
 
-  // 1. Create in-app notifications in bulk for all target users
+  // 1. Create in-app notifications in bulk for all target users (both real and demo students)
   const notificationsData = users.map((u) => ({
     userId: u.id,
     senderId,
@@ -66,23 +69,16 @@ export async function sendOpportunityNotification(params: {
   try {
     await prisma.notification.createMany({ data: notificationsData });
   } catch (err: any) {
-    console.error('Error creating in-app opportunity notifications:', err?.message || err);
+    console.error('[NotificationService] Error creating in-app opportunity notifications:', err?.message || err);
   }
 
-  // 2. Filter and deduplicate recipients for email delivery
-  const uniqueUsers = deduplicateByEmail(users);
+  // 2. Filter and deduplicate deliverable recipients for email delivery
+  const deliverableUsers = deduplicateDeliverableUsers(users);
   const baseUrl = getBaseUrl();
 
-  // Log users that do not have valid emails
-  for (const user of users) {
-    if (!isValidEmail(user.email)) {
-      console.warn(`Cannot send email: User does not have a valid email address (${user.name || user.id}: ${user.email || 'empty'}).`);
-    }
-  }
-
-  // 3. Send emails asynchronously
-  for (const user of uniqueUsers) {
-    if (!user.email || !isValidEmail(user.email)) continue;
+  // 3. Send emails asynchronously only to real, deliverable recipients
+  for (const user of deliverableUsers) {
+    if (!user.email) continue;
     const link = `${baseUrl}${user.role === 'MENTOR' ? '/dashboard/mentor/opportunities' : '/dashboard/student/opportunities'}`;
     const html = getOpportunityEmailTemplate({
       title: opportunity.title,
@@ -101,10 +97,10 @@ export async function sendOpportunityNotification(params: {
         subject: `New Opportunity: ${opportunity.title}`,
         html,
       }).catch((err) => {
-        console.error(`Email delivery failed for ${user.email}:`, err?.message || err);
+        console.error(`[NotificationService] Email delivery failed for ${user.email}:`, err?.message || err);
       });
     } catch (err: any) {
-      console.error(`Email delivery failed for ${user.email}:`, err?.message || err);
+      console.error(`[NotificationService] Email delivery failed for ${user.email}:`, err?.message || err);
     }
   }
 }
@@ -137,21 +133,15 @@ export async function sendHODAnnouncementNotification(params: {
   try {
     await prisma.notification.createMany({ data: notificationsData });
   } catch (err: any) {
-    console.error('Error creating in-app HOD announcement notifications:', err?.message || err);
+    console.error('[NotificationService] Error creating in-app HOD announcement notifications:', err?.message || err);
   }
 
-  // 2. Send email notifications
-  const uniqueUsers = deduplicateByEmail(users);
+  // 2. Send email notifications to deliverable recipients
+  const deliverableUsers = deduplicateDeliverableUsers(users);
   const baseUrl = getBaseUrl();
 
-  for (const user of users) {
-    if (!isValidEmail(user.email)) {
-      console.warn(`Cannot send email: User does not have a valid email address (${user.name || user.id}: ${user.email || 'empty'}).`);
-    }
-  }
-
-  for (const user of uniqueUsers) {
-    if (!user.email || !isValidEmail(user.email)) continue;
+  for (const user of deliverableUsers) {
+    if (!user.email) continue;
     const html = getHODAnnouncementEmailTemplate({
       title,
       message,
@@ -166,10 +156,10 @@ export async function sendHODAnnouncementNotification(params: {
         subject: `📢 ${title}`,
         html,
       }).catch((err) => {
-        console.error(`Email delivery failed for ${user.email}:`, err?.message || err);
+        console.error(`[NotificationService] Email delivery failed for ${user.email}:`, err?.message || err);
       });
     } catch (err: any) {
-      console.error(`Email delivery failed for ${user.email}:`, err?.message || err);
+      console.error(`[NotificationService] Email delivery failed for ${user.email}:`, err?.message || err);
     }
   }
 }
@@ -203,12 +193,13 @@ export async function sendMentorMessageNotification(params: {
       },
     });
   } catch (err: any) {
-    console.error('Error creating in-app mentor message notification:', err?.message || err);
+    console.error('[NotificationService] Error creating in-app mentor message notification:', err?.message || err);
   }
 
-  // 2. Send email asynchronously if student email is valid
-  if (!isValidEmail(student.email)) {
-    console.warn(`Cannot send email: User does not have a valid email address (${student.name || student.id}: ${student.email || 'empty'}).`);
+  // 2. Check if student has a real deliverable email address
+  if (!isDeliverableEmail(student.email)) {
+    const validation = validateRecipientEmail(student.email);
+    console.warn(`[NotificationService] No valid deliverable recipient email for student ${student.name} (${student.email || 'empty'}: ${validation.message || 'demo domain'}). In-app notification created; real email skipped.`);
     return;
   }
 
@@ -227,10 +218,10 @@ export async function sendMentorMessageNotification(params: {
       subject: 'Message from Your Mentor - CareerAI',
       html,
     }).catch((err) => {
-      console.error(`Email delivery failed for ${student.email}:`, err?.message || err);
+      console.error(`[NotificationService] Email delivery failed for ${student.email}:`, err?.message || err);
     });
   } catch (err: any) {
-    console.error(`Email delivery failed for ${student.email}:`, err?.message || err);
+    console.error(`[NotificationService] Email delivery failed for ${student.email}:`, err?.message || err);
   }
 }
 
@@ -264,22 +255,16 @@ export async function sendMentorReminderNotification(params: {
   try {
     await prisma.notification.createMany({ data: notificationsData });
   } catch (err: any) {
-    console.error('Error creating in-app mentor reminder notifications:', err?.message || err);
+    console.error('[NotificationService] Error creating in-app mentor reminder notifications:', err?.message || err);
   }
 
-  // 2. Deduplicate and filter students for email delivery
-  const uniqueStudents = deduplicateByEmail(students);
+  // 2. Filter deliverable students for email delivery
+  const deliverableStudents = deduplicateDeliverableUsers(students);
   const baseUrl = getBaseUrl();
   const link = `${baseUrl}/dashboard/student`;
 
-  for (const student of students) {
-    if (!isValidEmail(student.email)) {
-      console.warn(`Cannot send email: User does not have a valid email address (${student.name || student.id}: ${student.email || 'empty'}).`);
-    }
-  }
-
-  for (const student of uniqueStudents) {
-    if (!student.email || !isValidEmail(student.email)) continue;
+  for (const student of deliverableStudents) {
+    if (!student.email) continue;
     const html = getMentorReminderEmailTemplate({
       title,
       category,
@@ -296,10 +281,10 @@ export async function sendMentorReminderNotification(params: {
         subject: 'Message from Your Mentor - CareerAI',
         html,
       }).catch((err) => {
-        console.error(`Email delivery failed for ${student.email}:`, err?.message || err);
+        console.error(`[NotificationService] Email delivery failed for ${student.email}:`, err?.message || err);
       });
     } catch (err: any) {
-      console.error(`Email delivery failed for ${student.email}:`, err?.message || err);
+      console.error(`[NotificationService] Email delivery failed for ${student.email}:`, err?.message || err);
     }
   }
 }
@@ -316,9 +301,10 @@ export async function sendLoginAlertNotification(params: {
     select: { email: true, name: true },
   });
 
-  if (!user || !isValidEmail(user.email)) {
+  if (!user || !isDeliverableEmail(user.email)) {
     if (user) {
-      console.warn(`Cannot send email: User does not have a valid email address (${user.name || user.email || 'empty'}).`);
+      const validation = validateRecipientEmail(user.email);
+      console.warn(`[NotificationService] Login alert email skipped: ${user.name || user.email} (${validation.message || 'demo domain'}).`);
     }
     return;
   }
@@ -336,10 +322,10 @@ export async function sendLoginAlertNotification(params: {
       subject: 'New Login to Your CareerAI Account',
       html,
     }).catch((err) => {
-      console.error(`Email delivery failed for ${user.email}:`, err?.message || err);
+      console.error(`[NotificationService] Email delivery failed for ${user.email}:`, err?.message || err);
     });
   } catch (err: any) {
-    console.error(`Error sending login alert email:`, err?.message || err);
+    console.error(`[NotificationService] Error sending login alert email:`, err?.message || err);
   }
 }
 
@@ -351,9 +337,15 @@ export async function sendPasswordResetNotification(params: {
 }) {
   const { email, recipientName, resetLink, otp } = params;
 
-  if (!isValidEmail(email)) {
-    console.warn(`Cannot send email: User does not have a valid email address (${email}).`);
-    return { success: false, error: 'Invalid recipient email' };
+  const validation = validateRecipientEmail(email);
+  if (!validation.deliverable) {
+    console.warn(`[NotificationService] Cannot send password reset email: ${validation.message || 'No valid recipient email'} (${email}).`);
+    return {
+      success: false,
+      error: validation.reason === 'DEMO_DOMAIN'
+        ? 'Cannot send password reset to demo/fake email domain.'
+        : 'No valid recipient email address provided.'
+    };
   }
 
   const html = getPasswordResetEmailTemplate({
@@ -368,6 +360,3 @@ export async function sendPasswordResetNotification(params: {
     html,
   });
 }
-
-
-
