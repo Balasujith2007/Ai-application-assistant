@@ -687,26 +687,71 @@ function lookup(flat: Record<string, string>, key: string): string {
   if (flat[key]) return flat[key];
   const short = key.split('.').pop() || '';
   if (flat[short]) return flat[short];
+  if (flat[`custom.${short}`]) return flat[`custom.${short}`];
+  if (flat[`personal.${short}`]) return flat[`personal.${short}`];
+  if (flat[`education.${short}`]) return flat[`education.${short}`];
+  if (flat[`preferences.${short}`]) return flat[`preferences.${short}`];
+  if (flat[`links.${short}`]) return flat[`links.${short}`];
+
   const aliases: Record<string, string[]> = {
     'personal.fullName': ['fullName', 'name'],
     'personal.firstName': ['firstName'],
     'personal.lastName': ['lastName'],
     'personal.email': ['email'],
     'personal.phone': ['phone'],
-    'education.college': ['college'],
-    'education.cgpa': ['cgpa'],
-    'education.department': ['department'],
+    'personal.dateOfBirth': ['dateOfBirth', 'dob'],
+    'personal.gender': ['gender'],
+    'personal.nationality': ['nationality', 'citizenship'],
+    'personal.country': ['country'],
+    'personal.state': ['state'],
+    'personal.location': ['location', 'city', 'preferredLocation'],
+    'personal.pinCode': ['pinCode', 'pincode', 'postalCode', 'zipCode', 'zip'],
+    'education.college': ['college', 'collegeName'],
+    'education.cgpa': ['cgpa', 'grade'],
+    'education.department': ['department', 'major'],
+    'education.degree': ['degree'],
     'education.year': ['year'],
+    'education.graduationYear': ['graduationYear', 'collegeGraduationYear'],
+    'education.tenthSchool': ['tenthSchool', '10thSchool'],
+    'education.tenthPercentage': ['tenthPercentage', '10thPercentage'],
+    'education.twelfthSchool': ['twelfthSchool', '12thSchool'],
+    'education.twelfthPercentage': ['twelfthPercentage', '12thPercentage'],
+    'education.collegeJoiningYear': ['collegeJoiningYear', 'joiningYear'],
+    'education.collegeGraduationYear': ['collegeGraduationYear', 'graduationYear'],
+    'education.major': ['major', 'department'],
+    'education.minor': ['minor'],
     'links.github': ['github'],
     'links.linkedin': ['linkedin'],
-    'preferences.expectedSalary': ['expectedSalary'],
+    'links.portfolio': ['portfolio'],
+    'links.codolio': ['codolio'],
+    'preferences.expectedSalary': ['expectedSalary', 'salaryExpectation'],
     'preferences.noticePeriod': ['noticePeriod'],
     'preferences.workAuthorization': ['workAuthorization'],
     'preferences.preferredLocation': ['preferredLocation', 'location'],
+    'preferences.preferredRole': ['preferredRole', 'desiredJobRole'],
+    'preferences.previousWorkMode': ['previousWorkMode'],
+    'preferences.preferredWorkMode': ['preferredWorkMode', 'workMode'],
+    'preferences.workMode': ['workMode', 'preferredWorkMode'],
   };
   for (const a of aliases[key] || []) {
     if (flat[a]) return flat[a];
+    if (flat[`personal.${a}`]) return flat[`personal.${a}`];
+    if (flat[`education.${a}`]) return flat[`education.${a}`];
+    if (flat[`preferences.${a}`]) return flat[`preferences.${a}`];
   }
+
+  // Dynamic resilient fallback: scan all keys in flat matching normalized target
+  const normTarget = (key.split('.').pop() || key).toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (normTarget) {
+    for (const [k, v] of Object.entries(flat)) {
+      if (!v) continue;
+      const normK = (k.split('.').pop() || k).toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (normK && (normK === normTarget || normK.endsWith(normTarget) || normTarget.endsWith(normK))) {
+        return v;
+      }
+    }
+  }
+
   return '';
 }
 

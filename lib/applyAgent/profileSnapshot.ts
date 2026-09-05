@@ -217,20 +217,41 @@ export async function buildExtensionProfile(userId: string): Promise<ExtensionPr
   }
   if (snapshot.skills.length) snapshot.flat['skills.list'] = snapshot.skills.join(', ');
 
-  // Short keys used by older agent payload
+  // Short keys used by older agent payload & dynamic runner lookups
   snapshot.flat.fullName = snapshot.flat['personal.fullName'] || '';
   snapshot.flat.firstName = snapshot.flat['personal.firstName'] || '';
   snapshot.flat.lastName = snapshot.flat['personal.lastName'] || '';
   snapshot.flat.email = snapshot.flat['personal.email'] || '';
   snapshot.flat.phone = snapshot.flat['personal.phone'] || '';
+  snapshot.flat.dob = snapshot.flat['personal.dob'] || snapshot.flat['personal.dateOfBirth'] || '';
+  snapshot.flat.dateOfBirth = snapshot.flat['personal.dateOfBirth'] || snapshot.flat['personal.dob'] || '';
+  snapshot.flat.nationality = snapshot.flat['personal.nationality'] || '';
+  snapshot.flat.country = snapshot.flat['personal.country'] || '';
+  snapshot.flat.state = snapshot.flat['personal.state'] || '';
+  snapshot.flat.location = snapshot.flat['personal.location'] || '';
+  snapshot.flat.pinCode = snapshot.flat['personal.pinCode'] || '';
   snapshot.flat.college = snapshot.flat['education.college'] || '';
+  snapshot.flat.collegeName = snapshot.flat['education.collegeName'] || snapshot.flat['education.college'] || '';
   snapshot.flat.department = snapshot.flat['education.department'] || '';
   snapshot.flat.cgpa = snapshot.flat['education.cgpa'] || '';
   snapshot.flat.year = snapshot.flat['education.year'] || '';
+  snapshot.flat.tenthSchool = snapshot.flat['education.tenthSchool'] || '';
+  snapshot.flat.tenthPercentage = snapshot.flat['education.tenthPercentage'] || '';
+  snapshot.flat.twelfthSchool = snapshot.flat['education.twelfthSchool'] || '';
+  snapshot.flat.twelfthPercentage = snapshot.flat['education.twelfthPercentage'] || '';
+  snapshot.flat.collegeJoiningYear = snapshot.flat['education.collegeJoiningYear'] || '';
+  snapshot.flat.collegeGraduationYear = snapshot.flat['education.collegeGraduationYear'] || '';
+  snapshot.flat.graduationYear = snapshot.flat['education.graduationYear'] || snapshot.flat['education.collegeGraduationYear'] || '';
+  snapshot.flat.major = snapshot.flat['education.major'] || '';
+  snapshot.flat.minor = snapshot.flat['education.minor'] || '';
   snapshot.flat.github = snapshot.flat['links.github'] || '';
   snapshot.flat.linkedin = snapshot.flat['links.linkedin'] || '';
+  snapshot.flat.portfolio = snapshot.flat['links.portfolio'] || '';
   snapshot.flat.codolio = snapshot.flat['links.codolio'] || '';
+  snapshot.flat.preferredRole = snapshot.flat['preferences.preferredRole'] || '';
+  snapshot.flat.desiredJobRole = snapshot.flat['preferences.desiredJobRole'] || snapshot.flat['preferences.preferredRole'] || '';
   snapshot.flat.expectedSalary = snapshot.flat['preferences.expectedSalary'] || '';
+  snapshot.flat.salaryExpectation = snapshot.flat['preferences.salaryExpectation'] || snapshot.flat['preferences.expectedSalary'] || '';
   snapshot.flat.noticePeriod = snapshot.flat['preferences.noticePeriod'] || '';
   snapshot.flat.workAuthorization = snapshot.flat['preferences.workAuthorization'] || '';
   snapshot.flat.preferredLocation = snapshot.flat['preferences.preferredLocation'] || '';

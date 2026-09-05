@@ -127,12 +127,25 @@
     "personal.phone": ["phone", "phone number", "mobile", "mobile number", "contact number", "whatsapp", "phone no", "cell", "telephone", "phone_number", "mobile_number", "primary phone"],
     "personal.dateOfBirth": ["date of birth", "dob", "birth date", "birthday"],
     "personal.gender": ["gender", "sex"],
+    "personal.nationality": ["nationality", "citizenship", "citizen of", "country of citizenship"],
+    "personal.country": ["country", "country of residence", "current country", "nation"],
+    "personal.state": ["state", "province", "region", "state / province", "state/province"],
+    "personal.location": ["location", "city", "current location", "city, state", "location (city)", "current city", "address"],
+    "personal.pinCode": ["pincode", "pin code", "postal code", "zip code", "zip", "postal", "zip / postal code"],
     "education.college": ["college", "college name", "institution", "institution name", "university", "university name", "institute", "school name", "school", "undergraduate school", "school or university"],
     "education.degree": ["degree", "qualification", "highest qualification", "program", "degree level", "highest degree", "education level"],
     "education.department": ["department", "branch", "stream", "specialization", "course", "field of study", "major", "branch of study"],
     "education.cgpa": ["cgpa", "gpa", "grade point average", "grade", "percentage", "marks", "academic score", "current cgpa", "cumulative gpa", "gpa score"],
-    "education.graduationYear": ["graduation year", "year of graduation", "passing year", "expected graduation", "completion year"],
+    "education.graduationYear": ["graduation year", "year of graduation", "passing year", "expected graduation", "completion year", "grad year"],
     "education.year": ["academic year", "current year", "year of study", "year"],
+    "education.tenthSchool": ["10th school", "tenth school", "sslc school", "secondary school", "10th institution", "matriculation school", "class 10 school", "x school"],
+    "education.tenthPercentage": ["10th percentage", "tenth percentage", "10th marks", "tenth marks", "sslc marks", "10th grade", "class 10 percentage", "x marks"],
+    "education.twelfthSchool": ["12th school", "twelfth school", "hsc school", "higher secondary school", "junior college", "class 12 school", "xii school", "puc college"],
+    "education.twelfthPercentage": ["12th percentage", "twelfth percentage", "12th marks", "twelfth marks", "hsc marks", "12th grade", "class 12 percentage", "xii marks"],
+    "education.collegeJoiningYear": ["college joining year", "year of joining", "admission year", "start year of college", "college start year"],
+    "education.collegeGraduationYear": ["college graduation year", "expected graduation year", "graduation year of college", "end year of college"],
+    "education.major": ["major", "college major", "primary major", "specialization major"],
+    "education.minor": ["minor", "college minor", "secondary major"],
     "links.github": ["github", "github url", "github profile", "github link", "github profile url", "github account"],
     "links.linkedin": ["linkedin", "linkedin url", "linkedin profile", "linkedin link", "linkedin profile url", "linkedin account"],
     "links.portfolio": ["portfolio", "portfolio url", "personal website", "website", "personal site", "portfolio website", "personal portfolio", "blog url"],
@@ -164,6 +177,7 @@
       "desired location",
       "work location preference"
     ],
+    "preferences.preferredRole": ["preferred role", "desired role", "job role", "target role", "desired job title", "role applied for", "position of interest"],
     "preferences.noticePeriod": [
       "notice period",
       "expected notice period",
@@ -177,6 +191,8 @@
       "earliest start date"
     ],
     "preferences.workMode": ["work mode", "work type", "preferred work mode", "preferred workplace"],
+    "preferences.previousWorkMode": ["previous work mode", "prior work mode", "past work mode"],
+    "preferences.preferredWorkMode": ["preferred work mode", "work mode preference", "desired work mode", "hybrid/remote/onsite"],
     "preferences.workAuthorization": [
       "work authorization",
       "work authorisation",
@@ -2284,25 +2300,66 @@
     if (flat[key]) return flat[key];
     const short = key.split(".").pop() || "";
     if (flat[short]) return flat[short];
+    if (flat[`custom.${short}`]) return flat[`custom.${short}`];
+    if (flat[`personal.${short}`]) return flat[`personal.${short}`];
+    if (flat[`education.${short}`]) return flat[`education.${short}`];
+    if (flat[`preferences.${short}`]) return flat[`preferences.${short}`];
+    if (flat[`links.${short}`]) return flat[`links.${short}`];
     const aliases = {
       "personal.fullName": ["fullName", "name"],
       "personal.firstName": ["firstName"],
       "personal.lastName": ["lastName"],
       "personal.email": ["email"],
       "personal.phone": ["phone"],
-      "education.college": ["college"],
-      "education.cgpa": ["cgpa"],
-      "education.department": ["department"],
+      "personal.dateOfBirth": ["dateOfBirth", "dob"],
+      "personal.gender": ["gender"],
+      "personal.nationality": ["nationality", "citizenship"],
+      "personal.country": ["country"],
+      "personal.state": ["state"],
+      "personal.location": ["location", "city", "preferredLocation"],
+      "personal.pinCode": ["pinCode", "pincode", "postalCode", "zipCode", "zip"],
+      "education.college": ["college", "collegeName"],
+      "education.cgpa": ["cgpa", "grade"],
+      "education.department": ["department", "major"],
+      "education.degree": ["degree"],
       "education.year": ["year"],
+      "education.graduationYear": ["graduationYear", "collegeGraduationYear"],
+      "education.tenthSchool": ["tenthSchool", "10thSchool"],
+      "education.tenthPercentage": ["tenthPercentage", "10thPercentage"],
+      "education.twelfthSchool": ["twelfthSchool", "12thSchool"],
+      "education.twelfthPercentage": ["twelfthPercentage", "12thPercentage"],
+      "education.collegeJoiningYear": ["collegeJoiningYear", "joiningYear"],
+      "education.collegeGraduationYear": ["collegeGraduationYear", "graduationYear"],
+      "education.major": ["major", "department"],
+      "education.minor": ["minor"],
       "links.github": ["github"],
       "links.linkedin": ["linkedin"],
-      "preferences.expectedSalary": ["expectedSalary"],
+      "links.portfolio": ["portfolio"],
+      "links.codolio": ["codolio"],
+      "preferences.expectedSalary": ["expectedSalary", "salaryExpectation"],
       "preferences.noticePeriod": ["noticePeriod"],
       "preferences.workAuthorization": ["workAuthorization"],
-      "preferences.preferredLocation": ["preferredLocation", "location"]
+      "preferences.preferredLocation": ["preferredLocation", "location"],
+      "preferences.preferredRole": ["preferredRole", "desiredJobRole"],
+      "preferences.previousWorkMode": ["previousWorkMode"],
+      "preferences.preferredWorkMode": ["preferredWorkMode", "workMode"],
+      "preferences.workMode": ["workMode", "preferredWorkMode"]
     };
     for (const a of aliases[key] || []) {
       if (flat[a]) return flat[a];
+      if (flat[`personal.${a}`]) return flat[`personal.${a}`];
+      if (flat[`education.${a}`]) return flat[`education.${a}`];
+      if (flat[`preferences.${a}`]) return flat[`preferences.${a}`];
+    }
+    const normTarget = (key.split(".").pop() || key).toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (normTarget) {
+      for (const [k, v] of Object.entries(flat)) {
+        if (!v) continue;
+        const normK = (k.split(".").pop() || k).toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (normK && (normK === normTarget || normK.endsWith(normTarget) || normTarget.endsWith(normK))) {
+          return v;
+        }
+      }
     }
     return "";
   }
