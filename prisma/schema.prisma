@@ -174,6 +174,36 @@ model Profile {
   employeeId       String?
   registerNo       String?  @unique
 
+  // Personal Information Extensions
+  dob              String?
+  nationality      String?
+  country          String?
+  state            String?
+  preferredLocation String?
+  pinCode          String?
+
+  // Career Information
+  preferredRole    String?
+  expectedSalary   String?
+
+  // School Education
+  tenthSchool      String?
+  tenthPercentage  String?
+  twelfthSchool    String?
+  twelfthPercentage String?
+
+  // College Education
+  collegeName      String?
+  cgpa             String?
+  collegeJoiningYear Int?
+  collegeGraduationYear Int?
+  major            String?
+  minor            String?
+
+  // Work Preferences
+  previousWorkMode String?
+  preferredWorkMode String?
+
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   education   Education[]
   projects    Project[]
@@ -219,6 +249,7 @@ model Education {
   startYear    Int
   endYear      Int?
   grade        String?
+  minor        String?
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
@@ -258,6 +289,7 @@ model Experience {
   startDate        DateTime
   endDate          DateTime?
   currentlyWorking Boolean   @default(false)
+  duration         String?
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 

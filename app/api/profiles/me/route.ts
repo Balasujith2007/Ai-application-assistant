@@ -37,7 +37,7 @@ export async function PUT(req: Request) {
     const { name, ...profileData } = body;
 
     // Extract valid profile fields to prevent Prisma errors
-    const validProfileData = {
+    const validProfileData: Record<string, any> = {
       phone: profileData.phone,
       department: profileData.department,
       year: profileData.year,
@@ -47,13 +47,44 @@ export async function PUT(req: Request) {
       careerObjective: profileData.careerObjective,
       linkedinUrl: profileData.linkedinUrl,
       githubUrl: profileData.githubUrl,
-      portfolioUrl: profileData.portfolioUrl
+      portfolioUrl: profileData.portfolioUrl,
+      codolioUrl: profileData.codolioUrl,
+      
+      // Personal Information
+      dob: profileData.dob,
+      nationality: profileData.nationality,
+      country: profileData.country,
+      state: profileData.state,
+      preferredLocation: profileData.preferredLocation,
+      pinCode: profileData.pinCode,
+
+      // Career Information
+      preferredRole: profileData.preferredRole,
+      expectedSalary: profileData.expectedSalary,
+
+      // School Education
+      tenthSchool: profileData.tenthSchool,
+      tenthPercentage: profileData.tenthPercentage,
+      twelfthSchool: profileData.twelfthSchool,
+      twelfthPercentage: profileData.twelfthPercentage,
+
+      // College Education
+      collegeName: profileData.collegeName,
+      cgpa: profileData.cgpa,
+      collegeJoiningYear: profileData.collegeJoiningYear ? parseInt(profileData.collegeJoiningYear) : profileData.collegeJoiningYear,
+      collegeGraduationYear: profileData.collegeGraduationYear ? parseInt(profileData.collegeGraduationYear) : profileData.collegeGraduationYear,
+      major: profileData.major,
+      minor: profileData.minor,
+
+      // Work Preferences
+      previousWorkMode: profileData.previousWorkMode,
+      preferredWorkMode: profileData.preferredWorkMode,
     };
 
     // Remove undefined fields
     Object.keys(validProfileData).forEach(key => {
-      if ((validProfileData as any)[key] === undefined) {
-        delete (validProfileData as any)[key];
+      if (validProfileData[key] === undefined) {
+        delete validProfileData[key];
       }
     });
 

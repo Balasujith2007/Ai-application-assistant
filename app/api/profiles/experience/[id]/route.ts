@@ -13,9 +13,24 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
     const existing = await prisma.experience.findFirst({ where: { id, profileId: profile.id } });
     if (!existing) return NextResponse.json({ message: 'Record not found or access denied' }, { status: 404 });
     const body = await req.json();
-    const updated = await prisma.experience.update({ where: { id }, data: body });
+    const { company, role, description, startDate, endDate, currentlyWorking, duration } = body;
+    const updated = await prisma.experience.update({
+      where: { id },
+      data: {
+        company: company !== undefined ? company : existing.company,
+        role: role !== undefined ? role : existing.role,
+        description: description !== undefined ? description : existing.description,
+        startDate: startDate ? new Date(startDate) : existing.startDate,
+        endDate: currentlyWorking ? null : (endDate ? new Date(endDate) : (currentlyWorking !== undefined ? null : existing.endDate)),
+        currentlyWorking: currentlyWorking !== undefined ? Boolean(currentlyWorking) : existing.currentlyWorking,
+        duration: duration !== undefined ? duration : existing.duration,
+      },
+    });
     return NextResponse.json({ data: updated });
-  } catch (error) { return NextResponse.json({ message: 'Error' }, { status: 500 }); }
+  } catch (error) {
+    console.error('Experience update error:', error);
+    return NextResponse.json({ message: 'Error updating experience' }, { status: 500 });
+  }
 }
 export async function DELETE(req: Request, props: { params: Promise<{ id: string }> }) {
   try {

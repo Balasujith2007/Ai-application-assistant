@@ -43,6 +43,27 @@ export interface Profile {
   linkedinUrl?: string | null;
   githubUrl?: string | null;
   portfolioUrl?: string | null;
+  codolioUrl?: string | null;
+  dob?: string | null;
+  nationality?: string | null;
+  country?: string | null;
+  state?: string | null;
+  preferredLocation?: string | null;
+  pinCode?: string | null;
+  preferredRole?: string | null;
+  expectedSalary?: string | null;
+  tenthSchool?: string | null;
+  tenthPercentage?: string | null;
+  twelfthSchool?: string | null;
+  twelfthPercentage?: string | null;
+  collegeName?: string | null;
+  cgpa?: string | null;
+  collegeJoiningYear?: number | null;
+  collegeGraduationYear?: number | null;
+  major?: string | null;
+  minor?: string | null;
+  previousWorkMode?: string | null;
+  preferredWorkMode?: string | null;
   education?: Education[];
   projects?: Project[];
   experiences?: Experience[];
@@ -69,6 +90,7 @@ export interface Education {
   startYear: number;
   endYear?: number | null;
   grade?: string | null;
+  minor?: string | null;
 }
 
 export interface Project {
@@ -92,6 +114,7 @@ export interface Experience {
   startDate: string;
   endDate?: string | null;
   currentlyWorking: boolean;
+  duration?: string | null;
 }
 
 // ============================================================

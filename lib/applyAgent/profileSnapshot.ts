@@ -68,14 +68,14 @@ export async function buildExtensionProfile(userId: string): Promise<ExtensionPr
 
   if (!user) return null;
 
-  const profile = user.profile;
+  const profile = user.profile as any;
   const prefs = (profile?.careerPreferences || {}) as Record<string, unknown>;
   const { first, last } = splitName(user.name);
   const verifiedMap = new Map<string, { platform: string; profileUrl: string }>(
     user.verifiedProfiles.map((vp: { platform: string; profileUrl: string }) => [vp.platform, vp])
   );
   const activeResume = user.resumes[0] || null;
-  const edu = profile?.education?.[0];
+  const edu = profile?.education?.[0] as any;
 
   const snapshot: ExtensionProfileSnapshot = {
     userId: user.id,
@@ -85,14 +85,31 @@ export async function buildExtensionProfile(userId: string): Promise<ExtensionPr
       lastName: meta(last, 'existing-profile', { label: 'Last Name', category: 'personal' }),
       email: meta(user.email, 'existing-profile', { label: 'Email', category: 'personal' }),
       phone: meta(profile?.phone, 'existing-profile', { label: 'Phone', category: 'personal' }),
+      location: meta(profile?.location, 'existing-profile', { label: 'Location', category: 'personal' }),
+      dateOfBirth: meta(profile?.dob, 'existing-profile', { label: 'Date of Birth', category: 'personal' }),
+      dob: meta(profile?.dob, 'existing-profile', { label: 'Date of Birth', category: 'personal' }),
+      nationality: meta(profile?.nationality, 'existing-profile', { label: 'Nationality', category: 'personal' }),
+      country: meta(profile?.country, 'existing-profile', { label: 'Country', category: 'personal' }),
+      state: meta(profile?.state, 'existing-profile', { label: 'State', category: 'personal' }),
+      preferredLocation: meta(profile?.preferredLocation || (Array.isArray(prefs.locations) ? (prefs.locations as string[]).join(', ') : ''), 'existing-profile', { label: 'Preferred Location', category: 'personal' }),
+      pinCode: meta(profile?.pinCode, 'existing-profile', { label: 'PIN Code', category: 'personal' }),
     },
     education: {
-      college: meta(profile?.college || edu?.institution, 'existing-profile', { label: 'College', category: 'education' }),
+      college: meta(profile?.collegeName || profile?.college || edu?.institution, 'existing-profile', { label: 'College', category: 'education' }),
+      collegeName: meta(profile?.collegeName || profile?.college || edu?.institution, 'existing-profile', { label: 'College Name', category: 'education' }),
       department: meta(profile?.department || edu?.fieldOfStudy, 'existing-profile', { label: 'Department', category: 'education' }),
       degree: meta(edu?.degree, 'existing-profile', { label: 'Degree', category: 'education' }),
-      cgpa: meta(edu?.grade, 'existing-profile', { label: 'CGPA', category: 'education' }),
+      cgpa: meta(profile?.cgpa || edu?.grade, 'existing-profile', { label: 'CGPA', category: 'education' }),
       year: meta(profile?.year != null ? String(profile.year) : '', 'existing-profile', { label: 'Year', category: 'education' }),
-      graduationYear: meta(edu?.endYear != null ? String(edu.endYear) : '', 'existing-profile', { label: 'Graduation Year', category: 'education' }),
+      collegeJoiningYear: meta(profile?.collegeJoiningYear != null ? String(profile.collegeJoiningYear) : '', 'existing-profile', { label: 'Joining Year', category: 'education' }),
+      collegeGraduationYear: meta(profile?.collegeGraduationYear != null ? String(profile.collegeGraduationYear) : '', 'existing-profile', { label: 'Expected Graduation Year', category: 'education' }),
+      graduationYear: meta(profile?.collegeGraduationYear != null ? String(profile.collegeGraduationYear) : (edu?.endYear != null ? String(edu.endYear) : ''), 'existing-profile', { label: 'Graduation Year', category: 'education' }),
+      major: meta(profile?.major || edu?.fieldOfStudy, 'existing-profile', { label: 'Major', category: 'education' }),
+      minor: meta(profile?.minor || (edu as any)?.minor, 'existing-profile', { label: 'Minor', category: 'education' }),
+      tenthSchool: meta(profile?.tenthSchool, 'existing-profile', { label: '10th School', category: 'education' }),
+      tenthPercentage: meta(profile?.tenthPercentage, 'existing-profile', { label: '10th Percentage', category: 'education' }),
+      twelfthSchool: meta(profile?.twelfthSchool, 'existing-profile', { label: '12th School', category: 'education' }),
+      twelfthPercentage: meta(profile?.twelfthPercentage, 'existing-profile', { label: '12th Percentage', category: 'education' }),
     },
     links: {
       github: meta(profile?.githubUrl || verifiedMap.get('GITHUB')?.profileUrl, 'existing-profile', { label: 'GitHub', category: 'links' }),
@@ -101,10 +118,17 @@ export async function buildExtensionProfile(userId: string): Promise<ExtensionPr
       codolio: meta(profile?.codolioUrl || verifiedMap.get('CODOLIO')?.profileUrl, 'existing-profile', { label: 'Codolio', category: 'links' }),
     },
     preferences: {
+      preferredRole: meta(profile?.preferredRole, 'existing-profile', { label: 'Preferred Role', category: 'preferences' }),
+      desiredJobRole: meta(profile?.preferredRole, 'existing-profile', { label: 'Desired Job Role', category: 'preferences' }),
       expectedSalary: meta(
-        typeof prefs.expectedSalary === 'string' ? prefs.expectedSalary : '',
+        profile?.expectedSalary || (typeof prefs.expectedSalary === 'string' ? prefs.expectedSalary : ''),
         'existing-profile',
         { label: 'Expected Salary', category: 'preferences' },
+      ),
+      salaryExpectation: meta(
+        profile?.expectedSalary || (typeof prefs.expectedSalary === 'string' ? prefs.expectedSalary : ''),
+        'existing-profile',
+        { label: 'Salary Expectation', category: 'preferences' },
       ),
       noticePeriod: meta(
         typeof prefs.noticePeriod === 'string' ? prefs.noticePeriod : '',
@@ -112,12 +136,22 @@ export async function buildExtensionProfile(userId: string): Promise<ExtensionPr
         { label: 'Notice Period', category: 'preferences' },
       ),
       preferredLocation: meta(
-        Array.isArray(prefs.locations) ? (prefs.locations as string[]).join(', ') : '',
+        profile?.preferredLocation || (Array.isArray(prefs.locations) ? (prefs.locations as string[]).join(', ') : ''),
         'existing-profile',
         { label: 'Preferred Location', category: 'preferences' },
       ),
+      previousWorkMode: meta(
+        profile?.previousWorkMode,
+        'existing-profile',
+        { label: 'Previous Work Mode', category: 'preferences' },
+      ),
+      preferredWorkMode: meta(
+        profile?.preferredWorkMode,
+        'existing-profile',
+        { label: 'Preferred Work Mode', category: 'preferences' },
+      ),
       workMode: meta(
-        Array.isArray(prefs.workTypes) ? (prefs.workTypes as string[]).join(', ') : '',
+        profile?.preferredWorkMode || (Array.isArray(prefs.workTypes) ? (prefs.workTypes as string[]).join(', ') : ''),
         'existing-profile',
         { label: 'Work Mode', category: 'preferences' },
       ),
@@ -130,10 +164,11 @@ export async function buildExtensionProfile(userId: string): Promise<ExtensionPr
       resumeUrl: meta(activeResume?.fileUrl, 'existing-profile', { label: 'Resume URL', category: 'documents' }),
     },
     skills: profile?.skills?.map((s: { skill: { name: string } }) => s.skill.name) || [],
-    experience: (profile?.experiences || []).map((e: { company: string; role: string; description?: string | null }) => ({
+    experience: (profile?.experiences || []).map((e: { company: string; role: string; description?: string | null; duration?: string | null }) => ({
       company: e.company,
       role: e.role,
       description: e.description,
+      duration: e.duration,
     })),
     projects: (profile?.projects || []).map((p: { title: string; description?: string | null; technologies: string[] }) => ({
       title: p.title,
@@ -199,6 +234,9 @@ export async function buildExtensionProfile(userId: string): Promise<ExtensionPr
   snapshot.flat.noticePeriod = snapshot.flat['preferences.noticePeriod'] || '';
   snapshot.flat.workAuthorization = snapshot.flat['preferences.workAuthorization'] || '';
   snapshot.flat.preferredLocation = snapshot.flat['preferences.preferredLocation'] || '';
+  snapshot.flat.previousWorkMode = snapshot.flat['preferences.previousWorkMode'] || '';
+  snapshot.flat.preferredWorkMode = snapshot.flat['preferences.preferredWorkMode'] || '';
+  snapshot.flat.workMode = snapshot.flat['preferences.preferredWorkMode'] || snapshot.flat['preferences.workMode'] || '';
 
   return snapshot;
 }

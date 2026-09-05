@@ -27,7 +27,8 @@ import {
   CheckCircle,
   AlertCircle,
   Sparkles,
-  Lock
+  Lock,
+  SlidersHorizontal
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
@@ -89,12 +90,12 @@ export default function ProfilePage() {
     const checks: { label: string; done: boolean; weight: number }[] = [];
 
     // Personal Info (20%)
-    const hasPersonalInfo = Boolean(profile?.phone || profile?.department || profile?.college || profile?.location);
+    const hasPersonalInfo = Boolean(profile?.phone || profile?.department || profile?.college || profile?.location || profile?.dob || profile?.nationality);
     checks.push({ label: 'Personal Info', done: hasPersonalInfo, weight: 20 });
     if (hasPersonalInfo) score += 20;
 
     // Education (20%)
-    const hasEducation = Boolean(profile?.education && profile.education.length > 0);
+    const hasEducation = Boolean((profile?.education && profile.education.length > 0) || (profile as any)?.tenthSchool || (profile as any)?.twelfthSchool || (profile as any)?.collegeName || (profile as any)?.cgpa);
     checks.push({ label: 'Education', done: hasEducation, weight: 20 });
     if (hasEducation) score += 20;
 
@@ -138,6 +139,7 @@ export default function ProfilePage() {
     { id: 'skills', label: 'Skills', icon: Code, count: profile?.skills?.length || null },
     { id: 'projects', label: 'Projects', icon: Briefcase, count: profile?.projects?.length || null },
     { id: 'experience', label: 'Experience', icon: Building2, count: profile?.experiences?.length || null },
+    { id: 'work-preferences', label: 'Work Preferences', icon: SlidersHorizontal, count: null },
     { id: 'activities', label: 'Career Activities', icon: Trophy, count: null },
     { id: 'social', label: 'Social Links', icon: LinkIcon, count: verifiedList.length || null },
   ];
@@ -167,7 +169,7 @@ export default function ProfilePage() {
         {/* Page Title & Subtitle */}
         <div className="space-y-0.5">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">My Profile</h1>
-          <p className="text-xs text-slate-500">Manage your personal information, education, skills, experience and career details.</p>
+          <p className="text-xs text-slate-500">Manage your personal information, education, skills, experience, work preferences, and career details.</p>
         </div>
 
         {/* Clean Professional Profile Header Card */}
@@ -313,7 +315,7 @@ export default function ProfilePage() {
               <PersonalSection profile={profile} onUpdate={fetchProfile} user={user} />
             )}
             {activeSection === 'education' && (
-              <EducationSection education={profile?.education ?? []} onUpdate={fetchProfile} />
+              <EducationSection education={profile?.education ?? []} profile={profile} onUpdate={fetchProfile} />
             )}
             {activeSection === 'skills' && (
               <SkillsSection skills={profile?.skills?.map((ps) => ps.skill) ?? []} onUpdate={fetchProfile} />
@@ -323,6 +325,9 @@ export default function ProfilePage() {
             )}
             {activeSection === 'experience' && (
               <ExperienceSection experiences={profile?.experiences ?? []} onUpdate={fetchProfile} />
+            )}
+            {activeSection === 'work-preferences' && (
+              <WorkPreferencesSection profile={profile} onUpdate={fetchProfile} />
             )}
             {activeSection === 'activities' && (
               <CareerActivitiesSection />
@@ -351,15 +356,42 @@ function PersonalSection({ profile, onUpdate, user }: { profile: Profile | null;
     college: profile?.college ?? '',
     location: profile?.location ?? '',
     careerObjective: profile?.careerObjective ?? '',
+    dob: profile?.dob ?? '',
+    nationality: profile?.nationality ?? '',
+    country: profile?.country ?? '',
+    state: profile?.state ?? '',
+    preferredLocation: profile?.preferredLocation ?? '',
+    pinCode: profile?.pinCode ?? '',
+    preferredRole: profile?.preferredRole ?? '',
+    expectedSalary: profile?.expectedSalary ?? '',
   });
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   useEffect(() => {
-    if (user?.name && form.name === '') {
+    if (profile) {
+      setForm({
+        name: user?.name ?? '',
+        phone: profile.phone ?? '',
+        department: profile.department ?? '',
+        year: profile.year?.toString() ?? '',
+        section: profile.section ?? '',
+        college: profile.college ?? '',
+        location: profile.location ?? '',
+        careerObjective: profile.careerObjective ?? '',
+        dob: profile.dob ?? '',
+        nationality: profile.nationality ?? '',
+        country: profile.country ?? '',
+        state: profile.state ?? '',
+        preferredLocation: profile.preferredLocation ?? '',
+        pinCode: profile.pinCode ?? '',
+        preferredRole: profile.preferredRole ?? '',
+        expectedSalary: profile.expectedSalary ?? '',
+      });
+    } else if (user?.name) {
       setForm((prev) => ({ ...prev, name: user.name ?? '' }));
     }
-  }, [user]);
+  }, [profile, user]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -377,12 +409,30 @@ function PersonalSection({ profile, onUpdate, user }: { profile: Profile | null;
     }
   };
 
+  const roleSuggestions = [
+    'Software Engineer',
+    'AI Engineer',
+    'Data Scientist',
+    'Full Stack Developer',
+    'Cybersecurity Engineer',
+    'Machine Learning Engineer',
+    'Cloud Solutions Architect',
+    'DevOps Engineer',
+    'Backend Developer',
+    'Frontend Developer',
+    'Data Analyst',
+    'Mobile Application Developer',
+    'QA / Automation Engineer',
+    'Product Manager',
+    'Embedded Systems Engineer',
+  ];
+
   return (
     <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-xs space-y-6">
       <div className="flex items-center justify-between border-b border-slate-100 pb-4">
         <div>
           <h2 className="text-lg font-bold text-slate-900 tracking-tight">Personal Information</h2>
-          <p className="text-xs text-slate-500 mt-0.5">Update your contact details, academic branch, and career goals.</p>
+          <p className="text-xs text-slate-500 mt-0.5">Update your contact details, identity, location, and career information.</p>
         </div>
         {savedSuccess && (
           <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200">
@@ -391,6 +441,7 @@ function PersonalSection({ profile, onUpdate, user }: { profile: Profile | null;
         )}
       </div>
 
+      {/* Basic Contact & Identity Grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1.5">Full Name</label>
@@ -422,45 +473,51 @@ function PersonalSection({ profile, onUpdate, user }: { profile: Profile | null;
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">Department</label>
+          <label className="block text-xs font-semibold text-slate-700 mb-1.5">Date of Birth</label>
           <Input
-            value={form.department}
-            onChange={(e) => setForm({ ...form, department: e.target.value })}
-            placeholder="Artificial Intelligence & Data Science"
+            type="date"
+            value={form.dob}
+            onChange={(e) => setForm({ ...form, dob: e.target.value })}
             className="h-10 text-xs sm:text-sm bg-white"
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">Year of Study</label>
+          <label className="block text-xs font-semibold text-slate-700 mb-1.5">Nationality</label>
           <Input
-            type="number"
-            min={1}
-            max={6}
-            value={form.year}
-            onChange={(e) => setForm({ ...form, year: e.target.value })}
-            placeholder="3"
+            value={form.nationality}
+            onChange={(e) => setForm({ ...form, nationality: e.target.value })}
+            placeholder="e.g. Indian"
             className="h-10 text-xs sm:text-sm bg-white"
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">Section</label>
+          <label className="block text-xs font-semibold text-slate-700 mb-1.5">Country</label>
           <Input
-            value={form.section}
-            onChange={(e) => setForm({ ...form, section: e.target.value })}
-            placeholder="A"
+            value={form.country}
+            onChange={(e) => setForm({ ...form, country: e.target.value })}
+            placeholder="e.g. India"
             className="h-10 text-xs sm:text-sm bg-white"
           />
         </div>
-        <div className="sm:col-span-2">
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">College / Institution</label>
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1.5">State</label>
           <Input
-            value={form.college}
-            onChange={(e) => setForm({ ...form, college: e.target.value })}
-            placeholder="KIT - Kalaignarkarunanidhi Institute of Technology"
+            value={form.state}
+            onChange={(e) => setForm({ ...form, state: e.target.value })}
+            placeholder="e.g. Tamil Nadu"
             className="h-10 text-xs sm:text-sm bg-white"
           />
         </div>
-        <div className="sm:col-span-2">
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1.5">PIN Code</label>
+          <Input
+            value={form.pinCode}
+            onChange={(e) => setForm({ ...form, pinCode: e.target.value })}
+            placeholder="e.g. 641001"
+            className="h-10 text-xs sm:text-sm bg-white"
+          />
+        </div>
+        <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1.5">Current Location</label>
           <Input
             value={form.location}
@@ -469,8 +526,102 @@ function PersonalSection({ profile, onUpdate, user }: { profile: Profile | null;
             className="h-10 text-xs sm:text-sm bg-white"
           />
         </div>
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1.5">Preferred Location</label>
+          <Input
+            value={form.preferredLocation}
+            onChange={(e) => setForm({ ...form, preferredLocation: e.target.value })}
+            placeholder="e.g. Bengaluru, Chennai, Remote"
+            className="h-10 text-xs sm:text-sm bg-white"
+          />
+        </div>
       </div>
 
+      {/* College & Department Identification */}
+      <div className="border-t border-slate-100 pt-4 space-y-4">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Institution & Branch Details</h3>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">College / Institution</label>
+            <Input
+              value={form.college}
+              onChange={(e) => setForm({ ...form, college: e.target.value })}
+              placeholder="KIT - Kalaignarkarunanidhi Institute of Technology"
+              className="h-10 text-xs sm:text-sm bg-white"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Department</label>
+            <Input
+              value={form.department}
+              onChange={(e) => setForm({ ...form, department: e.target.value })}
+              placeholder="Artificial Intelligence & Data Science"
+              className="h-10 text-xs sm:text-sm bg-white"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Year of Study</label>
+              <Input
+                type="number"
+                min={1}
+                max={6}
+                value={form.year}
+                onChange={(e) => setForm({ ...form, year: e.target.value })}
+                placeholder="3"
+                className="h-10 text-xs sm:text-sm bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Section</label>
+              <Input
+                value={form.section}
+                onChange={(e) => setForm({ ...form, section: e.target.value })}
+                placeholder="A"
+                className="h-10 text-xs sm:text-sm bg-white"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Career Information Card */}
+      <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-4 sm:p-5 space-y-4">
+        <div>
+          <h3 className="text-sm font-bold text-slate-900 tracking-tight">Career Information & Preferences</h3>
+          <p className="text-[11px] text-slate-500 mt-0.5">Specify your target role and compensation expectations.</p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Preferred Future Role / Desired Job Role</label>
+            <div className="relative">
+              <input
+                list="future-role-suggestions"
+                value={form.preferredRole}
+                onChange={(e) => setForm({ ...form, preferredRole: e.target.value })}
+                placeholder="Select or enter role (e.g. AI Engineer)"
+                className="flex h-10 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:border-kit-600 focus:outline-none focus:ring-2 focus:ring-kit-600/20"
+              />
+              <datalist id="future-role-suggestions">
+                {roleSuggestions.map((r) => (
+                  <option key={r} value={r} />
+                ))}
+              </datalist>
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Salary Expectation</label>
+            <Input
+              value={form.expectedSalary}
+              onChange={(e) => setForm({ ...form, expectedSalary: e.target.value })}
+              placeholder="e.g. ₹8,00,000 / annum or 8-12 LPA"
+              className="h-10 text-xs sm:text-sm bg-white"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Career Objective & Bio */}
       <div className="space-y-1.5">
         <label className="block text-xs font-semibold text-slate-700">Career Objective & Bio</label>
         <Textarea
@@ -495,16 +646,68 @@ function PersonalSection({ profile, onUpdate, user }: { profile: Profile | null;
 // ──────────────────────────────────────────────────
 // Education Section
 // ──────────────────────────────────────────────────
-function EducationSection({ education, onUpdate }: { education: Education[]; onUpdate: () => void }) {
+function EducationSection({ education, profile, onUpdate }: { education: Education[]; profile: Profile | null; onUpdate: () => void }) {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({ institution: '', degree: '', fieldOfStudy: '', startYear: '', endYear: '', grade: '' });
+  const [form, setForm] = useState({ institution: '', degree: '', fieldOfStudy: '', startYear: '', endYear: '', grade: '', minor: '' });
   const [submitting, setSubmitting] = useState(false);
+
+  // School & College Academic Details Form State
+  const [academicForm, setAcademicForm] = useState({
+    tenthSchool: profile?.tenthSchool ?? '',
+    tenthPercentage: profile?.tenthPercentage ?? '',
+    twelfthSchool: profile?.twelfthSchool ?? '',
+    twelfthPercentage: profile?.twelfthPercentage ?? '',
+    collegeName: profile?.collegeName ?? profile?.college ?? '',
+    cgpa: profile?.cgpa ?? '',
+    collegeJoiningYear: profile?.collegeJoiningYear?.toString() ?? '',
+    collegeGraduationYear: profile?.collegeGraduationYear?.toString() ?? '',
+    major: profile?.major ?? profile?.department ?? '',
+    minor: profile?.minor ?? '',
+  });
+  const [savingAcademics, setSavingAcademics] = useState(false);
+  const [academicSuccess, setAcademicSuccess] = useState(false);
+
+  useEffect(() => {
+    if (profile) {
+      setAcademicForm({
+        tenthSchool: profile.tenthSchool ?? '',
+        tenthPercentage: profile.tenthPercentage ?? '',
+        twelfthSchool: profile.twelfthSchool ?? '',
+        twelfthPercentage: profile.twelfthPercentage ?? '',
+        collegeName: profile.collegeName ?? profile.college ?? '',
+        cgpa: profile.cgpa ?? '',
+        collegeJoiningYear: profile.collegeJoiningYear?.toString() ?? '',
+        collegeGraduationYear: profile.collegeGraduationYear?.toString() ?? '',
+        major: profile.major ?? profile.department ?? '',
+        minor: profile.minor ?? '',
+      });
+    }
+  }, [profile]);
+
+  const handleSaveAcademics = async () => {
+    setSavingAcademics(true);
+    setAcademicSuccess(false);
+    try {
+      await api.put('/profiles/me', {
+        ...academicForm,
+        collegeJoiningYear: academicForm.collegeJoiningYear ? parseInt(academicForm.collegeJoiningYear) : undefined,
+        collegeGraduationYear: academicForm.collegeGraduationYear ? parseInt(academicForm.collegeGraduationYear) : undefined,
+      });
+      setAcademicSuccess(true);
+      setTimeout(() => setAcademicSuccess(false), 3000);
+      onUpdate();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Failed to save academic details.');
+    } finally {
+      setSavingAcademics(false);
+    }
+  };
 
   const reset = () => {
     setShowForm(false);
     setEditId(null);
-    setForm({ institution: '', degree: '', fieldOfStudy: '', startYear: '', endYear: '', grade: '' });
+    setForm({ institution: '', degree: '', fieldOfStudy: '', startYear: '', endYear: '', grade: '', minor: '' });
   };
 
   const handleSubmit = async () => {
@@ -540,114 +743,281 @@ function EducationSection({ education, onUpdate }: { education: Education[]; onU
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-xs space-y-6">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900 tracking-tight">Education</h2>
-          <p className="text-xs text-slate-500 mt-0.5">Add your undergraduate degree, secondary education, and academic accomplishments.</p>
+    <div className="space-y-6">
+      {/* School Education Card (10th & 12th) */}
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-xs space-y-6">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 tracking-tight">School Education</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Enter your 10th and 12th standard schooling and percentage.</p>
+          </div>
+          {academicSuccess && (
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200">
+              <CheckCircle2 className="h-3.5 w-3.5" /> Saved successfully
+            </span>
+          )}
         </div>
-        <Button variant="primary" size="sm" onClick={() => { reset(); setShowForm(true); }} className="font-bold rounded-xl shadow-2xs">
-          <Plus className="h-3.5 w-3.5" /> Add Education
-        </Button>
-      </div>
 
-      <div className="space-y-3.5">
-        {education.map((edu) => (
-          <div key={edu.id} className="rounded-xl border border-slate-200/80 p-4 sm:p-5 hover:border-kit-300 transition-all bg-slate-50/40">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-slate-900 text-sm sm:text-base">{edu.institution}</h3>
-                  {edu.grade && (
-                    <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">
-                      {edu.grade}
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs sm:text-sm font-semibold text-kit-800">
-                  {edu.degree}{edu.fieldOfStudy ? ` • ${edu.fieldOfStudy}` : ''}
-                </p>
-                <p className="text-xs text-slate-500 flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                  <span>{edu.startYear} — {edu.endYear ?? 'Present'}</span>
-                </p>
+        <div className="space-y-4">
+          {/* 10th Standard */}
+          <div className="rounded-xl border border-slate-200/80 bg-slate-50/40 p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-kit-100 text-xs font-bold text-kit-800">10</span>
+              <h3 className="text-xs sm:text-sm font-bold text-slate-900">10th Standard (Secondary School)</h3>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">School Name</label>
+                <Input
+                  value={academicForm.tenthSchool}
+                  onChange={(e) => setAcademicForm({ ...academicForm, tenthSchool: e.target.value })}
+                  placeholder="e.g. St. Joseph Higher Secondary School"
+                  className="h-10 text-xs sm:text-sm bg-white"
+                />
               </div>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => {
-                    setEditId(edu.id);
-                    setForm({
-                      institution: edu.institution,
-                      degree: edu.degree,
-                      fieldOfStudy: edu.fieldOfStudy ?? '',
-                      startYear: String(edu.startYear),
-                      endYear: edu.endYear ? String(edu.endYear) : '',
-                      grade: edu.grade ?? ''
-                    });
-                    setShowForm(true);
-                  }}
-                  className="rounded-lg p-1.5 text-slate-400 hover:bg-kit-50 hover:text-kit-700 transition-colors"
-                  title="Edit"
-                >
-                  <Pencil className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(edu.id)}
-                  className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
-                  title="Delete"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">10th Percentage / Score</label>
+                <Input
+                  value={academicForm.tenthPercentage}
+                  onChange={(e) => setAcademicForm({ ...academicForm, tenthPercentage: e.target.value })}
+                  placeholder="e.g. 92.4% or 9.2 CGPA"
+                  className="h-10 text-xs sm:text-sm bg-white"
+                />
               </div>
             </div>
           </div>
-        ))}
-        {education.length === 0 && !showForm && (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-8 text-center space-y-2">
-            <GraduationCap className="h-8 w-8 text-slate-300 mx-auto" />
-            <p className="text-sm font-semibold text-slate-700">No education records added yet</p>
-            <p className="text-xs text-slate-500">Click &ldquo;Add Education&rdquo; above to include your academic history.</p>
+
+          {/* 12th Standard */}
+          <div className="rounded-xl border border-slate-200/80 bg-slate-50/40 p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-kit-100 text-xs font-bold text-kit-800">12</span>
+              <h3 className="text-xs sm:text-sm font-bold text-slate-900">12th Standard (Higher Secondary)</h3>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">School Name</label>
+                <Input
+                  value={academicForm.twelfthSchool}
+                  onChange={(e) => setAcademicForm({ ...academicForm, twelfthSchool: e.target.value })}
+                  placeholder="e.g. Kendriya Vidyalaya / Model Matriculation Higher Secondary"
+                  className="h-10 text-xs sm:text-sm bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">12th Percentage / Score</label>
+                <Input
+                  value={academicForm.twelfthPercentage}
+                  onChange={(e) => setAcademicForm({ ...academicForm, twelfthPercentage: e.target.value })}
+                  placeholder="e.g. 94.6%"
+                  className="h-10 text-xs sm:text-sm bg-white"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end pt-2 border-t border-slate-100">
+          <Button variant="primary" isLoading={savingAcademics} onClick={handleSaveAcademics} className="font-bold px-6 py-2.5 rounded-xl shadow-xs">
+            <Save className="h-4 w-4" />
+            Save School Details
+          </Button>
+        </div>
+      </div>
+
+      {/* College Education Card */}
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-xs space-y-6">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 tracking-tight">College Education</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Provide your undergraduate / college degree, CGPA, graduation timeline, and specializations.</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">College Name / Institution</label>
+            <Input
+              value={academicForm.collegeName}
+              onChange={(e) => setAcademicForm({ ...academicForm, collegeName: e.target.value })}
+              placeholder="e.g. KIT - Kalaignarkarunanidhi Institute of Technology"
+              className="h-10 text-xs sm:text-sm bg-white"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">CGPA / Academic Grade</label>
+            <Input
+              value={academicForm.cgpa}
+              onChange={(e) => setAcademicForm({ ...academicForm, cgpa: e.target.value })}
+              placeholder="e.g. 8.65 CGPA"
+              className="h-10 text-xs sm:text-sm bg-white"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">College Joining Year</label>
+              <Input
+                type="number"
+                value={academicForm.collegeJoiningYear}
+                onChange={(e) => setAcademicForm({ ...academicForm, collegeJoiningYear: e.target.value })}
+                placeholder="2022"
+                className="h-10 text-xs sm:text-sm bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Expected Graduation Year</label>
+              <Input
+                type="number"
+                value={academicForm.collegeGraduationYear}
+                onChange={(e) => setAcademicForm({ ...academicForm, collegeGraduationYear: e.target.value })}
+                placeholder="2026"
+                className="h-10 text-xs sm:text-sm bg-white"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Major / Specialization</label>
+            <Input
+              value={academicForm.major}
+              onChange={(e) => setAcademicForm({ ...academicForm, major: e.target.value })}
+              placeholder="e.g. Artificial Intelligence & Data Science"
+              className="h-10 text-xs sm:text-sm bg-white"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Minor / Secondary Specialization</label>
+            <Input
+              value={academicForm.minor}
+              onChange={(e) => setAcademicForm({ ...academicForm, minor: e.target.value })}
+              placeholder="e.g. Cybersecurity / Robotics (Optional)"
+              className="h-10 text-xs sm:text-sm bg-white"
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end pt-2 border-t border-slate-100">
+          <Button variant="primary" isLoading={savingAcademics} onClick={handleSaveAcademics} className="font-bold px-6 py-2.5 rounded-xl shadow-xs">
+            <Save className="h-4 w-4" />
+            Save College Details
+          </Button>
+        </div>
+      </div>
+
+      {/* Additional Education Entries & History */}
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-xs space-y-6">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 tracking-tight">Additional Degrees & Certifications</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Manage any additional degree programs, diplomas, or academic qualifications.</p>
+          </div>
+          <Button variant="primary" size="sm" onClick={() => { reset(); setShowForm(true); }} className="font-bold rounded-xl shadow-2xs">
+            <Plus className="h-3.5 w-3.5" /> Add Degree
+          </Button>
+        </div>
+
+        <div className="space-y-3.5">
+          {education.map((edu) => (
+            <div key={edu.id} className="rounded-xl border border-slate-200/80 p-4 sm:p-5 hover:border-kit-300 transition-all bg-slate-50/40">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-slate-900 text-sm sm:text-base">{edu.institution}</h3>
+                    {edu.grade && (
+                      <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">
+                        {edu.grade}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs sm:text-sm font-semibold text-kit-800">
+                    {edu.degree}{edu.fieldOfStudy ? ` • ${edu.fieldOfStudy}` : ''}
+                    {edu.minor ? ` (Minor: ${edu.minor})` : ''}
+                  </p>
+                  <p className="text-xs text-slate-500 flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                    <span>{edu.startYear} — {edu.endYear ?? 'Present'}</span>
+                  </p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => {
+                      setEditId(edu.id);
+                      setForm({
+                        institution: edu.institution,
+                        degree: edu.degree,
+                        fieldOfStudy: edu.fieldOfStudy ?? '',
+                        startYear: String(edu.startYear),
+                        endYear: edu.endYear ? String(edu.endYear) : '',
+                        grade: edu.grade ?? '',
+                        minor: edu.minor ?? '',
+                      });
+                      setShowForm(true);
+                    }}
+                    className="rounded-lg p-1.5 text-slate-400 hover:bg-kit-50 hover:text-kit-700 transition-colors"
+                    title="Edit"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(edu.id)}
+                    className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                    title="Delete"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+          {education.length === 0 && !showForm && (
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center space-y-1.5">
+              <GraduationCap className="h-7 w-7 text-slate-300 mx-auto" />
+              <p className="text-xs sm:text-sm font-semibold text-slate-700">No additional degree records</p>
+              <p className="text-[11px] text-slate-500">Click &ldquo;Add Degree&rdquo; if you have dual degrees, diplomas, or postgraduate qualifications.</p>
+            </div>
+          )}
+        </div>
+
+        {showForm && (
+          <div className="rounded-xl border border-kit-200 bg-kit-50/20 p-5 space-y-4">
+            <h4 className="text-sm font-bold text-kit-900">{editId ? 'Edit Degree' : 'Add New Degree'}</h4>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Institution / University</label>
+                <Input value={form.institution} onChange={(e) => setForm({ ...form, institution: e.target.value })} placeholder="e.g. KIT - Kalaignarkarunanidhi Institute of Technology" className="h-9.5 text-xs sm:text-sm bg-white" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Degree</label>
+                <Input value={form.degree} onChange={(e) => setForm({ ...form, degree: e.target.value })} placeholder="e.g. B.Tech / B.E." className="h-9.5 text-xs sm:text-sm bg-white" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Field of Study / Major</label>
+                <Input value={form.fieldOfStudy} onChange={(e) => setForm({ ...form, fieldOfStudy: e.target.value })} placeholder="e.g. Computer Science / AI & DS" className="h-9.5 text-xs sm:text-sm bg-white" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Minor / Secondary Specialization</label>
+                <Input value={form.minor} onChange={(e) => setForm({ ...form, minor: e.target.value })} placeholder="e.g. Cybersecurity (Optional)" className="h-9.5 text-xs sm:text-sm bg-white" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Grade / CGPA</label>
+                <Input value={form.grade} onChange={(e) => setForm({ ...form, grade: e.target.value })} placeholder="e.g. 8.5 CGPA or 85%" className="h-9.5 text-xs sm:text-sm bg-white" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Start Year</label>
+                <Input type="number" value={form.startYear} onChange={(e) => setForm({ ...form, startYear: e.target.value })} placeholder="2022" className="h-9.5 text-xs sm:text-sm bg-white" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">End Year (or Expected)</label>
+                <Input type="number" value={form.endYear} onChange={(e) => setForm({ ...form, endYear: e.target.value })} placeholder="2026" className="h-9.5 text-xs sm:text-sm bg-white" />
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end pt-2 border-t border-kit-100">
+              <Button variant="outline" size="sm" onClick={reset} className="rounded-lg">Cancel</Button>
+              <Button variant="primary" size="sm" isLoading={submitting} onClick={handleSubmit} className="font-bold rounded-lg shadow-2xs">
+                <Save className="h-3.5 w-3.5" /> Save Degree
+              </Button>
+            </div>
           </div>
         )}
       </div>
-
-      {showForm && (
-        <div className="rounded-xl border border-kit-200 bg-kit-50/20 p-5 space-y-4">
-          <h4 className="text-sm font-bold text-kit-900">{editId ? 'Edit Education' : 'Add New Education'}</h4>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Institution / University</label>
-              <Input value={form.institution} onChange={(e) => setForm({ ...form, institution: e.target.value })} placeholder="e.g. KIT - Kalaignarkarunanidhi Institute of Technology" className="h-9.5 text-xs sm:text-sm bg-white" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Degree</label>
-              <Input value={form.degree} onChange={(e) => setForm({ ...form, degree: e.target.value })} placeholder="e.g. B.Tech / B.E." className="h-9.5 text-xs sm:text-sm bg-white" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Field of Study</label>
-              <Input value={form.fieldOfStudy} onChange={(e) => setForm({ ...form, fieldOfStudy: e.target.value })} placeholder="e.g. Computer Science / AI & DS" className="h-9.5 text-xs sm:text-sm bg-white" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Start Year</label>
-              <Input type="number" value={form.startYear} onChange={(e) => setForm({ ...form, startYear: e.target.value })} placeholder="2022" className="h-9.5 text-xs sm:text-sm bg-white" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">End Year (or Expected)</label>
-              <Input type="number" value={form.endYear} onChange={(e) => setForm({ ...form, endYear: e.target.value })} placeholder="2026" className="h-9.5 text-xs sm:text-sm bg-white" />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Grade / CGPA</label>
-              <Input value={form.grade} onChange={(e) => setForm({ ...form, grade: e.target.value })} placeholder="e.g. 8.5 CGPA or 85%" className="h-9.5 text-xs sm:text-sm bg-white" />
-            </div>
-          </div>
-          <div className="flex gap-2 justify-end pt-2 border-t border-kit-100">
-            <Button variant="outline" size="sm" onClick={reset} className="rounded-lg">Cancel</Button>
-            <Button variant="primary" size="sm" isLoading={submitting} onClick={handleSubmit} className="font-bold rounded-lg shadow-2xs">
-              <Save className="h-3.5 w-3.5" /> Save Education
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -743,12 +1113,18 @@ function ProjectsSection({ projects, onUpdate }: { projects: Project[]; onUpdate
 
   const handleSubmit = async () => {
     if (!form.title) {
-      alert('Project title is required.');
+      alert('Please provide a project title.');
       return;
     }
     setSubmitting(true);
     try {
-      const payload = { ...form, technologies: form.technologies.split(',').map((t) => t.trim()).filter(Boolean) };
+      const payload = {
+        title: form.title,
+        description: form.description,
+        technologies: form.technologies ? form.technologies.split(',').map((s) => s.trim()).filter(Boolean) : [],
+        githubUrl: form.githubUrl,
+        liveUrl: form.liveUrl
+      };
       if (editId) await api.put(`/profiles/projects/${editId}`, payload);
       else await api.post('/profiles/projects', payload);
       onUpdate();
@@ -764,22 +1140,46 @@ function ProjectsSection({ projects, onUpdate }: { projects: Project[]; onUpdate
     <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-xs space-y-6">
       <div className="flex items-center justify-between border-b border-slate-100 pb-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 tracking-tight">Projects</h2>
-          <p className="text-xs text-slate-500 mt-0.5">Showcase your technical projects, open-source repositories, and web applications.</p>
+          <h2 className="text-lg font-bold text-slate-900 tracking-tight">Key Projects</h2>
+          <p className="text-xs text-slate-500 mt-0.5">Showcase your software applications, machine learning models, and engineering projects.</p>
         </div>
         <Button variant="primary" size="sm" onClick={() => { reset(); setShowForm(true); }} className="font-bold rounded-xl shadow-2xs">
           <Plus className="h-3.5 w-3.5" /> Add Project
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-3.5">
+      <div className="space-y-3.5">
         {projects.map((proj) => (
-          <div key={proj.id} className="rounded-xl border border-slate-200/80 p-4 sm:p-5 hover:border-kit-300 transition-all bg-slate-50/40 space-y-3">
+          <div key={proj.id} className="rounded-xl border border-slate-200/80 p-4 sm:p-5 hover:border-kit-300 transition-all bg-slate-50/40">
             <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <h3 className="font-bold text-slate-900 text-sm sm:text-base">{proj.title}</h3>
                 {proj.description && <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{proj.description}</p>}
+                
+                {proj.technologies && proj.technologies.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {proj.technologies.map((t, idx) => (
+                      <span key={idx} className="rounded-md bg-white border border-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3 pt-2">
+                  {proj.githubUrl && (
+                    <a href={proj.githubUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-kit-700 hover:underline">
+                      <GithubIcon className="h-3.5 w-3.5" /> Code Repository
+                    </a>
+                  )}
+                  {proj.liveUrl && (
+                    <a href={proj.liveUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:underline">
+                      <ExternalLink className="h-3.5 w-3.5" /> Live Demo
+                    </a>
+                  )}
+                </div>
               </div>
+
               <div className="flex items-center gap-1 shrink-0">
                 <button
                   onClick={() => {
@@ -787,7 +1187,7 @@ function ProjectsSection({ projects, onUpdate }: { projects: Project[]; onUpdate
                     setForm({
                       title: proj.title,
                       description: proj.description ?? '',
-                      technologies: proj.technologies.join(', '),
+                      technologies: (proj.technologies || []).join(', '),
                       githubUrl: proj.githubUrl ?? '',
                       liveUrl: proj.liveUrl ?? ''
                     });
@@ -812,38 +1212,13 @@ function ProjectsSection({ projects, onUpdate }: { projects: Project[]; onUpdate
                 </button>
               </div>
             </div>
-
-            {/* Tech Stack Pills */}
-            {proj.technologies && proj.technologies.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 pt-0.5">
-                {proj.technologies.map((t) => (
-                  <span key={t} className="rounded-md bg-white border border-slate-200 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700 shadow-2xs">
-                    {t}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Links */}
-            <div className="flex items-center gap-4 pt-1 text-xs font-semibold">
-              {proj.githubUrl && (
-                <a href={proj.githubUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-slate-700 hover:text-kit-700 transition-colors">
-                  <GithubIcon className="h-3.5 w-3.5" /> Repository <ExternalLink className="h-3 w-3" />
-                </a>
-              )}
-              {proj.liveUrl && (
-                <a href={proj.liveUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-kit-700 hover:text-kit-900 transition-colors">
-                  <Globe className="h-3.5 w-3.5" /> Live Demo <ExternalLink className="h-3 w-3" />
-                </a>
-              )}
-            </div>
           </div>
         ))}
         {projects.length === 0 && !showForm && (
           <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-8 text-center space-y-2">
-            <Code className="h-8 w-8 text-slate-300 mx-auto" />
+            <Briefcase className="h-8 w-8 text-slate-300 mx-auto" />
             <p className="text-sm font-semibold text-slate-700">No projects added yet</p>
-            <p className="text-xs text-slate-500">Showcase your coding projects to impress recruiters.</p>
+            <p className="text-xs text-slate-500">Showcase your portfolio by clicking &ldquo;Add Project&rdquo; above.</p>
           </div>
         )}
       </div>
@@ -893,13 +1268,13 @@ function ProjectsSection({ projects, onUpdate }: { projects: Project[]; onUpdate
 function ExperienceSection({ experiences, onUpdate }: { experiences: Experience[]; onUpdate: () => void }) {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({ company: '', role: '', description: '', startDate: '', endDate: '', currentlyWorking: false });
+  const [form, setForm] = useState({ company: '', role: '', duration: '', description: '', startDate: '', endDate: '', currentlyWorking: false });
   const [submitting, setSubmitting] = useState(false);
 
   const reset = () => {
     setShowForm(false);
     setEditId(null);
-    setForm({ company: '', role: '', description: '', startDate: '', endDate: '', currentlyWorking: false });
+    setForm({ company: '', role: '', duration: '', description: '', startDate: '', endDate: '', currentlyWorking: false });
   };
 
   const handleSubmit = async () => {
@@ -938,8 +1313,13 @@ function ExperienceSection({ experiences, onUpdate }: { experiences: Experience[
           <div key={exp.id} className="rounded-xl border border-slate-200/80 p-4 sm:p-5 hover:border-kit-300 transition-all bg-slate-50/40">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <h3 className="font-bold text-slate-900 text-sm sm:text-base">{exp.role}</h3>
+                  {exp.duration && (
+                    <span className="rounded-md bg-kit-50 px-2 py-0.5 text-xs font-semibold text-kit-700 border border-kit-200">
+                      Duration: {exp.duration}
+                    </span>
+                  )}
                   {exp.currentlyWorking && (
                     <span className="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700 border border-blue-200">
                       Present
@@ -949,7 +1329,7 @@ function ExperienceSection({ experiences, onUpdate }: { experiences: Experience[
                 <p className="text-xs sm:text-sm font-semibold text-kit-800">{exp.company}</p>
                 <p className="text-xs text-slate-500 flex items-center gap-1.5">
                   <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                  <span>{exp.startDate?.slice(0, 7)} — {exp.currentlyWorking ? 'Present' : exp.endDate?.slice(0, 7) ?? ''}</span>
+                  <span>{exp.startDate ? String(exp.startDate).slice(0, 10) : ''} — {exp.currentlyWorking ? 'Present' : (exp.endDate ? String(exp.endDate).slice(0, 10) : '')}</span>
                 </p>
                 {exp.description && <p className="text-xs sm:text-sm text-slate-600 pt-2 leading-relaxed">{exp.description}</p>}
               </div>
@@ -960,9 +1340,10 @@ function ExperienceSection({ experiences, onUpdate }: { experiences: Experience[
                     setForm({
                       company: exp.company,
                       role: exp.role,
+                      duration: exp.duration ?? '',
                       description: exp.description ?? '',
-                      startDate: exp.startDate?.slice(0, 10) ?? '',
-                      endDate: exp.endDate?.slice(0, 10) ?? '',
+                      startDate: exp.startDate ? String(exp.startDate).slice(0, 10) : '',
+                      endDate: exp.endDate ? String(exp.endDate).slice(0, 10) : '',
                       currentlyWorking: exp.currentlyWorking
                     });
                     setShowForm(true);
@@ -992,7 +1373,7 @@ function ExperienceSection({ experiences, onUpdate }: { experiences: Experience[
           <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-8 text-center space-y-2">
             <Briefcase className="h-8 w-8 text-slate-300 mx-auto" />
             <p className="text-sm font-semibold text-slate-700">No experience records added yet</p>
-            <p className="text-xs text-slate-500">Include your past internships or training programs.</p>
+            <p className="text-xs text-slate-500">Include your past internships, positions, or training programs.</p>
           </div>
         )}
       </div>
@@ -1010,6 +1391,10 @@ function ExperienceSection({ experiences, onUpdate }: { experiences: Experience[
               <Input value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} placeholder="e.g. AI / ML Intern" className="h-9.5 text-xs sm:text-sm bg-white" />
             </div>
             <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Total Experience / Duration</label>
+              <Input value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} placeholder="e.g. 6 Months, 1 Year, Summer Internship" className="h-9.5 text-xs sm:text-sm bg-white" />
+            </div>
+            <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Start Date</label>
               <Input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} className="h-9.5 text-xs sm:text-sm bg-white" />
             </div>
@@ -1017,7 +1402,7 @@ function ExperienceSection({ experiences, onUpdate }: { experiences: Experience[
               <label className="block text-xs font-semibold text-slate-700 mb-1">End Date</label>
               <Input type="date" disabled={form.currentlyWorking} value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} className={`h-9.5 text-xs sm:text-sm ${form.currentlyWorking ? 'bg-slate-100 text-slate-400' : 'bg-white'}`} />
             </div>
-            <div className="sm:col-span-2">
+            <div className="flex items-center sm:pt-6">
               <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
                 <input
                   type="checkbox"
@@ -1041,6 +1426,168 @@ function ExperienceSection({ experiences, onUpdate }: { experiences: Experience[
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────
+// Work Preferences Section
+// ──────────────────────────────────────────────────
+function WorkPreferencesSection({ profile, onUpdate }: { profile: Profile | null; onUpdate: () => void }) {
+  const [form, setForm] = useState({
+    previousWorkMode: profile?.previousWorkMode ?? '',
+    preferredWorkMode: profile?.preferredWorkMode ?? '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [savedSuccess, setSavedSuccess] = useState(false);
+
+  useEffect(() => {
+    if (profile) {
+      setForm({
+        previousWorkMode: profile.previousWorkMode ?? '',
+        preferredWorkMode: profile.preferredWorkMode ?? '',
+      });
+    }
+  }, [profile]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSavedSuccess(false);
+    try {
+      await api.put('/profiles/me', form);
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+      onUpdate();
+    } catch (error: any) {
+      console.error('Failed to save work preferences:', error);
+      alert(error?.response?.data?.message || 'Failed to save work preferences. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const previousOptions = [
+    { value: 'Onsite', label: 'Onsite', desc: 'Worked in-person at office or physical campus' },
+    { value: 'Remote', label: 'Remote', desc: 'Worked 100% remotely from home / online' },
+    { value: 'Hybrid', label: 'Hybrid', desc: 'Mix of office days and remote work' },
+    { value: 'No Previous Work Experience', label: 'No Previous Work Experience', desc: 'Fresher or no prior professional work/internship' },
+  ];
+
+  const preferredOptions = [
+    { value: 'Onsite', label: 'Onsite', desc: 'Prefer working in-person at company office / campus' },
+    { value: 'Remote', label: 'Remote', desc: 'Prefer working 100% remotely from home / anywhere' },
+    { value: 'Hybrid', label: 'Hybrid', desc: 'Prefer a flexible mix of in-office & remote days' },
+    { value: 'No Preference', label: 'No Preference', desc: 'Open to any work arrangement (Onsite, Remote, or Hybrid)' },
+  ];
+
+  return (
+    <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-xs space-y-6">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900 tracking-tight">Work Preferences</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Configure your past work environment and desired work arrangement for upcoming placements and internships.
+          </p>
+        </div>
+        {savedSuccess && (
+          <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200">
+            <CheckCircle2 className="h-3.5 w-3.5" /> Saved successfully
+          </span>
+        )}
+      </div>
+
+      <div className="space-y-6">
+        {/* Previous / Current Work Mode */}
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+              1. Previous / Current Work Mode
+            </label>
+            <p className="text-xs text-slate-500 mt-0.5">Specify how you worked in your past or current roles.</p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {previousOptions.map((opt) => {
+              const isSelected = form.previousWorkMode === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setForm({ ...form, previousWorkMode: opt.value })}
+                  className={`flex flex-col items-start p-4 rounded-xl border text-left transition-all ${
+                    isSelected
+                      ? 'border-kit-600 bg-kit-50/60 ring-2 ring-kit-600/20 shadow-xs'
+                      : 'border-slate-200 bg-slate-50/40 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className={`text-xs sm:text-sm font-bold ${isSelected ? 'text-kit-900' : 'text-slate-800'}`}>
+                      {opt.label}
+                    </span>
+                    <span
+                      className={`h-4 w-4 rounded-full border flex items-center justify-center ${
+                        isSelected ? 'border-kit-600 bg-kit-600' : 'border-slate-300 bg-white'
+                      }`}
+                    >
+                      {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-500 mt-1 leading-snug">{opt.desc}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Preferred Work Mode */}
+        <div className="space-y-3 border-t border-slate-100 pt-5">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+              2. Preferred Work Mode
+            </label>
+            <p className="text-xs text-slate-500 mt-0.5">Select your preferred work arrangement for future employment opportunities.</p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {preferredOptions.map((opt) => {
+              const isSelected = form.preferredWorkMode === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setForm({ ...form, preferredWorkMode: opt.value })}
+                  className={`flex flex-col items-start p-4 rounded-xl border text-left transition-all ${
+                    isSelected
+                      ? 'border-kit-600 bg-kit-50/60 ring-2 ring-kit-600/20 shadow-xs'
+                      : 'border-slate-200 bg-slate-50/40 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className={`text-xs sm:text-sm font-bold ${isSelected ? 'text-kit-900' : 'text-slate-800'}`}>
+                      {opt.label}
+                    </span>
+                    <span
+                      className={`h-4 w-4 rounded-full border flex items-center justify-center ${
+                        isSelected ? 'border-kit-600 bg-kit-600' : 'border-slate-300 bg-white'
+                      }`}
+                    >
+                      {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-500 mt-1 leading-snug">{opt.desc}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end pt-2 border-t border-slate-100">
+        <Button variant="primary" isLoading={saving} onClick={handleSave} className="font-bold px-6 py-2.5 rounded-xl shadow-xs">
+          <Save className="h-4 w-4" />
+          Save Work Preferences
+        </Button>
+      </div>
     </div>
   );
 }
