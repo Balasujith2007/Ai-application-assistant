@@ -93,12 +93,16 @@ export function nativeSetValue(element: HTMLInputElement | HTMLTextAreaElement |
       const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
       if (setter) setter.call(element, value);
       else (element as HTMLInputElement).value = value;
+      
+      const tracker = (element as any)._valueTracker;
+      if (tracker) tracker.setValue(value);
     }
-    element.dispatchEvent(new Event('click', { bubbles: true }));
-    element.dispatchEvent(new Event('input', { bubbles: true }));
-    element.dispatchEvent(new Event('change', { bubbles: true }));
-    element.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
-    element.dispatchEvent(new Event('blur', { bubbles: true }));
+    element.dispatchEvent(new Event('click', { bubbles: true, composed: true }));
+    element.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+    element.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+    element.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, composed: true }));
+    element.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, composed: true }));
+    element.dispatchEvent(new Event('blur', { bubbles: true, composed: true }));
     return true;
   } catch {
     return false;
@@ -111,6 +115,13 @@ function setNativeChecked(el: HTMLInputElement, checked: boolean) {
     || Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'checked')?.set;
   if (setter) setter.call(el, checked);
   else el.checked = checked;
+
+  const tracker = (el as any)._valueTracker;
+  if (tracker) tracker.setValue(!checked);
+
+  el.dispatchEvent(new Event('click', { bubbles: true, composed: true }));
+  el.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
 }
 
 export function highlight(el: HTMLElement, kind: 'filled' | 'ask' | 'skip' | 'file') {

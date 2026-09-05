@@ -34,24 +34,45 @@
   }
   function labelFor(el) {
     const type = (el.getAttribute("type") || "").toLowerCase();
-    const fieldset = el.closest("fieldset");
-    const legend = fieldset?.querySelector(":scope > legend")?.textContent?.trim() || "";
+    const fieldset = el.closest('fieldset, [role="group"], [role="radiogroup"]');
+    const legend = fieldset?.querySelector(':scope > legend, :scope > .legend, :scope > [role="heading"]')?.textContent?.trim() || "";
     if ((type === "radio" || type === "checkbox") && legend) return legend;
-    const aria = el.getAttribute("aria-label") || "";
+    const labelledBy = el.getAttribute("aria-labelledby");
+    if (labelledBy) {
+      const text = labelledBy.split(/\s+/).map((id) => document.getElementById(id)?.textContent?.trim()).filter(Boolean).join(" ");
+      if (text) return text;
+    }
+    const aria = el.getAttribute("aria-label") || el.getAttribute("title") || "";
+    if (aria && aria.length > 1) return aria.trim();
     if (el.id) {
-      const lab = document.querySelector(`label[for="${CSS.escape(el.id)}"]`);
-      if (lab?.textContent) return lab.textContent.trim();
+      try {
+        const lab = document.querySelector(`label[for="${CSS.escape(el.id)}"]`);
+        if (lab?.textContent?.trim()) return lab.textContent.trim();
+      } catch {
+      }
     }
     const wrapping = el.closest("label");
-    if (wrapping?.textContent) {
+    if (wrapping?.textContent?.trim()) {
       const wrapText = wrapping.textContent.trim();
       if (!(type === "radio" || type === "checkbox") || !legend) return wrapText;
     }
     const prev = el.previousElementSibling;
-    if (prev && prev.tagName === "LABEL") return (prev.textContent || "").trim();
-    const parentLabel = el.parentElement?.querySelector("label");
-    if (parentLabel?.textContent) return parentLabel.textContent.trim();
-    return legend || aria;
+    if (prev && (prev.tagName === "LABEL" || prev.classList.contains("label"))) return (prev.textContent || "").trim();
+    const container = el.closest(
+      '.form-group, .field, .input-group, [role="listitem"], .form-field, .application-question, .postings-group, .freebirdFormviewerViewItemsItemItem, .js-field, .form-row, .question-wrapper, .field-wrapper'
+    );
+    if (container) {
+      const heading = container.querySelector(
+        'label, .label, [role="heading"], h3, h4, .title, .M7eMe, .freebirdFormviewerViewItemsItemItemTitle, [data-qa="label"]'
+      );
+      if (heading?.textContent?.trim()) {
+        return heading.textContent.trim();
+      }
+    }
+    const parentLabel = el.parentElement?.querySelector("label, .label");
+    if (parentLabel?.textContent?.trim()) return parentLabel.textContent.trim();
+    const dataLabel = el.getAttribute("data-label") || el.getAttribute("data-placeholder") || el.getAttribute("placeholder") || "";
+    return legend || aria || dataLabel.trim();
   }
   function extractFields(root = document) {
     const nodes = Array.from(root.querySelectorAll(
@@ -99,23 +120,23 @@
 
   // src/mappings/aliases.ts
   var FIELD_ALIASES = {
-    "personal.firstName": ["first name", "given name", "forename", "candidate first name", "firstname", "fname"],
-    "personal.lastName": ["last name", "surname", "family name", "candidate last name", "lastname", "lname"],
-    "personal.fullName": ["full name", "candidate name", "applicant name", "student name", "participant name", "your name", "name of applicant"],
-    "personal.email": ["email", "email address", "e mail", "e-mail", "candidate email", "student email", "work email", "contact email"],
-    "personal.phone": ["phone", "phone number", "mobile", "mobile number", "contact number", "whatsapp", "phone no", "cell", "telephone"],
+    "personal.firstName": ["first name", "given name", "forename", "candidate first name", "firstname", "fname", "first_name", "first"],
+    "personal.lastName": ["last name", "surname", "family name", "candidate last name", "lastname", "lname", "last_name", "last"],
+    "personal.fullName": ["full name", "candidate name", "applicant name", "student name", "participant name", "your name", "name of applicant", "legal name", "legal full name", "complete name", "name"],
+    "personal.email": ["email", "email address", "e mail", "e-mail", "candidate email", "student email", "work email", "contact email", "email_address", "mail"],
+    "personal.phone": ["phone", "phone number", "mobile", "mobile number", "contact number", "whatsapp", "phone no", "cell", "telephone", "phone_number", "mobile_number", "primary phone"],
     "personal.dateOfBirth": ["date of birth", "dob", "birth date", "birthday"],
     "personal.gender": ["gender", "sex"],
-    "education.college": ["college", "college name", "institution", "institution name", "university", "university name", "institute", "school name"],
-    "education.degree": ["degree", "qualification", "highest qualification", "program"],
-    "education.department": ["department", "branch", "stream", "specialization", "course", "field of study", "major"],
-    "education.cgpa": ["cgpa", "gpa", "grade point average", "grade", "percentage", "marks", "academic score", "current cgpa"],
-    "education.graduationYear": ["graduation year", "year of graduation", "passing year", "expected graduation"],
+    "education.college": ["college", "college name", "institution", "institution name", "university", "university name", "institute", "school name", "school", "undergraduate school", "school or university"],
+    "education.degree": ["degree", "qualification", "highest qualification", "program", "degree level", "highest degree", "education level"],
+    "education.department": ["department", "branch", "stream", "specialization", "course", "field of study", "major", "branch of study"],
+    "education.cgpa": ["cgpa", "gpa", "grade point average", "grade", "percentage", "marks", "academic score", "current cgpa", "cumulative gpa", "gpa score"],
+    "education.graduationYear": ["graduation year", "year of graduation", "passing year", "expected graduation", "completion year"],
     "education.year": ["academic year", "current year", "year of study", "year"],
-    "links.github": ["github", "github url", "github profile", "github link"],
-    "links.linkedin": ["linkedin", "linkedin url", "linkedin profile", "linkedin link"],
-    "links.portfolio": ["portfolio", "portfolio url", "personal website", "website"],
-    "links.codolio": ["codolio", "codolio url", "codolio profile"],
+    "links.github": ["github", "github url", "github profile", "github link", "github profile url", "github account"],
+    "links.linkedin": ["linkedin", "linkedin url", "linkedin profile", "linkedin link", "linkedin profile url", "linkedin account"],
+    "links.portfolio": ["portfolio", "portfolio url", "personal website", "website", "personal site", "portfolio website", "personal portfolio", "blog url"],
+    "links.codolio": ["codolio", "codolio url", "codolio profile", "codolio link"],
     "preferences.expectedSalary": [
       "expected salary",
       "expected compensation",
@@ -129,7 +150,8 @@
       "expected ctc",
       "desired compensation",
       "current compensation",
-      "compensation expectation"
+      "compensation expectation",
+      "salary expectations"
     ],
     "preferences.preferredLocation": [
       "preferred location",
@@ -138,7 +160,9 @@
       "job location",
       "preferred work location",
       "where would you like to work",
-      "where would you like to work at"
+      "where would you like to work at",
+      "desired location",
+      "work location preference"
     ],
     "preferences.noticePeriod": [
       "notice period",
@@ -149,20 +173,23 @@
       "joining time",
       "notice duration",
       "joining notice",
-      "availability"
+      "availability",
+      "earliest start date"
     ],
-    "preferences.workMode": ["work mode", "work type", "preferred work mode"],
+    "preferences.workMode": ["work mode", "work type", "preferred work mode", "preferred workplace"],
     "preferences.workAuthorization": [
       "work authorization",
       "work authorisation",
       "authorized to work",
       "eligible to work",
       "legally authorized",
-      "work permit"
+      "work permit",
+      "authorization to work",
+      "are you legally authorized"
     ],
-    "documents.resume": ["resume", "cv", "upload resume", "attach resume", "upload cv", "resume file"],
-    "documents.coverLetter": ["cover letter", "covering letter", "upload cover letter"],
-    "skills.list": ["skills", "technical skills", "key skills", "skill set"]
+    "documents.resume": ["resume", "cv", "upload resume", "attach resume", "upload cv", "resume file", "cv file", "resume / cv", "upload resume / cv", "resume document"],
+    "documents.coverLetter": ["cover letter", "covering letter", "upload cover letter", "cover letter file"],
+    "skills.list": ["skills", "technical skills", "key skills", "skill set", "top skills"]
   };
   var SENSITIVE_PATTERNS = [
     "citizenship",
@@ -239,15 +266,15 @@
   var AUTO_START_THRESHOLD = 70;
   var PROMPT_THRESHOLD = 50;
   var LABEL_WEIGHTS = [
-    { re: /email/, w: 14, reason: "email field" },
-    { re: /first name|last name|full name|given name/, w: 14, reason: "name field" },
-    { re: /phone|mobile/, w: 10, reason: "phone field" },
-    { re: /college|university|institution/, w: 12, reason: "education field" },
-    { re: /resume|cv|upload/, w: 14, reason: "resume upload" },
-    { re: /cgpa|gpa|grade/, w: 8, reason: "academic score" },
-    { re: /salary|ctc|compensation|notice period/, w: 10, reason: "compensation field" },
-    { re: /experience|employer|company/, w: 8, reason: "experience field" },
-    { re: /apply|candidate|applicant|registration/, w: 8, reason: "application wording" }
+    { re: /email|e-mail/, w: 14, reason: "email field" },
+    { re: /first name|last name|full name|given name|fname|lname|surname/, w: 14, reason: "name field" },
+    { re: /phone|mobile|contact number|telephone/, w: 10, reason: "phone field" },
+    { re: /college|university|institution|school name/, w: 12, reason: "education field" },
+    { re: /resume|cv|upload resume|attach resume/, w: 14, reason: "resume upload" },
+    { re: /cgpa|gpa|grade|percentage|marks/, w: 8, reason: "academic score" },
+    { re: /salary|ctc|compensation|notice period|joining time/, w: 10, reason: "compensation field" },
+    { re: /experience|employer|company|current role/, w: 8, reason: "experience field" },
+    { re: /apply|candidate|applicant|registration|student/, w: 8, reason: "application wording" }
   ];
   function pathnameOf(href) {
     try {
@@ -280,7 +307,7 @@
       reasons.push("CareerAI apply session");
     }
     const href = (input.href || "").toLowerCase();
-    if (/careers|jobs|apply|internship|hackathon|scholarship|greenhouse|lever\.co|workday|myworkday|unstop|hiretoday|dare2compete|smartrecruiters|icims|taleo|successfactors|jobvite|breezy\.hr|recruitee|ashby|rippling|bamboohr|younoodle|ats\.|recruit\./.test(href)) {
+    if (/careers|jobs|apply|internship|hackathon|scholarship|greenhouse|lever\.co|workday|myworkday|unstop|hiretoday|dare2compete|smartrecruiters|icims|taleo|successfactors|jobvite|breezy\.hr|recruitee|ashby|ashbyhq|rippling|bamboohr|younoodle|ats\.|recruit\.|forms\.gle|docs\.google\.com\/forms|typeform/.test(href)) {
       score += 18;
       reasons.push("career URL pattern");
     }
@@ -715,12 +742,15 @@
         const setter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
         if (setter) setter.call(element, value);
         else element.value = value;
+        const tracker = element._valueTracker;
+        if (tracker) tracker.setValue(value);
       }
-      element.dispatchEvent(new Event("click", { bubbles: true }));
-      element.dispatchEvent(new Event("input", { bubbles: true }));
-      element.dispatchEvent(new Event("change", { bubbles: true }));
-      element.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true }));
-      element.dispatchEvent(new Event("blur", { bubbles: true }));
+      element.dispatchEvent(new Event("click", { bubbles: true, composed: true }));
+      element.dispatchEvent(new Event("input", { bubbles: true, composed: true }));
+      element.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
+      element.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, composed: true }));
+      element.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, composed: true }));
+      element.dispatchEvent(new Event("blur", { bubbles: true, composed: true }));
       return true;
     } catch {
       return false;
@@ -731,6 +761,11 @@
     const setter = Object.getOwnPropertyDescriptor(proto, "checked")?.set || Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "checked")?.set;
     if (setter) setter.call(el, checked);
     else el.checked = checked;
+    const tracker = el._valueTracker;
+    if (tracker) tracker.setValue(!checked);
+    el.dispatchEvent(new Event("click", { bubbles: true, composed: true }));
+    el.dispatchEvent(new Event("input", { bubbles: true, composed: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
   }
   function highlight(el, kind) {
     const colors = {
@@ -1058,22 +1093,114 @@
       .pill { font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
         background: #1e293b; color: #93c5fd; border-radius: 999px; padding: 3px 8px; }
       .modal-backdrop {
-        position: fixed; inset: 0; z-index: 2147483647; background: rgba(15,23,42,.55);
+        position: fixed; inset: 0; z-index: 2147483647; background: rgba(15,23,42,.65);
         display: flex; align-items: center; justify-content: center; padding: 16px;
+        backdrop-filter: blur(4px);
       }
-      .modal { width: min(480px, 100%); background: #fff; color: #0f172a; border-radius: 16px; padding: 20px; }
-      h3 { margin: 0 0 8px; font-size: 16px; }
-      p, label { font-size: 13px; color: #334155; }
-      .q { margin: 12px 0; }
+      .modal {
+        width: min(540px, 94vw);
+        max-height: min(86vh, 720px);
+        background: #ffffff;
+        color: #0f172a;
+        border-radius: 20px;
+        box-shadow: 0 25px 50px -12px rgba(0,0,0,.45), 0 0 0 1px rgba(0,0,0,.08);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .modal-header {
+        padding: 18px 24px 14px;
+        border-bottom: 1px solid #e2e8f0;
+        background: #ffffff;
+        flex-shrink: 0;
+      }
+      .modal-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: #0f172a;
+      }
+      .modal-header p {
+        margin: 4px 0 0;
+        font-size: 13px;
+        color: #64748b;
+        line-height: 1.4;
+      }
+      .modal-body {
+        padding: 16px 24px;
+        overflow-y: auto;
+        flex: 1;
+        overscroll-behavior: contain;
+      }
+      .modal-body::-webkit-scrollbar {
+        width: 6px;
+      }
+      .modal-body::-webkit-scrollbar-track {
+        background: #f8fafc;
+        border-radius: 999px;
+      }
+      .modal-body::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 999px;
+      }
+      .modal-body::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+      .modal-footer {
+        padding: 14px 24px;
+        border-top: 1px solid #e2e8f0;
+        background: #f8fafc;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+      }
+      .q {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin-bottom: 14px;
+      }
+      .q:last-child {
+        margin-bottom: 0;
+      }
+      .q label {
+        font-weight: 600;
+        font-size: 13px;
+        color: #1e293b;
+        display: block;
+      }
+      .q small {
+        font-weight: 400;
+        font-size: 12px;
+        color: #64748b;
+      }
       input[type=text], textarea {
-        width: 100%; margin-top: 4px; border: 1px solid #cbd5e1; border-radius: 10px;
-        padding: 10px 12px; font-size: 14px;
+        width: 100%;
+        margin-top: 8px;
+        border: 1.5px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 9px 12px;
+        font-size: 13.5px;
+        background: #ffffff;
+        color: #0f172a;
+        transition: border-color 0.15s, box-shadow 0.15s;
       }
-      textarea { min-height: 88px; resize: vertical; }
-      .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
-      button { border: 0; border-radius: 10px; padding: 9px 14px; font-weight: 600; cursor: pointer; font-size: 13px; }
+      input[type=text]:focus, textarea:focus {
+        outline: none;
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+      }
+      textarea { min-height: 80px; resize: vertical; }
+      .actions { display: flex; gap: 8px; justify-content: flex-end; }
+      button { border: 0; border-radius: 8px; padding: 9px 15px; font-weight: 600; cursor: pointer; font-size: 13px; transition: background-color 0.15s, transform 0.05s; }
+      button:active { transform: scale(0.98); }
       .primary { background: #4f46e5; color: #fff; }
+      .primary:hover { background: #4338ca; }
       .ghost { background: #e2e8f0; color: #0f172a; }
+      .ghost:hover { background: #cbd5e1; }
       .warn { background: #f59e0b; color: #111; }
       .check { display: flex; gap: 8px; align-items: flex-start; margin-top: 12px; font-size: 13px; }
       .banner {
@@ -1081,8 +1208,8 @@
         background: #7c2d12; color: #fff7ed; border-radius: 12px; padding: 12px 16px; max-width: 520px;
         border: 1px solid #fb923c; font-size: 13px; font-weight: 600;
       }
-      .save-row { display: flex; gap: 12px; margin-top: 6px; font-size: 12px; color: #475569; }
-      .save-row label { display: flex; gap: 4px; align-items: center; font-size: 12px; }
+      .save-row { display: flex; gap: 16px; margin-top: 8px; font-size: 12px; color: #475569; }
+      .save-row label { display: flex; gap: 5px; align-items: center; font-size: 12px; cursor: pointer; font-weight: 500; }
     </style>
     <div class="panel" id="panel">
       <div class="row">
@@ -1112,34 +1239,40 @@
         extra.innerHTML = `
         <div class="modal-backdrop">
           <div class="modal">
-            <h3>CareerAI Apply Agent</h3>
-            <p><strong>We need a few details</strong></p>
-            <p>${questions.length} field${questions.length === 1 ? "" : "s"} are not in your CareerAI profile. We will not invent answers.</p>
-            <form id="mf">
-              ${questions.map((q) => {
+            <div class="modal-header">
+              <h3>CareerAI Apply Agent</h3>
+              <p><strong>We need a few details (${questions.length} question${questions.length === 1 ? "" : "s"})</strong></p>
+              <p>These fields were not found in your profile. Fill them once to save for future applications.</p>
+            </div>
+            <form id="mf" style="display:flex;flex-direction:column;flex:1;overflow:hidden;margin:0">
+              <div class="modal-body">
+                ${questions.map((q) => {
           const lockedOnce = q.classification === "LEGAL_FIELD";
           const isAppSpecific = q.classification === "APPLICATION_SPECIFIC_FIELD";
           const isLong = isAppSpecific || (q.label + (q.hint || "")).length > 80;
           const defaultOnce = isAppSpecific || q.classification === "SENSITIVE_FIELD";
           return `
-                <div class="q">
-                  <label>
-                    ${escapeHtml(q.label)}${q.required ? " *" : ""}
-                    ${q.hint ? `<br><small>${escapeHtml(q.hint)}</small>` : ""}
-                    ${q.classification === "SENSITIVE_FIELD" ? "<br><small>Sensitive \u2014 you must answer this yourself. Saving is optional.</small>" : ""}
-                    ${isAppSpecific ? "<br><small>Choose whether to reuse this answer on future applications.</small>" : ""}
-                    ${isLong ? `<textarea name="${escapeHtml(q.id)}" placeholder="${escapeHtml(q.placeholder || "")}" ${q.required ? "required" : ""}>${escapeHtml(q.currentValue || "")}</textarea>` : `<input type="text" name="${escapeHtml(q.id)}" placeholder="${escapeHtml(q.placeholder || "")}" value="${escapeHtml(q.currentValue || "")}" ${q.required ? "required" : ""} />`}
-                  </label>
-                  ${lockedOnce ? '<p class="hint" style="margin:6px 0 0;font-size:12px;color:#64748b">Legal confirmation \u2014 not saved to your profile.</p>' : `<div class="save-row">
-                        <label><input type="radio" name="save-${escapeHtml(q.id)}" value="SAVE" ${defaultOnce ? "" : "checked"} /> Use for next time</label>
-                        <label><input type="radio" name="save-${escapeHtml(q.id)}" value="USE_ONCE" ${defaultOnce ? "checked" : ""} /> Use once</label>
-                      </div>`}
-                </div>`;
+                  <div class="q">
+                    <label>
+                      ${escapeHtml(q.label)}${q.required ? " *" : ""}
+                      ${q.hint ? `<br><small>${escapeHtml(q.hint)}</small>` : ""}
+                      ${q.classification === "SENSITIVE_FIELD" ? "<br><small>Sensitive \u2014 you must answer this yourself. Saving is optional.</small>" : ""}
+                      ${isAppSpecific ? "<br><small>Choose whether to reuse this answer on future applications.</small>" : ""}
+                      ${isLong ? `<textarea name="${escapeHtml(q.id)}" placeholder="${escapeHtml(q.placeholder || "")}" ${q.required ? "required" : ""}>${escapeHtml(q.currentValue || "")}</textarea>` : `<input type="text" name="${escapeHtml(q.id)}" placeholder="${escapeHtml(q.placeholder || "")}" value="${escapeHtml(q.currentValue || "")}" ${q.required ? "required" : ""} />`}
+                    </label>
+                    ${lockedOnce ? '<p class="hint" style="margin:6px 0 0;font-size:12px;color:#64748b">Legal confirmation \u2014 not saved to your profile.</p>' : `<div class="save-row">
+                          <label><input type="radio" name="save-${escapeHtml(q.id)}" value="SAVE" ${defaultOnce ? "" : "checked"} /> Use for next time</label>
+                          <label><input type="radio" name="save-${escapeHtml(q.id)}" value="USE_ONCE" ${defaultOnce ? "checked" : ""} /> Use once</label>
+                        </div>`}
+                  </div>`;
         }).join("")}
-              <div class="actions" style="flex-wrap:wrap">
-                <button type="button" class="ghost" id="once-all">Use once</button>
-                <button type="button" class="ghost" id="save-all">Use for next time</button>
-                <button type="submit" class="primary">Continue</button>
+              </div>
+              <div class="modal-footer">
+                <div style="display:flex;gap:8px">
+                  <button type="button" class="ghost" id="save-all" style="font-size:12px;padding:7px 12px">Save all for future</button>
+                  <button type="button" class="ghost" id="once-all" style="font-size:12px;padding:7px 12px">Use all once</button>
+                </div>
+                <button type="submit" class="primary" style="padding:8px 20px">Continue</button>
               </div>
             </form>
           </div>
@@ -1148,13 +1281,11 @@
           extra.querySelectorAll('input[type="radio"][value="USE_ONCE"]').forEach((r) => {
             r.checked = true;
           });
-          extra.querySelector("#mf")?.requestSubmit();
         });
         extra.querySelector("#save-all")?.addEventListener("click", () => {
           extra.querySelectorAll('input[type="radio"][value="SAVE"]').forEach((r) => {
             r.checked = true;
           });
-          extra.querySelector("#mf")?.requestSubmit();
         });
         extra.querySelector("#mf")?.addEventListener("submit", (e) => {
           e.preventDefault();
@@ -1182,14 +1313,16 @@
       return new Promise((resolve) => {
         extra.innerHTML = `
         <div class="modal-backdrop">
-          <div class="modal">
-            <h3>Update your profile?</h3>
-            <p>You already have <strong>${escapeHtml(label)}</strong>: <strong>${escapeHtml(current)}</strong></p>
-            <p>You entered: <strong>${escapeHtml(incoming)}</strong></p>
-            <div class="actions">
-              <button class="primary" id="u">Update profile</button>
-              <button class="warn" id="o">Use once</button>
+          <div class="modal" style="max-height:none">
+            <div class="modal-header">
+              <h3>Update your profile?</h3>
+              <p>You already have <strong>${escapeHtml(label)}</strong>: <strong>${escapeHtml(current)}</strong></p>
+              <p>You entered: <strong>${escapeHtml(incoming)}</strong></p>
+            </div>
+            <div class="modal-footer" style="justify-content:flex-end">
               <button class="ghost" id="c">Cancel</button>
+              <button class="warn" id="o">Use once</button>
+              <button class="primary" id="u">Update profile</button>
             </div>
           </div>
         </div>`;

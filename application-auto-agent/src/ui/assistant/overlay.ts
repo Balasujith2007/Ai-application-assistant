@@ -100,22 +100,114 @@ function mountOverlay() {
       .pill { font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
         background: #1e293b; color: #93c5fd; border-radius: 999px; padding: 3px 8px; }
       .modal-backdrop {
-        position: fixed; inset: 0; z-index: 2147483647; background: rgba(15,23,42,.55);
+        position: fixed; inset: 0; z-index: 2147483647; background: rgba(15,23,42,.65);
         display: flex; align-items: center; justify-content: center; padding: 16px;
+        backdrop-filter: blur(4px);
       }
-      .modal { width: min(480px, 100%); background: #fff; color: #0f172a; border-radius: 16px; padding: 20px; }
-      h3 { margin: 0 0 8px; font-size: 16px; }
-      p, label { font-size: 13px; color: #334155; }
-      .q { margin: 12px 0; }
+      .modal {
+        width: min(540px, 94vw);
+        max-height: min(86vh, 720px);
+        background: #ffffff;
+        color: #0f172a;
+        border-radius: 20px;
+        box-shadow: 0 25px 50px -12px rgba(0,0,0,.45), 0 0 0 1px rgba(0,0,0,.08);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .modal-header {
+        padding: 18px 24px 14px;
+        border-bottom: 1px solid #e2e8f0;
+        background: #ffffff;
+        flex-shrink: 0;
+      }
+      .modal-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: #0f172a;
+      }
+      .modal-header p {
+        margin: 4px 0 0;
+        font-size: 13px;
+        color: #64748b;
+        line-height: 1.4;
+      }
+      .modal-body {
+        padding: 16px 24px;
+        overflow-y: auto;
+        flex: 1;
+        overscroll-behavior: contain;
+      }
+      .modal-body::-webkit-scrollbar {
+        width: 6px;
+      }
+      .modal-body::-webkit-scrollbar-track {
+        background: #f8fafc;
+        border-radius: 999px;
+      }
+      .modal-body::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 999px;
+      }
+      .modal-body::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+      .modal-footer {
+        padding: 14px 24px;
+        border-top: 1px solid #e2e8f0;
+        background: #f8fafc;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+      }
+      .q {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin-bottom: 14px;
+      }
+      .q:last-child {
+        margin-bottom: 0;
+      }
+      .q label {
+        font-weight: 600;
+        font-size: 13px;
+        color: #1e293b;
+        display: block;
+      }
+      .q small {
+        font-weight: 400;
+        font-size: 12px;
+        color: #64748b;
+      }
       input[type=text], textarea {
-        width: 100%; margin-top: 4px; border: 1px solid #cbd5e1; border-radius: 10px;
-        padding: 10px 12px; font-size: 14px;
+        width: 100%;
+        margin-top: 8px;
+        border: 1.5px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 9px 12px;
+        font-size: 13.5px;
+        background: #ffffff;
+        color: #0f172a;
+        transition: border-color 0.15s, box-shadow 0.15s;
       }
-      textarea { min-height: 88px; resize: vertical; }
-      .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
-      button { border: 0; border-radius: 10px; padding: 9px 14px; font-weight: 600; cursor: pointer; font-size: 13px; }
+      input[type=text]:focus, textarea:focus {
+        outline: none;
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+      }
+      textarea { min-height: 80px; resize: vertical; }
+      .actions { display: flex; gap: 8px; justify-content: flex-end; }
+      button { border: 0; border-radius: 8px; padding: 9px 15px; font-weight: 600; cursor: pointer; font-size: 13px; transition: background-color 0.15s, transform 0.05s; }
+      button:active { transform: scale(0.98); }
       .primary { background: #4f46e5; color: #fff; }
+      .primary:hover { background: #4338ca; }
       .ghost { background: #e2e8f0; color: #0f172a; }
+      .ghost:hover { background: #cbd5e1; }
       .warn { background: #f59e0b; color: #111; }
       .check { display: flex; gap: 8px; align-items: flex-start; margin-top: 12px; font-size: 13px; }
       .banner {
@@ -123,8 +215,8 @@ function mountOverlay() {
         background: #7c2d12; color: #fff7ed; border-radius: 12px; padding: 12px 16px; max-width: 520px;
         border: 1px solid #fb923c; font-size: 13px; font-weight: 600;
       }
-      .save-row { display: flex; gap: 12px; margin-top: 6px; font-size: 12px; color: #475569; }
-      .save-row label { display: flex; gap: 4px; align-items: center; font-size: 12px; }
+      .save-row { display: flex; gap: 16px; margin-top: 8px; font-size: 12px; color: #475569; }
+      .save-row label { display: flex; gap: 5px; align-items: center; font-size: 12px; cursor: pointer; font-weight: 500; }
     </style>
     <div class="panel" id="panel">
       <div class="row">
@@ -157,50 +249,54 @@ function mountOverlay() {
       extra.innerHTML = `
         <div class="modal-backdrop">
           <div class="modal">
-            <h3>CareerAI Apply Agent</h3>
-            <p><strong>We need a few details</strong></p>
-            <p>${questions.length} field${questions.length === 1 ? '' : 's'} are not in your CareerAI profile. We will not invent answers.</p>
-            <form id="mf">
-              ${questions.map((q) => {
-                const lockedOnce = q.classification === 'LEGAL_FIELD';
-                const isAppSpecific = q.classification === 'APPLICATION_SPECIFIC_FIELD';
-                const isLong = isAppSpecific || (q.label + (q.hint || '')).length > 80;
-                const defaultOnce = isAppSpecific || q.classification === 'SENSITIVE_FIELD';
-                return `
-                <div class="q">
-                  <label>
-                    ${escapeHtml(q.label)}${q.required ? ' *' : ''}
-                    ${q.hint ? `<br><small>${escapeHtml(q.hint)}</small>` : ''}
-                    ${q.classification === 'SENSITIVE_FIELD' ? '<br><small>Sensitive — you must answer this yourself. Saving is optional.</small>' : ''}
-                    ${isAppSpecific ? '<br><small>Choose whether to reuse this answer on future applications.</small>' : ''}
-                    ${isLong
-                      ? `<textarea name="${escapeHtml(q.id)}" placeholder="${escapeHtml(q.placeholder || '')}" ${q.required ? 'required' : ''}>${escapeHtml(q.currentValue || '')}</textarea>`
-                      : `<input type="text" name="${escapeHtml(q.id)}" placeholder="${escapeHtml(q.placeholder || '')}" value="${escapeHtml(q.currentValue || '')}" ${q.required ? 'required' : ''} />`
-                    }
-                  </label>
-                  ${lockedOnce
-                    ? '<p class="hint" style="margin:6px 0 0;font-size:12px;color:#64748b">Legal confirmation — not saved to your profile.</p>'
-                    : `<div class="save-row">
-                        <label><input type="radio" name="save-${escapeHtml(q.id)}" value="SAVE" ${defaultOnce ? '' : 'checked'} /> Use for next time</label>
-                        <label><input type="radio" name="save-${escapeHtml(q.id)}" value="USE_ONCE" ${defaultOnce ? 'checked' : ''} /> Use once</label>
-                      </div>`}
-                </div>`;
-              }).join('')}
-              <div class="actions" style="flex-wrap:wrap">
-                <button type="button" class="ghost" id="once-all">Use once</button>
-                <button type="button" class="ghost" id="save-all">Use for next time</button>
-                <button type="submit" class="primary">Continue</button>
+            <div class="modal-header">
+              <h3>CareerAI Apply Agent</h3>
+              <p><strong>We need a few details (${questions.length} question${questions.length === 1 ? '' : 's'})</strong></p>
+              <p>These fields were not found in your profile. Fill them once to save for future applications.</p>
+            </div>
+            <form id="mf" style="display:flex;flex-direction:column;flex:1;overflow:hidden;margin:0">
+              <div class="modal-body">
+                ${questions.map((q) => {
+                  const lockedOnce = q.classification === 'LEGAL_FIELD';
+                  const isAppSpecific = q.classification === 'APPLICATION_SPECIFIC_FIELD';
+                  const isLong = isAppSpecific || (q.label + (q.hint || '')).length > 80;
+                  const defaultOnce = isAppSpecific || q.classification === 'SENSITIVE_FIELD';
+                  return `
+                  <div class="q">
+                    <label>
+                      ${escapeHtml(q.label)}${q.required ? ' *' : ''}
+                      ${q.hint ? `<br><small>${escapeHtml(q.hint)}</small>` : ''}
+                      ${q.classification === 'SENSITIVE_FIELD' ? '<br><small>Sensitive — you must answer this yourself. Saving is optional.</small>' : ''}
+                      ${isAppSpecific ? '<br><small>Choose whether to reuse this answer on future applications.</small>' : ''}
+                      ${isLong
+                        ? `<textarea name="${escapeHtml(q.id)}" placeholder="${escapeHtml(q.placeholder || '')}" ${q.required ? 'required' : ''}>${escapeHtml(q.currentValue || '')}</textarea>`
+                        : `<input type="text" name="${escapeHtml(q.id)}" placeholder="${escapeHtml(q.placeholder || '')}" value="${escapeHtml(q.currentValue || '')}" ${q.required ? 'required' : ''} />`
+                      }
+                    </label>
+                    ${lockedOnce
+                      ? '<p class="hint" style="margin:6px 0 0;font-size:12px;color:#64748b">Legal confirmation — not saved to your profile.</p>'
+                      : `<div class="save-row">
+                          <label><input type="radio" name="save-${escapeHtml(q.id)}" value="SAVE" ${defaultOnce ? '' : 'checked'} /> Use for next time</label>
+                          <label><input type="radio" name="save-${escapeHtml(q.id)}" value="USE_ONCE" ${defaultOnce ? 'checked' : ''} /> Use once</label>
+                        </div>`}
+                  </div>`;
+                }).join('')}
+              </div>
+              <div class="modal-footer">
+                <div style="display:flex;gap:8px">
+                  <button type="button" class="ghost" id="save-all" style="font-size:12px;padding:7px 12px">Save all for future</button>
+                  <button type="button" class="ghost" id="once-all" style="font-size:12px;padding:7px 12px">Use all once</button>
+                </div>
+                <button type="submit" class="primary" style="padding:8px 20px">Continue</button>
               </div>
             </form>
           </div>
         </div>`;
       extra.querySelector('#once-all')?.addEventListener('click', () => {
         extra.querySelectorAll<HTMLInputElement>('input[type="radio"][value="USE_ONCE"]').forEach((r) => { r.checked = true; });
-        (extra.querySelector('#mf') as HTMLFormElement | null)?.requestSubmit();
       });
       extra.querySelector('#save-all')?.addEventListener('click', () => {
         extra.querySelectorAll<HTMLInputElement>('input[type="radio"][value="SAVE"]').forEach((r) => { r.checked = true; });
-        (extra.querySelector('#mf') as HTMLFormElement | null)?.requestSubmit();
       });
       extra.querySelector('#mf')?.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -231,14 +327,16 @@ function mountOverlay() {
     return new Promise((resolve) => {
       extra.innerHTML = `
         <div class="modal-backdrop">
-          <div class="modal">
-            <h3>Update your profile?</h3>
-            <p>You already have <strong>${escapeHtml(label)}</strong>: <strong>${escapeHtml(current)}</strong></p>
-            <p>You entered: <strong>${escapeHtml(incoming)}</strong></p>
-            <div class="actions">
-              <button class="primary" id="u">Update profile</button>
-              <button class="warn" id="o">Use once</button>
+          <div class="modal" style="max-height:none">
+            <div class="modal-header">
+              <h3>Update your profile?</h3>
+              <p>You already have <strong>${escapeHtml(label)}</strong>: <strong>${escapeHtml(current)}</strong></p>
+              <p>You entered: <strong>${escapeHtml(incoming)}</strong></p>
+            </div>
+            <div class="modal-footer" style="justify-content:flex-end">
               <button class="ghost" id="c">Cancel</button>
+              <button class="warn" id="o">Use once</button>
+              <button class="primary" id="u">Update profile</button>
             </div>
           </div>
         </div>`;

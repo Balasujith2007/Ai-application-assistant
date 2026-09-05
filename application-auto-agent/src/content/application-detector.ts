@@ -14,15 +14,15 @@ export interface DetectionResult {
 }
 
 const LABEL_WEIGHTS: Array<{ re: RegExp; w: number; reason: string }> = [
-  { re: /email/, w: 14, reason: 'email field' },
-  { re: /first name|last name|full name|given name/, w: 14, reason: 'name field' },
-  { re: /phone|mobile/, w: 10, reason: 'phone field' },
-  { re: /college|university|institution/, w: 12, reason: 'education field' },
-  { re: /resume|cv|upload/, w: 14, reason: 'resume upload' },
-  { re: /cgpa|gpa|grade/, w: 8, reason: 'academic score' },
-  { re: /salary|ctc|compensation|notice period/, w: 10, reason: 'compensation field' },
-  { re: /experience|employer|company/, w: 8, reason: 'experience field' },
-  { re: /apply|candidate|applicant|registration/, w: 8, reason: 'application wording' },
+  { re: /email|e-mail/, w: 14, reason: 'email field' },
+  { re: /first name|last name|full name|given name|fname|lname|surname/, w: 14, reason: 'name field' },
+  { re: /phone|mobile|contact number|telephone/, w: 10, reason: 'phone field' },
+  { re: /college|university|institution|school name/, w: 12, reason: 'education field' },
+  { re: /resume|cv|upload resume|attach resume/, w: 14, reason: 'resume upload' },
+  { re: /cgpa|gpa|grade|percentage|marks/, w: 8, reason: 'academic score' },
+  { re: /salary|ctc|compensation|notice period|joining time/, w: 10, reason: 'compensation field' },
+  { re: /experience|employer|company|current role/, w: 8, reason: 'experience field' },
+  { re: /apply|candidate|applicant|registration|student/, w: 8, reason: 'application wording' },
 ];
 
 function pathnameOf(href?: string): string {
@@ -68,7 +68,7 @@ export function scoreFromSignals(input: {
   }
 
   const href = (input.href || '').toLowerCase();
-  if (/careers|jobs|apply|internship|hackathon|scholarship|greenhouse|lever\.co|workday|myworkday|unstop|hiretoday|dare2compete|smartrecruiters|icims|taleo|successfactors|jobvite|breezy\.hr|recruitee|ashby|rippling|bamboohr|younoodle|ats\.|recruit\./.test(href)) {
+  if (/careers|jobs|apply|internship|hackathon|scholarship|greenhouse|lever\.co|workday|myworkday|unstop|hiretoday|dare2compete|smartrecruiters|icims|taleo|successfactors|jobvite|breezy\.hr|recruitee|ashby|ashbyhq|rippling|bamboohr|younoodle|ats\.|recruit\.|forms\.gle|docs\.google\.com\/forms|typeform/.test(href)) {
     score += 18;
     reasons.push('career URL pattern');
   }

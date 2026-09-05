@@ -26,25 +26,62 @@ function visible(el: HTMLElement): boolean {
 
 function labelFor(el: HTMLElement): string {
   const type = (el.getAttribute('type') || '').toLowerCase();
-  const fieldset = el.closest('fieldset');
-  const legend = fieldset?.querySelector(':scope > legend')?.textContent?.trim() || '';
+  
+  // 1. Fieldset legend (common for radio / checkbox groups)
+  const fieldset = el.closest('fieldset, [role="group"], [role="radiogroup"]');
+  const legend = fieldset?.querySelector(':scope > legend, :scope > .legend, :scope > [role="heading"]')?.textContent?.trim() || '';
   if ((type === 'radio' || type === 'checkbox') && legend) return legend;
 
-  const aria = el.getAttribute('aria-label') || '';
-  if (el.id) {
-    const lab = document.querySelector(`label[for="${CSS.escape(el.id)}"]`);
-    if (lab?.textContent) return lab.textContent.trim();
+  // 2. aria-labelledby
+  const labelledBy = el.getAttribute('aria-labelledby');
+  if (labelledBy) {
+    const text = labelledBy.split(/\s+/).map((id) => document.getElementById(id)?.textContent?.trim()).filter(Boolean).join(' ');
+    if (text) return text;
   }
+
+  // 3. aria-label or title
+  const aria = el.getAttribute('aria-label') || el.getAttribute('title') || '';
+  if (aria && aria.length > 1) return aria.trim();
+
+  // 4. Standard label[for="id"]
+  if (el.id) {
+    try {
+      const lab = document.querySelector(`label[for="${CSS.escape(el.id)}"]`);
+      if (lab?.textContent?.trim()) return lab.textContent.trim();
+    } catch { /* ignore */ }
+  }
+
+  // 5. Wrapping label
   const wrapping = el.closest('label');
-  if (wrapping?.textContent) {
+  if (wrapping?.textContent?.trim()) {
     const wrapText = wrapping.textContent.trim();
     if (!(type === 'radio' || type === 'checkbox') || !legend) return wrapText;
   }
+
+  // 6. Sibling label or previous heading
   const prev = el.previousElementSibling;
-  if (prev && prev.tagName === 'LABEL') return (prev.textContent || '').trim();
-  const parentLabel = el.parentElement?.querySelector('label');
-  if (parentLabel?.textContent) return parentLabel.textContent.trim();
-  return legend || aria;
+  if (prev && (prev.tagName === 'LABEL' || prev.classList.contains('label'))) return (prev.textContent || '').trim();
+
+  // 7. Common ATS / Form container label lookup (Greenhouse, Lever, Workday, Google Forms, Ashby)
+  const container = el.closest(
+    '.form-group, .field, .input-group, [role="listitem"], .form-field, .application-question, .postings-group, .freebirdFormviewerViewItemsItemItem, .js-field, .form-row, .question-wrapper, .field-wrapper'
+  );
+  if (container) {
+    const heading = container.querySelector(
+      'label, .label, [role="heading"], h3, h4, .title, .M7eMe, .freebirdFormviewerViewItemsItemItemTitle, [data-qa="label"]'
+    );
+    if (heading?.textContent?.trim()) {
+      return heading.textContent.trim();
+    }
+  }
+
+  // 8. Parent label element
+  const parentLabel = el.parentElement?.querySelector('label, .label');
+  if (parentLabel?.textContent?.trim()) return parentLabel.textContent.trim();
+
+  // 9. Placeholder or custom data-label
+  const dataLabel = el.getAttribute('data-label') || el.getAttribute('data-placeholder') || el.getAttribute('placeholder') || '';
+  return legend || aria || dataLabel.trim();
 }
 
 export function extractFields(root: ParentNode = document): ExtractedField[] {
