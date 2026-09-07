@@ -45,6 +45,8 @@ export interface Profile {
   portfolioUrl?: string | null;
   codolioUrl?: string | null;
   dob?: string | null;
+  gender?: string | null;
+  disabilityStatus?: string | null;
   nationality?: string | null;
   country?: string | null;
   state?: string | null;

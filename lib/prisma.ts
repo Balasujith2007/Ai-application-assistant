@@ -35,14 +35,19 @@ const globalForPrisma = globalThis as unknown as {
 
 export function getDb(): PrismaClient {
   let client = globalForPrisma.prisma;
-  // Recreate if this process still has a stale client from before Form models existed.
-  if (!client || typeof (client as PrismaClient & { form?: unknown }).form === 'undefined') {
+  // Recreate if missing or if client was created before the latest schema version
+  if (!client || (client as any)._schemaVer !== '2026-v3' || typeof (client as PrismaClient & { form?: unknown }).form === 'undefined') {
     client = createClient();
+    (client as any)._schemaVer = '2026-v3';
     if (process.env.NODE_ENV !== 'production') {
       globalForPrisma.prisma = client;
     }
   }
   return client;
+}
+
+export function resetPrismaClient() {
+  globalForPrisma.prisma = undefined;
 }
 
 const prisma = new Proxy({} as PrismaClient, {

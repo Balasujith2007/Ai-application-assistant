@@ -176,6 +176,8 @@ model Profile {
 
   // Personal Information Extensions
   dob              String?
+  gender           String?
+  disabilityStatus String?
   nationality      String?
   country          String?
   state            String?

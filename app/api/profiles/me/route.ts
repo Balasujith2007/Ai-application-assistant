@@ -36,11 +36,18 @@ export async function PUT(req: Request) {
     
     const { name, ...profileData } = body;
 
+    const parseOptionalInt = (val: any) => {
+      if (val === undefined) return undefined;
+      if (val === null || val === '') return null;
+      const num = parseInt(val, 10);
+      return isNaN(num) ? null : num;
+    };
+
     // Extract valid profile fields to prevent Prisma errors
     const validProfileData: Record<string, any> = {
       phone: profileData.phone,
       department: profileData.department,
-      year: profileData.year,
+      year: parseOptionalInt(profileData.year),
       section: profileData.section,
       college: profileData.college,
       location: profileData.location,
@@ -52,6 +59,8 @@ export async function PUT(req: Request) {
       
       // Personal Information
       dob: profileData.dob,
+      gender: profileData.gender,
+      disabilityStatus: profileData.disabilityStatus,
       nationality: profileData.nationality,
       country: profileData.country,
       state: profileData.state,
@@ -71,8 +80,8 @@ export async function PUT(req: Request) {
       // College Education
       collegeName: profileData.collegeName,
       cgpa: profileData.cgpa,
-      collegeJoiningYear: profileData.collegeJoiningYear ? parseInt(profileData.collegeJoiningYear) : profileData.collegeJoiningYear,
-      collegeGraduationYear: profileData.collegeGraduationYear ? parseInt(profileData.collegeGraduationYear) : profileData.collegeGraduationYear,
+      collegeJoiningYear: parseOptionalInt(profileData.collegeJoiningYear),
+      collegeGraduationYear: parseOptionalInt(profileData.collegeGraduationYear),
       major: profileData.major,
       minor: profileData.minor,
 
@@ -88,10 +97,15 @@ export async function PUT(req: Request) {
       }
     });
 
-    if (name) {
+    const existingUser = await prisma.user.findUnique({ where: { id: userId } });
+    if (!existingUser) {
+      return NextResponse.json({ message: 'User account not found' }, { status: 404 });
+    }
+
+    if (name && name.trim() && name !== existingUser.name) {
       await prisma.user.update({
         where: { id: userId },
-        data: { name },
+        data: { name: name.trim() },
       });
     }
 
@@ -101,9 +115,9 @@ export async function PUT(req: Request) {
       update: validProfileData,
     });
     return NextResponse.json({ data: updated });
-  } catch (error) { 
+  } catch (error: any) { 
     console.error('Profile Update Error:', error);
-    return NextResponse.json({ message: 'Error updating profile' }, { status: 500 }); 
+    return NextResponse.json({ message: error?.message || 'Error updating profile' }, { status: 500 }); 
   }
 }
 
