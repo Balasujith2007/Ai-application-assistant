@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { motion, useScroll, useTransform, useMotionValueEvent } from 'framer-motion';
 import {
   Zap,
   UserPlus,
@@ -77,10 +78,83 @@ const SAFETY_RULES = [
 export default function ApplyAssistantSection() {
   const [hoveredStep, setHoveredStep] = useState<number | null>(null);
   const [selectedStep, setSelectedStep] = useState<number | null>(null);
+  const [scrollActiveStep, setScrollActiveStep] = useState<number>(1);
+  const [isTimelineInView, setIsTimelineInView] = useState<boolean>(false);
 
-  // Active step is strictly the hovered step, or explicitly clicked step.
-  // When cursor is outside or in the gaps, activeStepId is null (no step highlighted).
-  const activeStepId = hoveredStep !== null ? hoveredStep : selectedStep;
+  const timelineContainerRef = useRef<HTMLDivElement>(null);
+  const stepElementsRef = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Track scroll progress across the timeline section
+  const { scrollYProgress } = useScroll({
+    target: timelineContainerRef,
+    offset: ['start 75%', 'end 35%'],
+  });
+
+  // Calculate active step based on scroll position & step proximity
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!timelineContainerRef.current) return;
+
+      const containerRect = timelineContainerRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+
+      // Check if timeline is in viewport
+      const inView =
+        containerRect.top < viewportHeight * 0.85 && containerRect.bottom > viewportHeight * 0.15;
+      setIsTimelineInView(inView);
+
+      if (!inView) return;
+
+      // Find which step is closest to the focus zone (45% to 55% of viewport height)
+      const focusZone = viewportHeight * 0.5;
+      let closestStep = 1;
+      let minDistance = Infinity;
+
+      stepElementsRef.current.forEach((el, idx) => {
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const stepCenter = rect.top + rect.height / 2;
+        const distance = Math.abs(stepCenter - focusZone);
+
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestStep = idx + 1;
+        }
+      });
+
+      setScrollActiveStep(closestStep);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Initial check
+
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Sync with framer-motion scroll progress as additional smooth fallback
+  useMotionValueEvent(scrollYProgress, 'change', (latest) => {
+    if (latest <= 0.05) {
+      setScrollActiveStep(1);
+    } else if (latest <= 0.28) {
+      setScrollActiveStep(2);
+    } else if (latest <= 0.52) {
+      setScrollActiveStep(3);
+    } else if (latest <= 0.76) {
+      setScrollActiveStep(4);
+    } else {
+      setScrollActiveStep(5);
+    }
+  });
+
+  // Active step priority: Hover > Click > Scroll Position
+  const activeStepId =
+    hoveredStep !== null
+      ? hoveredStep
+      : selectedStep !== null
+      ? selectedStep
+      : isTimelineInView
+      ? scrollActiveStep
+      : null;
 
   const handleMouseEnter = (stepId: number) => {
     setHoveredStep(stepId);
@@ -170,17 +244,22 @@ export default function ApplyAssistantSection() {
         {/* ========================================================================= */}
         {/* 2. VERTICAL TIMELINE CONTAINER (LEFT 3D NODES + RIGHT STEP CARDS)         */}
         {/* ========================================================================= */}
-        <div className="relative mx-auto max-w-4xl mb-20">
+        <div ref={timelineContainerRef} className="relative mx-auto max-w-4xl mb-20">
           <div className="flex flex-col space-y-5 sm:space-y-6 relative">
             {WORKFLOW_STEPS.map((item, index) => {
               const Icon = item.icon;
               const isCurrent = activeStepId === item.id;
+              const isPassedOrCurrent = activeStepId !== null && activeStepId >= item.id;
+              const isNextStepConnected = activeStepId !== null && activeStepId > item.id;
               const isLast = index === WORKFLOW_STEPS.length - 1;
 
               return (
                 <div
                   key={item.id}
-                  className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8 items-center relative"
+                  ref={(el) => {
+                    stepElementsRef.current[index] = el;
+                  }}
+                  className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8 items-center relative transition-all duration-300"
                 >
                   {/* ------------------------------------------------------------- */}
                   {/* LEFT SIDE: RED NUMBER BADGE + 3D ISOMETRIC ICON TILE          */}
@@ -198,8 +277,10 @@ export default function ApplyAssistantSection() {
                       <div
                         className={`flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full text-xs sm:text-sm font-black transition-all duration-300 shadow-md ${
                           isCurrent
-                            ? 'bg-[#A30D2D] text-white ring-4 ring-[#FFF5F6] scale-105 shadow-[#A30D2D]/35'
-                            : 'bg-[#A30D2D] text-white shadow-xs opacity-95 hover:opacity-100'
+                            ? 'bg-[#A30D2D] text-white ring-4 ring-[#FFF5F6] scale-110 shadow-[#A30D2D]/35'
+                            : isPassedOrCurrent
+                            ? 'bg-[#A30D2D] text-white ring-2 ring-[#FFF5F6] opacity-100'
+                            : 'bg-[#A30D2D] text-white shadow-xs opacity-90 hover:opacity-100'
                         }`}
                       >
                         {item.step}
@@ -212,6 +293,8 @@ export default function ApplyAssistantSection() {
                           className={`absolute inset-0 rounded-2xl transform rotate-45 translate-y-1.5 transition-all duration-300 ${
                             isCurrent
                               ? 'bg-[#760820]'
+                              : isPassedOrCurrent
+                              ? 'bg-[#A30D2D]/60'
                               : 'bg-[#E2E8F0]'
                           }`}
                         />
@@ -221,11 +304,15 @@ export default function ApplyAssistantSection() {
                           className={`relative flex h-full w-full items-center justify-center rounded-2xl transform rotate-45 transition-all duration-300 ${
                             isCurrent
                               ? 'bg-gradient-to-br from-[#C51F3A] to-[#8F0B28] text-white scale-105 ring-2 ring-[#FFF5F6]'
+                              : isPassedOrCurrent
+                              ? 'bg-white border-2 border-[#C51F3A] text-[#C51F3A] shadow-sm'
                               : 'bg-white border-2 border-[#F5CED6] text-[#C51F3A] hover:border-[#C51F3A] shadow-xs'
                           }`}
                           style={{
                             boxShadow: isCurrent
                               ? '0 12px 28px -4px rgba(197, 31, 58, 0.4), 0 4px 8px -2px rgba(197, 31, 58, 0.15)'
+                              : isPassedOrCurrent
+                              ? '0 6px 16px -2px rgba(197, 31, 58, 0.15)'
                               : '0 4px 12px rgba(0, 0, 0, 0.04)',
                           }}
                         >
@@ -245,7 +332,9 @@ export default function ApplyAssistantSection() {
                         <div
                           className={`absolute -bottom-1 left-1/2 -translate-x-1/2 h-3 w-3 rounded-full border-2 border-white transition-all duration-200 z-20 ${
                             isCurrent
-                              ? 'bg-[#C51F3A] shadow-[0_0_8px_rgba(197,31,58,0.9)] ring-2 ring-[#FFF5F6]'
+                              ? 'bg-[#C51F3A] shadow-[0_0_8px_rgba(197,31,58,0.9)] ring-2 ring-[#FFF5F6] scale-110'
+                              : isPassedOrCurrent
+                              ? 'bg-[#C51F3A] shadow-[0_0_5px_rgba(197,31,58,0.5)]'
                               : 'bg-[#CBD5E1]'
                           }`}
                         />
@@ -294,25 +383,25 @@ export default function ApplyAssistantSection() {
                                 strokeLinecap="round"
                               />
 
-                              {/* Active Glowing Line when current step is focused */}
+                              {/* Active Glowing Line when current or passed step */}
                               <line
                                 x1="12"
                                 y1="0"
                                 x2="12"
                                 y2="28"
                                 stroke={`url(#straight-grad-${item.id})`}
-                                strokeWidth={isCurrent ? '3.5' : '1.5'}
-                                strokeOpacity={isCurrent ? '0.95' : '0.25'}
+                                strokeWidth={isCurrent || isNextStepConnected ? '3.5' : '1.5'}
+                                strokeOpacity={isCurrent ? '0.95' : isNextStepConnected ? '0.85' : '0.2'}
                                 strokeLinecap="round"
                                 className="transition-all duration-300"
                               />
 
                               {/* Energy Particle on Active Connection */}
-                              {isCurrent && (
+                              {(isCurrent || isNextStepConnected) && (
                                 <circle
                                   cx="12"
                                   cy="14"
-                                  r="3.5"
+                                  r="3"
                                   fill="#FFF"
                                   stroke="#C51F3A"
                                   strokeWidth="2"
@@ -341,7 +430,9 @@ export default function ApplyAssistantSection() {
                       onMouseLeave={handleMouseLeave}
                       className={`group cursor-pointer rounded-2xl sm:rounded-3xl border bg-white p-4 sm:p-5 lg:p-6 transition-all duration-300 ${
                         isCurrent
-                          ? 'border-[#F5CED6] shadow-xl shadow-[#C51F3A]/8 ring-1 ring-[#F5CED6] -translate-y-0.5'
+                          ? 'border-[#F5CED6] shadow-xl shadow-[#C51F3A]/10 ring-1 ring-[#F5CED6] -translate-y-0.5'
+                          : isPassedOrCurrent
+                          ? 'border-[#FCE7EB] shadow-md shadow-[#C51F3A]/5 hover:border-[#F5CED6] hover:shadow-lg hover:-translate-y-0.5'
                           : 'border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:border-[#F5CED6] hover:shadow-lg hover:shadow-[#C51F3A]/5 hover:-translate-y-0.5'
                       }`}
                     >
@@ -352,6 +443,8 @@ export default function ApplyAssistantSection() {
                             className={`flex h-12 w-12 sm:h-13 sm:w-13 shrink-0 items-center justify-center rounded-2xl border transition-all duration-200 ${
                               isCurrent
                                 ? 'bg-[#FFF0F2] border-[#F5CED6] text-[#C51F3A] scale-105'
+                                : isPassedOrCurrent
+                                ? 'bg-[#FFF5F6] border-[#FCE7EB] text-[#C51F3A]'
                                 : 'bg-[#FFF5F6] border-[#FCE7EB] text-[#C51F3A] group-hover:bg-[#FFF0F2] group-hover:border-[#F5CED6]'
                             }`}
                           >
