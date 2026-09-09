@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import BackToDashboardButton from '@/components/ui/BackToDashboardButton';
 import {
   Users,
   BarChart,
@@ -159,6 +160,11 @@ export default function MentorsPage() {
           </div>
         </div>
       </nav>
+
+      {/* Top Back to Dashboard Navigation Action */}
+      <div className="mx-auto max-w-7xl px-6 pt-6 sm:pt-8 lg:px-8">
+        <BackToDashboardButton fallbackRoute="/dashboard/mentor" />
+      </div>
 
       {/* Hero Section */}
       <section className="mx-auto max-w-7xl px-6 py-24 sm:py-32 lg:px-8">

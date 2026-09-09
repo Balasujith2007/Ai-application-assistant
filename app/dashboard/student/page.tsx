@@ -29,11 +29,9 @@ export default function StudentDashboard() {
   const {
     applications,
     interviews,
-    tasks,
     opportunities,
     activities,
     stats,
-    toggleTask,
     isLoading,
   } = usePlacement();
 
@@ -45,14 +43,13 @@ export default function StudentDashboard() {
     const profileScore = stats.profileCompletionPct || 90;
     const skillsScore = 75;
     const appsScore = Math.min(100, Math.round((stats.totalApplications / 6) * 100)) || 60;
-    const tasksScore = tasks.length > 0 ? Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100) : 80;
 
-    return Math.round((resumeScore + profileScore + skillsScore + appsScore + tasksScore) / 5);
-  }, [stats, tasks]);
+    return Math.round((resumeScore + profileScore + skillsScore + appsScore) / 4);
+  }, [stats]);
 
   // 2. Dynamic Upcoming Deadlines (Sorted by nearest non-expired deadline)
   const upcomingDeadlines = useMemo(() => {
-    const items: Array<{ id: string; title: string; type: 'Opportunity' | 'Task' | 'Interview'; date: string; daysLeft: number }> = [];
+    const items: Array<{ id: string; title: string; type: 'Opportunity' | 'Interview'; date: string; daysLeft: number }> = [];
     const now = new Date();
 
     // Opportunities deadlines
@@ -69,17 +66,6 @@ export default function StudentDashboard() {
       }
     });
 
-    // Tasks deadlines
-    tasks.forEach((t) => {
-      if (!t.completed && t.dueDate) {
-        const d = new Date(t.dueDate);
-        const diffDays = Math.ceil((d.getTime() - now.getTime()) / (1000 * 3600 * 24));
-        if (!isNaN(diffDays) && diffDays >= 0) {
-          items.push({ id: t.id, title: `Mentor Task: ${t.title}`, type: 'Task', date: t.dueDate, daysLeft: diffDays });
-        }
-      }
-    });
-
     // Interviews dates
     interviews.forEach((inv) => {
       if (inv.date) {
@@ -92,10 +78,7 @@ export default function StudentDashboard() {
     });
 
     return items.sort((a, b) => a.daysLeft - b.daysLeft).slice(0, 5);
-  }, [opportunities, tasks, interviews]);
-
-  // Active pending tasks
-  const pendingTasks = useMemo(() => tasks.filter(t => !t.completed).slice(0, 4), [tasks]);
+  }, [opportunities, interviews]);
 
   if (isLoading) {
     return (
@@ -143,7 +126,7 @@ export default function StudentDashboard() {
       </motion.div>
 
       {/* Top Compact Stats Cards Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Career Readiness"
           value={`${careerReadiness}%`}
@@ -162,22 +145,13 @@ export default function StudentDashboard() {
           index={1}
         />
         <StatCard
-          label="Pending Tasks"
-          value={tasks.filter(t => !t.completed).length}
-          icon={CheckSquare}
-          color="text-amber-600"
-          bg="bg-amber-50"
-          subtitle="Mentor milestones"
-          index={2}
-        />
-        <StatCard
           label="Upcoming Interviews"
           value={stats.upcomingInterviewsCount}
           icon={Calendar}
           color="text-kit-600"
           bg="bg-kit-50"
           subtitle="Scheduled rounds"
-          index={3}
+          index={2}
         />
         <StatCard
           label="Upcoming Deadlines"
@@ -186,7 +160,7 @@ export default function StudentDashboard() {
           color="text-rose-600"
           bg="bg-rose-50"
           subtitle="Nearest due items"
-          index={4}
+          index={3}
         />
       </div>
 
@@ -203,7 +177,7 @@ export default function StudentDashboard() {
             <div className="flex items-center justify-between border-b border-gray-100 pb-4">
               <div>
                 <h2 className="text-base font-bold text-gray-900">Career Readiness Score</h2>
-                <p className="text-xs text-gray-500 mt-0.5">Calculated from profile completion, skills, applications & tasks</p>
+                <p className="text-xs text-gray-500 mt-0.5">Calculated from profile completion, skills & placement applications</p>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-3xl font-black text-kit-600">{careerReadiness}%</span>
@@ -277,10 +251,9 @@ export default function StudentDashboard() {
                   <div key={item.id} className="flex items-center justify-between rounded-xl border border-gray-100 p-3 hover:bg-gray-50/80 transition-colors">
                     <div className="flex items-center gap-3 min-w-0">
                       <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[10px] font-bold ${
-                        item.type === 'Opportunity' ? 'bg-kit-50 text-kit-600 border border-kit-100' :
-                        item.type === 'Task' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-kit-50 text-kit-600 border border-kit-100'
+                        item.type === 'Opportunity' ? 'bg-kit-50 text-kit-600 border border-kit-100' : 'bg-kit-50 text-kit-600 border border-kit-100'
                       }`}>
-                        {item.type === 'Opportunity' ? 'OP' : item.type === 'Task' ? 'TSK' : 'INT'}
+                        {item.type === 'Opportunity' ? 'OP' : 'INT'}
                       </span>
                       <div className="min-w-0">
                         <p className="text-xs font-bold text-gray-900 truncate">{item.title}</p>
@@ -325,52 +298,8 @@ export default function StudentDashboard() {
           </motion.div>
         </div>
 
-        {/* Right Column: My Tasks, Announcements & Reminders, Activity Feed */}
+        {/* Right Column: Announcements & Reminders, Activity Feed */}
         <div className="space-y-6">
-          
-          {/* My Tasks (Mentor Assigned) Card */}
-          <motion.div
-            initial={{ opacity: 0, x: 15 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="rounded-2xl border border-gray-200 bg-white p-5 shadow-2xs space-y-3.5"
-          >
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <h2 className="text-base font-bold text-gray-900">My Tasks</h2>
-              <Link href="/dashboard/student/tasks" className="text-xs font-semibold text-kit-600 hover:text-kit-700">
-                View All ({tasks.length}) →
-              </Link>
-            </div>
-
-            {pendingTasks.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/50 p-4 text-center space-y-1">
-                <CheckCircle2 className="h-5 w-5 text-emerald-500 mx-auto" />
-                <p className="text-xs font-bold text-gray-700">No pending tasks</p>
-                <p className="text-[11px] text-gray-400">You are all caught up.</p>
-              </div>
-            ) : (
-              <div className="space-y-2.5">
-                {pendingTasks.map((task) => (
-                  <label
-                    key={task.id}
-                    className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-gray-100 p-2.5 transition-colors hover:bg-gray-50/80"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={task.completed}
-                      onChange={() => toggleTask(task.id)}
-                      className="mt-0.5 h-3.5 w-3.5 rounded border-gray-300 text-kit-600 focus:ring-kit-600 cursor-pointer"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <span className="text-xs font-semibold block text-gray-800">
-                        {task.title}
-                      </span>
-                      <span className="text-[11px] text-gray-400 font-medium">Assigned by Mentor • Due: {task.dueDate}</span>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            )}
-          </motion.div>
 
           {/* Notifications & Reminders */}
           <motion.div

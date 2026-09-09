@@ -71,9 +71,9 @@ export default function Navbar() {
           </a>
           <a
             href="#how-it-works"
-            className={`rounded-lg px-3.5 py-2 text-sm font-medium transition-colors ${
-              activeSection === 'how-it-works'
-                ? 'text-kit-700 bg-kit-50 font-semibold'
+            className={`relative rounded-lg px-3.5 py-2 text-sm font-medium transition-colors ${
+              activeSection === 'how-it-works' || activeSection === 'apply-assistant'
+                ? 'text-slate-900 font-semibold after:absolute after:bottom-0.5 after:left-3.5 after:right-3.5 after:h-0.5 after:bg-[#C51F3A]'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >

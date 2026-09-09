@@ -1,5 +1,5 @@
-import TasksPage from '@/app/tasks/page';
+import { redirect } from 'next/navigation';
 
 export default function StudentTasksPage() {
-  return <TasksPage />;
+  redirect('/dashboard/student');
 }

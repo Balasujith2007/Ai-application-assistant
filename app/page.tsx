@@ -6,7 +6,6 @@ import ProductPreview from '@/components/landing/ProductPreview';
 import FeaturesSection from '@/components/landing/FeaturesSection';
 import HowItWorks from '@/components/landing/HowItWorks';
 import RoleSection from '@/components/landing/RoleSection';
-import ApplyAssistantSection from '@/components/landing/ApplyAssistantSection';
 import ProfileCompletionSection from '@/components/landing/ProfileCompletionSection';
 import SafetySection from '@/components/landing/SafetySection';
 import FinalCTA from '@/components/landing/FinalCTA';
@@ -28,14 +27,11 @@ export default function LandingPage() {
         {/* 4. Why CareerAI / Everything You Need */}
         <FeaturesSection />
 
-        {/* 5. 4-Step How It Works Workflow */}
+        {/* 5. How It Works / AI Apply Assistant Showcase */}
         <HowItWorks />
 
         {/* 6. Built for Everyone in Placement Ecosystem */}
         <RoleSection />
-
-        {/* 7. AI Apply Assistant Showcase */}
-        <ApplyAssistantSection />
 
         {/* 8. Profile Completeness Section */}
         <ProfileCompletionSection />

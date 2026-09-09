@@ -6,17 +6,16 @@ import { usePlacement } from '@/context/PlacementContext';
 import { FileText, User, Award, Briefcase, CheckSquare, Calendar, PieChart } from 'lucide-react';
 
 export default function StudentProgressPage() {
-  const { stats, applications, tasks, interviews, isLoading } = usePlacement();
+  const { stats, applications, interviews, isLoading } = usePlacement();
 
   const resumePct = stats.resumeScorePct || 85;
   const profilePct = stats.profileCompletionPct || 90;
   const skillsPct = 75;
   const applicationsPct = Math.min(100, Math.round((stats.totalApplications / 8) * 100)) || 60;
-  const taskPct = tasks.length > 0 ? Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100) : 80;
   const interviewPrepPct = interviews.length > 0 ? 80 : 50;
 
   const overallReadiness = Math.round(
-    (resumePct + profilePct + skillsPct + applicationsPct + taskPct + interviewPrepPct) / 6
+    (resumePct + profilePct + skillsPct + applicationsPct + interviewPrepPct) / 5
   );
 
   if (isLoading) {
@@ -32,7 +31,6 @@ export default function StudentProgressPage() {
     { name: 'Profile Completion', pct: profilePct, icon: User, color: 'bg-kit-500', desc: 'Academic details & verified profiles' },
     { name: 'Verified Skills', pct: skillsPct, icon: Award, color: 'bg-kit-500', desc: 'Coding skills & certifications' },
     { name: 'Applications Progress', pct: applicationsPct, icon: Briefcase, color: 'bg-blue-500', desc: 'Drive registrations & active drives' },
-    { name: 'Mentor Tasks Completed', pct: taskPct, icon: CheckSquare, color: 'bg-amber-500', desc: 'Assigned mentor milestones' },
     { name: 'Interview Readiness', pct: interviewPrepPct, icon: Calendar, color: 'bg-rose-500', desc: 'Mock interviews & technical prep' },
   ];
 
@@ -51,7 +49,7 @@ export default function StudentProgressPage() {
             </span>
             <h1 className="text-3xl font-bold mt-2">Overall Progress: {overallReadiness}%</h1>
             <p className="text-sm text-kit-200/80 mt-1 max-w-xl">
-              Calculated dynamically from your resume score, profile verification, active applications, mentor tasks, and placement preparation.
+              Calculated dynamically from your resume score, profile verification, active applications, and placement preparation.
             </p>
           </div>
           <div className="relative flex h-28 w-28 shrink-0 items-center justify-center rounded-full bg-kit-600/30 border-4 border-kit-400/40 text-2xl font-black">

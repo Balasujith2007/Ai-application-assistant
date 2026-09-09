@@ -7,9 +7,8 @@ export const CANONICAL_SIDEBARS: Record<Role, Array<{ title: string; path: strin
     { title: 'Overview', path: '/dashboard/student', order: 0, enabled: true },
     { title: 'Opportunities', path: '/dashboard/student/opportunities', order: 1, enabled: true },
     { title: 'My Applications', path: '/dashboard/student/applications', order: 2, enabled: true },
-    { title: 'My Tasks', path: '/dashboard/student/tasks', order: 3, enabled: true },
-    { title: 'My Resume', path: '/resume', order: 4, enabled: true },
-    { title: 'My Progress', path: '/dashboard/student/progress', order: 5, enabled: true },
+    { title: 'My Resume', path: '/resume', order: 3, enabled: true },
+    { title: 'My Progress', path: '/dashboard/student/progress', order: 4, enabled: true },
   ],
   MENTOR: [
     { title: 'Dashboard', path: '/dashboard/mentor', order: 0, enabled: true },
@@ -148,12 +147,12 @@ export async function ensureRoleSidebarDefaults(role: Role) {
     }
   });
 
-  // Clean up Announcements from Student role
+  // Clean up Announcements and Tasks from Student role
   if (role === Role.STUDENT) {
     await prisma.roleSidebarItem.deleteMany({
       where: {
         role: Role.STUDENT,
-        title: 'Announcements'
+        title: { in: ['Announcements', 'My Tasks', 'Tasks'] }
       }
     });
   }
