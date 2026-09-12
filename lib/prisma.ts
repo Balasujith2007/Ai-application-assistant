@@ -1,13 +1,33 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+  pgPool: Pool | undefined;
+};
+
+function getPool(): Pool {
+  if (!globalForPrisma.pgPool) {
+    globalForPrisma.pgPool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+    });
+  }
+  return globalForPrisma.pgPool;
+}
 
 /**
  * Form Builder needs a client that exposes `prisma.form` after schema changes.
- * Keep friend's cache-bust / recreate-when-missing-form behavior, but always
+ * Keep cache-bust / recreate-when-missing-form behavior, but always
  * type the client as PrismaClient so Apply AI + app routes keep proper inference.
  */
 function createClient(): PrismaClient {
+  const pool = getPool();
   try {
     const nativeRequire = typeof eval !== 'undefined' ? eval('require') : require;
 
@@ -21,17 +41,13 @@ function createClient(): PrismaClient {
 
     const { PrismaClient: NativePrismaClient } = nativeRequire('@prisma/client');
     const { PrismaPg: NativePrismaPg } = nativeRequire('@prisma/adapter-pg');
-    const adapter = new NativePrismaPg(process.env.DATABASE_URL!);
+    const adapter = new NativePrismaPg(pool);
     return new NativePrismaClient({ adapter }) as PrismaClient;
   } catch {
-    const adapter = new PrismaPg(process.env.DATABASE_URL!);
+    const adapter = new PrismaPg(pool);
     return new PrismaClient({ adapter });
   }
 }
-
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
 
 export function getDb(): PrismaClient {
   let client = globalForPrisma.prisma;
@@ -62,3 +78,4 @@ const prisma = new Proxy({} as PrismaClient, {
 });
 
 export default prisma;
+
