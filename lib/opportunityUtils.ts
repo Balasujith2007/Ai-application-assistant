@@ -6,11 +6,15 @@ export type StudentRegistrationStatus =
   | 'INITIATED'
   | 'IN_PROGRESS'
   | 'STUDENT_CONFIRMED'
+  | 'PENDING_VERIFICATION'
   | 'VERIFIED'
   | 'REGISTERED'
+  | 'UNDER_REVIEW'
   | 'SHORTLISTED'
+  | 'INTERVIEW'
   | 'SELECTED'
   | 'REJECTED'
+  | 'DISQUALIFIED'
   | 'WITHDRAWN'
   | 'COMPLETED';
 
@@ -21,7 +25,7 @@ export interface OpportunityRegistrationStateInfo {
   buttonText: string;
   isButtonDisabled: boolean;
   badgeText: string;
-  badgeVariant: 'open' | 'closed' | 'verified' | 'student_confirmed' | 'in_progress' | 'registered' | 'shortlisted' | 'selected' | 'rejected' | 'initiated' | 'completed';
+  badgeVariant: 'open' | 'closed' | 'verified' | 'student_confirmed' | 'in_progress' | 'registered' | 'under_review' | 'shortlisted' | 'interview' | 'selected' | 'rejected' | 'disqualified' | 'initiated' | 'completed';
 }
 
 /**
@@ -50,12 +54,16 @@ export function getOpportunityRegistrationState(
 
   if (rawStatus === 'VERIFIED') registrationStatus = 'VERIFIED';
   else if (rawStatus === 'STUDENT_CONFIRMED') registrationStatus = 'STUDENT_CONFIRMED';
+  else if (rawStatus === 'PENDING_VERIFICATION') registrationStatus = 'PENDING_VERIFICATION';
   else if (rawStatus === 'IN_PROGRESS') registrationStatus = 'IN_PROGRESS';
   else if (rawStatus === 'STARTED') registrationStatus = 'STARTED';
   else if (rawStatus === 'REGISTERED') registrationStatus = 'REGISTERED';
+  else if (rawStatus === 'UNDER_REVIEW') registrationStatus = 'UNDER_REVIEW';
   else if (rawStatus === 'SHORTLISTED') registrationStatus = 'SHORTLISTED';
+  else if (rawStatus === 'INTERVIEW') registrationStatus = 'INTERVIEW';
   else if (rawStatus === 'SELECTED') registrationStatus = 'SELECTED';
   else if (rawStatus === 'REJECTED') registrationStatus = 'REJECTED';
+  else if (rawStatus === 'DISQUALIFIED') registrationStatus = 'DISQUALIFIED';
   else if (rawStatus === 'WITHDRAWN') registrationStatus = 'WITHDRAWN';
   else if (rawStatus === 'INITIATED') registrationStatus = 'INITIATED';
   else if (rawStatus === 'COMPLETED') registrationStatus = 'COMPLETED';
@@ -76,6 +84,11 @@ export function getOpportunityRegistrationState(
     isButtonDisabled = false;
     badgeText = 'Student Confirmed';
     badgeVariant = 'student_confirmed';
+  } else if (registrationStatus === 'PENDING_VERIFICATION') {
+    buttonText = 'Pending Verification ⏳';
+    isButtonDisabled = false;
+    badgeText = 'Pending Verification';
+    badgeVariant = 'in_progress';
   } else if (registrationStatus === 'IN_PROGRESS' || registrationStatus === 'STARTED' || registrationStatus === 'INITIATED') {
     if (isOpen) {
       buttonText = 'Verify Registration';
@@ -93,21 +106,36 @@ export function getOpportunityRegistrationState(
     isButtonDisabled = false;
     badgeText = 'Registered ✓';
     badgeVariant = 'registered';
+  } else if (registrationStatus === 'UNDER_REVIEW') {
+    buttonText = 'Under Review ⏳';
+    isButtonDisabled = false;
+    badgeText = 'Under Review';
+    badgeVariant = 'under_review';
   } else if (registrationStatus === 'SHORTLISTED') {
-    buttonText = 'Shortlisted ✓';
+    buttonText = 'Shortlisted 🎉';
     isButtonDisabled = false;
-    badgeText = 'Shortlisted ✓';
+    badgeText = 'Shortlisted 🎉';
     badgeVariant = 'shortlisted';
-  } else if (registrationStatus === 'SELECTED') {
-    buttonText = 'Selected ✓';
+  } else if (registrationStatus === 'INTERVIEW') {
+    buttonText = 'Interview Scheduled 🗓️';
     isButtonDisabled = false;
-    badgeText = 'Selected ✓';
+    badgeText = 'Interview';
+    badgeVariant = 'interview';
+  } else if (registrationStatus === 'SELECTED') {
+    buttonText = 'Selected 🏆';
+    isButtonDisabled = false;
+    badgeText = 'Selected 🏆';
     badgeVariant = 'selected';
   } else if (registrationStatus === 'REJECTED') {
     buttonText = 'Application Rejected';
     isButtonDisabled = true;
-    badgeText = 'Rejected';
+    badgeText = 'Not Selected';
     badgeVariant = 'rejected';
+  } else if (registrationStatus === 'DISQUALIFIED') {
+    buttonText = 'Disqualified';
+    isButtonDisabled = true;
+    badgeText = 'Disqualified';
+    badgeVariant = 'disqualified';
   } else {
     // NOT_REGISTERED
     if (isOpen) {

@@ -37,10 +37,12 @@ enum ApplicationStatus {
   SAVED
   INITIATED
   APPLIED
+  UNDER_REVIEW
   SHORTLISTED
   INTERVIEW
   SELECTED
   REJECTED
+  DISQUALIFIED
   WITHDRAWN
 }
 
@@ -64,6 +66,11 @@ enum OpportunityMode {
 enum OpportunityStatus {
   DRAFT
   PUBLISHED
+  REGISTRATION_OPEN
+  REGISTRATION_CLOSED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
   CLOSED
 }
 
@@ -72,16 +79,20 @@ enum OpportunityRegistrationStatus {
   INITIATED
   IN_PROGRESS
   STUDENT_CONFIRMED
+  PENDING_VERIFICATION
   VERIFIED
   REGISTERED
   ONGOING
-  COMPLETED
+  UNDER_REVIEW
   SHORTLISTED
+  INTERVIEW
   SELECTED
   REJECTED
+  DISQUALIFIED
   WITHDRAWN
   FAILED
   CANCELLED
+  COMPLETED
 }
 
 // ============================================================
@@ -121,6 +132,7 @@ model User {
   createdForms         Form[]                 @relation("FormCreator")
   formResponses        FormResponse[]
   auditLogs            AuditLog[]
+  notificationDeliveries NotificationDelivery[]
 
   // Mentor-Student relationship
   mentorId      String?
@@ -468,6 +480,7 @@ model Opportunity {
   registrations OpportunityRegistration[]
   applications  Application[]
   autofillSessions AutofillSession[]
+  reminders     OpportunityReminder[]
 
   @@map("opportunities")
 }
@@ -497,8 +510,10 @@ model OpportunityRegistration {
   completedAt             DateTime?
   updatedAt               DateTime                      @updatedAt
 
-  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
-  student     User        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  opportunity   Opportunity                @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  student       User                       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  workflowSteps OpportunityWorkflowStep[]
+  statusHistory OpportunityStatusHistory[]
 
   @@unique([opportunityId, studentId])
   @@map("opportunity_registrations")
@@ -811,3 +826,134 @@ model AuditLog {
 
   @@map("audit_logs")
 }
+
+// ============================================================
+// NOTIFICATION DELIVERY TRACKING
+// ============================================================
+
+model NotificationDelivery {
+  id                String    @id @default(cuid())
+  userId            String?
+  recipientPhone    String
+  notificationType  String
+  provider          String    // MOCK, TWILIO
+  providerMessageId String?
+  status            String    // PENDING, SENT, DELIVERED, FAILED, SKIPPED, MOCKED
+  failureReason     String?
+  idempotencyKey    String?   @unique
+  metadata          Json?
+  sentAt            DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("notification_deliveries")
+}
+
+// ============================================================
+// OPPORTUNITY REMINDER
+// ============================================================
+
+enum OpportunityReminderType {
+  THREE_DAY
+  ONE_DAY
+  DEADLINE_CLOSED
+  CUSTOM
+}
+
+enum ReminderExecutionStatus {
+  SCHEDULED
+  SENT
+  FAILED
+  SKIPPED
+}
+
+model OpportunityReminder {
+  id             String                  @id @default(cuid())
+  opportunityId  String
+  reminderType   OpportunityReminderType
+  status         ReminderExecutionStatus @default(SCHEDULED)
+  scheduledFor   DateTime
+  sentAt         DateTime?
+  recipientCount Int                     @default(0)
+  failureReason  String?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@unique([opportunityId, reminderType])
+  @@index([scheduledFor, status])
+  @@map("opportunity_reminders")
+}
+
+// ============================================================
+// OPPORTUNITY WORKFLOW STEP
+// ============================================================
+
+enum WorkflowStepType {
+  INTERVIEW
+  TECHNICAL_ASSESSMENT
+  DOCUMENT_SUBMISSION
+  EXTERNAL_VERIFICATION
+  JOINING
+  OTHER
+}
+
+enum WorkflowStepStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+  WAIVED
+}
+
+model OpportunityWorkflowStep {
+  id             String             @id @default(cuid())
+  registrationId String
+  stepType       WorkflowStepType   @default(INTERVIEW)
+  title          String
+  description    String?
+  status         WorkflowStepStatus @default(PENDING)
+  deadline       DateTime?
+  scheduledAt    DateTime?
+  completedAt    DateTime?
+  notes          String?
+  meetingLink    String?
+  submissionUrl  String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  registration OpportunityRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@index([registrationId])
+  @@index([status])
+  @@map("opportunity_workflow_steps")
+}
+
+// ============================================================
+// OPPORTUNITY STATUS HISTORY
+// ============================================================
+
+model OpportunityStatusHistory {
+  id             String   @id @default(cuid())
+  registrationId String
+  fromStatus     String?
+  toStatus       String
+  changedById    String?
+  reason         String?
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  registration OpportunityRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@index([registrationId])
+  @@index([createdAt])
+  @@map("opportunity_status_histories")
+}
+
+

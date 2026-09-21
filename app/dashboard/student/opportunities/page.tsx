@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Briefcase, Calendar, MapPin, Search, CheckCircle2,
-  ExternalLink, Loader2, Building, AlertCircle, ArrowUpRight, CheckCheck, Clock
+  ExternalLink, Loader2, Building, AlertCircle, ArrowUpRight, CheckCheck, Clock, XCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ProfileCompletionModal } from '@/components/opportunities/ProfileCompletionModal';
@@ -210,6 +210,14 @@ export default function StudentOpportunitiesPage() {
       );
     }
 
+    if (stateInfo.registrationStatus === 'PENDING_VERIFICATION') {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-xl bg-amber-100 px-3 py-2 text-xs font-bold text-amber-800 border border-amber-300">
+          <Clock className="h-4 w-4 text-amber-600" /> Pending Verification ⏳
+        </span>
+      );
+    }
+
     if (stateInfo.registrationStatus === 'IN_PROGRESS' || stateInfo.registrationStatus === 'STARTED' || stateInfo.registrationStatus === 'INITIATED') {
       return (
         <Button
@@ -223,10 +231,34 @@ export default function StudentOpportunitiesPage() {
       );
     }
 
+    if (stateInfo.registrationStatus === 'UNDER_REVIEW') {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-xl bg-indigo-100 px-3 py-2 text-xs font-bold text-indigo-800 border border-indigo-300">
+          <Clock className="h-4 w-4 text-indigo-600" /> Under Review ⏳
+        </span>
+      );
+    }
+
+    if (stateInfo.registrationStatus === 'INTERVIEW') {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-xl bg-purple-100 px-3 py-2 text-xs font-bold text-purple-800 border border-purple-300">
+          <Calendar className="h-4 w-4 text-purple-600" /> Interview Scheduled 🗓️
+        </span>
+      );
+    }
+
     if (stateInfo.registrationStatus === 'REGISTERED' || stateInfo.registrationStatus === 'SHORTLISTED' || stateInfo.registrationStatus === 'SELECTED') {
       return (
         <span className="inline-flex items-center gap-1 rounded-xl bg-emerald-100 px-3 py-2 text-xs font-bold text-emerald-800 border border-emerald-300">
-          <CheckCircle2 className="h-4 w-4" /> {stateInfo.buttonText}
+          <CheckCircle2 className="h-4 w-4 text-emerald-600" /> {stateInfo.buttonText}
+        </span>
+      );
+    }
+
+    if (stateInfo.registrationStatus === 'DISQUALIFIED') {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-xl bg-gray-100 px-3 py-2 text-xs font-bold text-gray-700 border border-gray-300">
+          <XCircle className="h-4 w-4 text-gray-500" /> Disqualified
         </span>
       );
     }
@@ -234,7 +266,7 @@ export default function StudentOpportunitiesPage() {
     if (stateInfo.registrationStatus === 'REJECTED') {
       return (
         <span className="inline-flex items-center gap-1 rounded-xl bg-rose-100 px-3 py-2 text-xs font-bold text-rose-800 border border-rose-300">
-          Application Rejected
+          Not Selected
         </span>
       );
     }
@@ -296,7 +328,7 @@ export default function StudentOpportunitiesPage() {
         {/* Filter & Search Bar */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
           {/* Category Tabs */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 sm:flex-wrap no-scrollbar">
             {[
               { id: 'ALL', label: 'All Opportunities' },
               { id: 'HACKATHONS', label: 'Hackathons 🚀' },
@@ -307,7 +339,7 @@ export default function StudentOpportunitiesPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
+                className={`shrink-0 whitespace-nowrap rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
                   activeTab === tab.id
                     ? 'bg-kit-600 text-white shadow-md shadow-kit-500/20'
                     : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'

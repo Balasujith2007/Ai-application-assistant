@@ -201,6 +201,9 @@ export async function POST(req: Request) {
       applicationDeadline,
       startDate,
       endDate,
+      minCgpa,
+      allowedDegrees,
+      allowedYears,
       requiredSkills,
       status,
       targetAudience,
@@ -244,18 +247,30 @@ export async function POST(req: Request) {
     const normalizedMode = mode && validModes.includes(mode.toUpperCase()) ? mode.toUpperCase() : 'ONLINE';
 
     // Helper to normalize status enum
-    const validStatuses = ['DRAFT', 'PUBLISHED', 'CLOSED'];
+    const validStatuses = ['DRAFT', 'PUBLISHED', 'REGISTRATION_OPEN', 'REGISTRATION_CLOSED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'CLOSED'];
     const normalizedStatus = status && validStatuses.includes(status.toUpperCase()) ? status.toUpperCase() : 'PUBLISHED';
 
     const parsedOpenings = openings && !isNaN(parseInt(openings)) ? parseInt(openings) : null;
     const parsedYear = targetYear && !isNaN(parseInt(targetYear)) ? parseInt(targetYear) : null;
+    const parsedMinCgpa = minCgpa && !isNaN(parseFloat(minCgpa)) ? parseFloat(minCgpa) : null;
+
+    const parsedAllowedDegrees = Array.isArray(allowedDegrees)
+      ? allowedDegrees.map((d: string) => d.trim()).filter(Boolean)
+      : typeof allowedDegrees === 'string' && allowedDegrees.trim()
+      ? allowedDegrees.split(',').map((d: string) => d.trim()).filter(Boolean)
+      : [];
+
+    const parsedAllowedYears = Array.isArray(allowedYears)
+      ? allowedYears.map((y: any) => parseInt(y)).filter((y: number) => !isNaN(y))
+      : typeof allowedYears === 'string' && allowedYears.trim()
+      ? allowedYears.split(',').map((y: string) => parseInt(y.trim())).filter((y: number) => !isNaN(y))
+      : [];
 
     let finalAudience = targetAudience || (user.role === 'MENTOR' ? 'MY_STUDENTS' : 'ALL_STUDENTS');
     let finalDepartment = targetDepartment || null;
 
     if (user.role === 'MENTOR') {
       if (finalAudience === 'OUR_STUDENTS') {
-        // Resolve mentor's department if not explicitly set
         const mentorProfile = await prisma.profile.findUnique({ where: { userId: user.id } });
         if (mentorProfile?.department) {
           finalDepartment = mentorProfile.department;
@@ -297,6 +312,9 @@ export async function POST(req: Request) {
         deadline: deadlineDate,
         startDate: parseSafeDate(startDate),
         endDate: parseSafeDate(endDate),
+        minCgpa: parsedMinCgpa,
+        allowedDegrees: parsedAllowedDegrees,
+        allowedYears: parsedAllowedYears,
         requiredSkills: Array.isArray(requiredSkills)
           ? requiredSkills.map((s: string) => s.trim()).filter(Boolean)
           : typeof requiredSkills === 'string'
@@ -312,19 +330,21 @@ export async function POST(req: Request) {
       }
     });
 
-    // Create Broadcast Notifications if PUBLISHED
-    if (newOpportunity.status === 'PUBLISHED') {
+    // Initialize automated deadline reminder schedule
+    const { initializeOpportunityReminders, validateStudentEligibility } = await import('@/lib/opportunity/lifecycle.service');
+    await initializeOpportunityReminders(newOpportunity.id, deadlineDate);
+
+    // Create Broadcast Notifications if PUBLISHED or REGISTRATION_OPEN
+    if (newOpportunity.status === 'PUBLISHED' || newOpportunity.status === 'REGISTRATION_OPEN') {
       try {
         const recipientConditions: any[] = [];
 
         if (newOpportunity.targetAudience === 'MY_STUDENTS') {
-          // Send notification ONLY to students assigned to this mentor
           recipientConditions.push({
             role: 'STUDENT',
             mentorId: user.id
           });
         } else if (newOpportunity.targetAudience === 'OUR_STUDENTS') {
-          // Send notification to assigned students and students in the mentor's department
           recipientConditions.push({
             role: 'STUDENT',
             OR: [
@@ -335,7 +355,6 @@ export async function POST(req: Request) {
             ]
           });
         } else {
-          // HOD / Placement target scoping
           const profileFilter: any = {};
           if (newOpportunity.targetDepartment) {
             profileFilter.department = { equals: newOpportunity.targetDepartment, mode: 'insensitive' };
@@ -368,12 +387,19 @@ export async function POST(req: Request) {
           recipientConditions.push({ role: 'STUDENT' });
         }
 
-        const targetUsers = await prisma.user.findMany({
+        const candidateUsers = await prisma.user.findMany({
           where: { OR: recipientConditions },
-          select: { id: true }
+          include: { profile: true }
         });
 
-        const uniqueUserIds: string[] = Array.from(new Set(targetUsers.map((u: { id: string }) => u.id)));
+        // Filter out candidates that do not meet strict eligibility criteria (e.g. minCgpa, allowedDegrees, allowedYears)
+        const eligibleUsers = candidateUsers.filter((u) => {
+          if (u.role !== 'STUDENT') return true;
+          const eligibilityCheck = validateStudentEligibility(u, newOpportunity);
+          return eligibilityCheck.eligible;
+        });
+
+        const uniqueUserIds: string[] = Array.from(new Set(eligibleUsers.map((u) => u.id)));
 
         if (uniqueUserIds.length > 0) {
           sendOpportunityNotification({

@@ -120,8 +120,12 @@ export default function MentorStudentsPage() {
         </div>
       ) : (
         <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/50">
+          <div className="sm:hidden px-4 py-2 border-b border-gray-100 bg-gray-50/70 text-[11px] font-medium text-gray-500 flex items-center gap-1.5">
+            <span>👉 Swipe horizontally to view all columns</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="border-b border-gray-100 bg-gray-50/50">
               <tr className="text-gray-500">
                 <th className="px-6 py-4 text-left font-semibold w-12">S.No</th>
                 <th className="px-6 py-4 text-left font-semibold">Student Name</th>
@@ -172,6 +176,7 @@ export default function MentorStudentsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

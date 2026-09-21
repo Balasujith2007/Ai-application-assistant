@@ -1,5 +1,6 @@
 'use client';
 
+import React, { Suspense } from 'react';
 import Navbar from '@/components/landing/Navbar';
 import HeroSection from '@/components/landing/HeroSection';
 import ProductPreview from '@/components/landing/ProductPreview';
@@ -11,7 +12,7 @@ import SafetySection from '@/components/landing/SafetySection';
 import FinalCTA from '@/components/landing/FinalCTA';
 import Footer from '@/components/landing/Footer';
 
-export default function LandingPage() {
+function LandingPageContent() {
   return (
     <div className="min-h-screen bg-white text-slate-900 font-[var(--font-inter)] selection:bg-kit-100 selection:text-kit-800">
       {/* 1. Navigation Bar */}
@@ -48,3 +49,12 @@ export default function LandingPage() {
     </div>
   );
 }
+
+export default function LandingPage() {
+  return (
+    <Suspense fallback={null}>
+      <LandingPageContent />
+    </Suspense>
+  );
+}
+

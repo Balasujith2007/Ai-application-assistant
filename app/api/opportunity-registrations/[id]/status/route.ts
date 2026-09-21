@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
 import prisma from '@/lib/prisma';
+import { transitionRegistrationStatus } from '@/lib/opportunity/lifecycle.service';
+import { OpportunityRegistrationStatus } from '@prisma/client';
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -11,7 +13,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     const { id: registrationId } = await params;
     const body = await req.json();
-    const { status, notes } = body;
+    const { status, reason, notes, outcome, role, certificateUrl } = body;
 
     if (!status) {
       return NextResponse.json({ message: 'Status is required.' }, { status: 400 });
@@ -19,7 +21,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     const registration = await prisma.opportunityRegistration.findUnique({
       where: { id: registrationId },
-      include: { opportunity: true, student: true }
+      include: {
+        opportunity: true,
+        student: {
+          include: { profile: true }
+        }
+      }
     });
 
     if (!registration) {
@@ -27,35 +34,26 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user || (user.role !== 'MENTOR' && user.role !== 'HOD' && user.role !== 'PLACEMENT_CELL' && user.role !== 'ADMIN')) {
+    if (!user || (user.role !== 'MENTOR' && user.role !== 'HOD' && user.role !== 'PLACEMENT_CELL' && user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 
-    const updated = await prisma.opportunityRegistration.update({
-      where: { id: registrationId },
-      data: {
-        status: status as any,
-        notes: notes ?? registration.notes
-      }
-    });
+    // If DISQUALIFIED, require reason
+    if (status === 'DISQUALIFIED' && (!reason || !reason.trim())) {
+      return NextResponse.json({
+        message: 'A disqualification reason is required (e.g. Eligibility mismatch, Missed deadline, Failed verification).'
+      }, { status: 400 });
+    }
 
-    // Notify student about status change
-    let statusText = status.toLowerCase();
-    if (status === 'SHORTLISTED') statusText = 'shortlisted 🎉';
-    else if (status === 'SELECTED') statusText = 'selected! 🏆';
-    else if (status === 'REJECTED') statusText = 'updated (Not Selected)';
-
-    await prisma.notification.create({
-      data: {
-        userId: registration.studentId,
-        senderId: userId,
-        type: 'REGISTRATION_STATUS_CHANGED',
-        title: `Registration Status Update`,
-        message: `Your registration for ${registration.opportunity.title} has been ${statusText}.`,
-        relatedEntityId: registration.opportunityId,
-        relatedEntityType: 'OPPORTUNITY',
-        link: '/dashboard/student/opportunities'
-      }
+    const updated = await transitionRegistrationStatus({
+      registrationId,
+      newStatus: status as OpportunityRegistrationStatus,
+      actorId: userId,
+      reason,
+      notes,
+      outcome,
+      role,
+      certificateUrl
     });
 
     return NextResponse.json({
@@ -63,8 +61,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       data: updated
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating registration status:', error);
-    return NextResponse.json({ success: false, message: 'Failed to update registration status.' }, { status: 500 });
+    return NextResponse.json({ success: false, message: error?.message || 'Failed to update registration status.' }, { status: 500 });
   }
 }
+

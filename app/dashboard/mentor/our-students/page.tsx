@@ -126,67 +126,72 @@ export default function OurStudentsPage() {
         </div>
       ) : (
         <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/50">
-              <tr className="text-gray-500">
-                <th className="px-6 py-4 text-left font-semibold w-12">S.No</th>
-                <th className="px-6 py-4 text-left font-semibold">Student Name</th>
-                <th className="px-6 py-4 text-left font-semibold">Email</th>
-                <th className="px-6 py-4 text-left font-semibold">Register Number</th>
-                <th className="px-6 py-4 text-left font-semibold hidden md:table-cell">Department</th>
-                <th className="px-6 py-4 text-left font-semibold hidden sm:table-cell">Year</th>
-                <th className="px-6 py-4 text-left font-semibold hidden sm:table-cell">Section</th>
-                <th className="px-6 py-4 text-right font-semibold">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {students.map((s, index) => (
-                <tr key={s.id} className="group hover:bg-gray-50/50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-gray-400 text-xs">{index + 1}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-kit-100 text-sm font-bold text-kit-700">
-                        {s.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900">{s.name}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-xs text-gray-500 font-medium">
-                    <span className="flex items-center gap-1"><Mail className="h-3 w-3 text-gray-400" />{s.email}</span>
-                  </td>
-                  <td className="px-6 py-4 font-mono text-xs font-bold text-kit-700">{s.registerNo}</td>
-                  <td className="px-6 py-4 hidden md:table-cell text-gray-600 text-xs">
-                    {s.department}
-                  </td>
-                  <td className="px-6 py-4 hidden sm:table-cell text-gray-900 font-semibold text-xs">
-                    {s.year}
-                  </td>
-                  <td className="px-6 py-4 hidden sm:table-cell text-gray-900 font-semibold text-xs">
-                    {s.section}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    {s.isAssigned ? (
-                      <Link
-                        href={`/dashboard/mentor/students/${s.id}`}
-                        className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:border-kit-300 hover:text-kit-700 shadow-sm transition-colors"
-                      >
-                        <Eye className="h-3.5 w-3.5" /> View Profile
-                      </Link>
-                    ) : (
-                      <button
-                        onClick={() => setSelectedBasicInfoStudent(s)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 hover:border-gray-300 hover:text-gray-900 shadow-sm transition-colors"
-                      >
-                        <Info className="h-3.5 w-3.5 text-gray-400" /> View Basic Info
-                      </button>
-                    )}
-                  </td>
+          <div className="sm:hidden px-4 py-2 border-b border-gray-100 bg-gray-50/70 text-[11px] font-medium text-gray-500 flex items-center gap-1.5">
+            <span>👉 Swipe horizontally to view all columns</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="border-b border-gray-100 bg-gray-50/50">
+                <tr className="text-gray-500">
+                  <th className="px-6 py-4 text-left font-semibold w-12">S.No</th>
+                  <th className="px-6 py-4 text-left font-semibold">Student Name</th>
+                  <th className="px-6 py-4 text-left font-semibold">Email</th>
+                  <th className="px-6 py-4 text-left font-semibold">Register Number</th>
+                  <th className="px-6 py-4 text-left font-semibold hidden md:table-cell">Department</th>
+                  <th className="px-6 py-4 text-left font-semibold hidden sm:table-cell">Year</th>
+                  <th className="px-6 py-4 text-left font-semibold hidden sm:table-cell">Section</th>
+                  <th className="px-6 py-4 text-right font-semibold">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {students.map((s, index) => (
+                  <tr key={s.id} className="group hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-gray-400 text-xs">{index + 1}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-kit-100 text-sm font-bold text-kit-700">
+                          {s.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">{s.name}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-xs text-gray-500 font-medium">
+                      <span className="flex items-center gap-1"><Mail className="h-3 w-3 text-gray-400" />{s.email}</span>
+                    </td>
+                    <td className="px-6 py-4 font-mono text-xs font-bold text-kit-700">{s.registerNo}</td>
+                    <td className="px-6 py-4 hidden md:table-cell text-gray-600 text-xs">
+                      {s.department}
+                    </td>
+                    <td className="px-6 py-4 hidden sm:table-cell text-gray-900 font-semibold text-xs">
+                      {s.year}
+                    </td>
+                    <td className="px-6 py-4 hidden sm:table-cell text-gray-900 font-semibold text-xs">
+                      {s.section}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {s.isAssigned ? (
+                        <Link
+                          href={`/dashboard/mentor/students/${s.id}`}
+                          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:border-kit-300 hover:text-kit-700 shadow-sm transition-colors"
+                        >
+                          <Eye className="h-3.5 w-3.5" /> View Profile
+                        </Link>
+                      ) : (
+                        <button
+                          onClick={() => setSelectedBasicInfoStudent(s)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 hover:border-gray-300 hover:text-gray-900 shadow-sm transition-colors"
+                        >
+                          <Info className="h-3.5 w-3.5 text-gray-400" /> View Basic Info
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

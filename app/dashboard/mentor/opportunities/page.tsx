@@ -173,15 +173,74 @@ export default function MentorOpportunitiesPage() {
     }
   };
 
-  const updateRegistrationStatus = async (registrationId: string, newStatus: string) => {
+  const [disqualifyModal, setDisqualifyModal] = useState<{ isOpen: boolean; regId: string; studentName: string } | null>(null);
+  const [disqualifyReason, setDisqualifyReason] = useState('Eligibility mismatch');
+  const [customReason, setCustomReason] = useState('');
+
+  const [stepModal, setStepModal] = useState<{ isOpen: boolean; regId: string; studentName: string } | null>(null);
+  const [stepType, setStepType] = useState('INTERVIEW');
+  const [stepTitle, setStepTitle] = useState('');
+  const [stepDeadline, setStepDeadline] = useState('');
+  const [stepMeetingLink, setStepMeetingLink] = useState('');
+
+  const updateRegistrationStatus = async (registrationId: string, newStatus: string, reason?: string) => {
+    if (newStatus === 'DISQUALIFIED' && !reason) {
+      const regItem = registrations.find((r) => r.id === registrationId);
+      setDisqualifyModal({
+        isOpen: true,
+        regId: registrationId,
+        studentName: regItem?.student.name || 'Student'
+      });
+      return;
+    }
+
     try {
-      await api.put(`/opportunity-registrations/${registrationId}/status`, { status: newStatus });
+      await api.put(`/opportunity-registrations/${registrationId}/status`, {
+        status: newStatus,
+        reason: reason || undefined
+      });
       setRegistrations((prev) =>
         prev.map((r) => (r.id === registrationId ? { ...r, status: newStatus } : r))
       );
       showToast(`Student status updated to ${newStatus}.`);
-    } catch (err) {
-      showToast('Failed to update registration status.', 'error');
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || 'Failed to update registration status.', 'error');
+    }
+  };
+
+  const handleConfirmDisqualification = async () => {
+    if (!disqualifyModal) return;
+    const finalReason = disqualifyReason === 'Other' ? customReason : disqualifyReason;
+    if (!finalReason.trim()) {
+      showToast('Please provide a disqualification reason.', 'error');
+      return;
+    }
+
+    await updateRegistrationStatus(disqualifyModal.regId, 'DISQUALIFIED', finalReason);
+    setDisqualifyModal(null);
+    setCustomReason('');
+  };
+
+  const handleCreateStep = async () => {
+    if (!stepModal || !stepTitle.trim()) {
+      showToast('Please enter a step title.', 'error');
+      return;
+    }
+
+    try {
+      await api.post(`/opportunity-registrations/${stepModal.regId}/workflow-steps`, {
+        stepType,
+        title: stepTitle.trim(),
+        deadline: stepDeadline || undefined,
+        meetingLink: stepMeetingLink || undefined
+      });
+      showToast(`Scheduled "${stepTitle}" for ${stepModal.studentName}.`);
+      setStepModal(null);
+      setStepTitle('');
+      setStepDeadline('');
+      setStepMeetingLink('');
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || 'Failed to schedule workflow step.', 'error');
     }
   };
 
@@ -591,20 +650,43 @@ export default function MentorOpportunitiesPage() {
                         </div>
                       </div>
 
-                      {/* Status Select */}
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-gray-500">Status:</span>
-                        <select
-                          value={reg.status}
-                          onChange={(e) => updateRegistrationStatus(reg.id, e.target.value)}
-                          className="rounded-xl border border-gray-300 px-3 py-1.5 text-xs font-bold focus:border-kit-500 focus:outline-none bg-white"
+                      {/* Actions: Status + Next Step */}
+                      <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setStepModal({
+                              isOpen: true,
+                              regId: reg.id,
+                              studentName: reg.student.name
+                            });
+                          }}
+                          className="text-[11px] font-bold px-2 py-1 text-kit-700 bg-kit-50 hover:bg-kit-100 border-kit-200"
                         >
-                          <option value="INITIATED">INITIATED</option>
-                          <option value="REGISTERED">REGISTERED ✓</option>
-                          <option value="SHORTLISTED">SHORTLISTED 🎉</option>
-                          <option value="SELECTED">SELECTED 🏆</option>
-                          <option value="REJECTED">REJECTED</option>
-                        </select>
+                          + Next Step
+                        </Button>
+
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-semibold text-gray-500">Status:</span>
+                          <select
+                            value={reg.status}
+                            onChange={(e) => updateRegistrationStatus(reg.id, e.target.value)}
+                            className="rounded-xl border border-gray-300 px-3 py-1.5 text-xs font-bold focus:border-kit-500 focus:outline-none bg-white"
+                          >
+                            <option value="STARTED">STARTED</option>
+                            <option value="INITIATED">INITIATED</option>
+                            <option value="PENDING_VERIFICATION">PENDING VERIFICATION ⏳</option>
+                            <option value="VERIFIED">VERIFIED ✅</option>
+                            <option value="REGISTERED">REGISTERED ✓</option>
+                            <option value="UNDER_REVIEW">UNDER REVIEW ⏳</option>
+                            <option value="SHORTLISTED">SHORTLISTED 🎉</option>
+                            <option value="INTERVIEW">INTERVIEW 🗓️</option>
+                            <option value="SELECTED">SELECTED 🏆</option>
+                            <option value="REJECTED">NOT SELECTED</option>
+                            <option value="DISQUALIFIED">DISQUALIFIED ⚠️</option>
+                          </select>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -614,6 +696,176 @@ export default function MentorOpportunitiesPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Disqualification Modal */}
+      <AnimatePresence>
+        {disqualifyModal && (
+          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl space-y-4"
+            >
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <h3 className="text-base font-bold text-red-600 flex items-center gap-1.5">
+                  <AlertTriangle className="h-5 w-5" /> Disqualify Application
+                </h3>
+                <button
+                  onClick={() => setDisqualifyModal(null)}
+                  className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <p className="text-xs text-gray-600">
+                You are disqualifying <span className="font-bold text-gray-900">{disqualifyModal.studentName}</span>. Please specify the authorized reason.
+              </p>
+
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Reason Category</label>
+                  <select
+                    value={disqualifyReason}
+                    onChange={(e) => setDisqualifyReason(e.target.value)}
+                    className="w-full rounded-xl border border-gray-300 p-2 font-medium focus:border-red-500 focus:outline-none"
+                  >
+                    <option value="Eligibility mismatch">Eligibility mismatch</option>
+                    <option value="Missed required deadline">Missed required deadline</option>
+                    <option value="Failed verification">Failed verification</option>
+                    <option value="Incomplete required submission">Incomplete required submission</option>
+                    <option value="Mentor/HOD decision">Mentor/HOD decision</option>
+                    <option value="Other">Other (Custom)</option>
+                  </select>
+                </div>
+
+                {disqualifyReason === 'Other' && (
+                  <div>
+                    <label className="font-bold text-gray-700 block mb-1">Custom Reason</label>
+                    <input
+                      type="text"
+                      placeholder="Specify reason..."
+                      value={customReason}
+                      onChange={(e) => setCustomReason(e.target.value)}
+                      className="w-full rounded-xl border border-gray-300 p-2 font-medium focus:border-red-500 focus:outline-none"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                <Button variant="ghost" size="sm" onClick={() => setDisqualifyModal(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleConfirmDisqualification}
+                  className="bg-red-600 hover:bg-red-700 text-white font-bold"
+                >
+                  Confirm Disqualification
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Next Step Modal */}
+      <AnimatePresence>
+        {stepModal && (
+          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl space-y-4"
+            >
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <h3 className="text-base font-bold text-gray-900 flex items-center gap-1.5">
+                  <Calendar className="h-5 w-5 text-kit-600" /> Schedule Next Step
+                </h3>
+                <button
+                  onClick={() => setStepModal(null)}
+                  className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <p className="text-xs text-gray-600">
+                For student: <span className="font-bold text-gray-900">{stepModal.studentName}</span>
+              </p>
+
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Step Type</label>
+                  <select
+                    value={stepType}
+                    onChange={(e) => setStepType(e.target.value)}
+                    className="w-full rounded-xl border border-gray-300 p-2 font-medium focus:border-kit-500 focus:outline-none"
+                  >
+                    <option value="INTERVIEW">Technical / HR Interview</option>
+                    <option value="TECHNICAL_ASSESSMENT">Technical Assessment</option>
+                    <option value="DOCUMENT_SUBMISSION">Document Submission</option>
+                    <option value="EXTERNAL_VERIFICATION">External Verification</option>
+                    <option value="JOINING">Joining Formalities</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Step Title *</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Round 1 Technical Interview, Code Submission"
+                    value={stepTitle}
+                    onChange={(e) => setStepTitle(e.target.value)}
+                    className="w-full rounded-xl border border-gray-300 p-2 font-medium focus:border-kit-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Deadline / Scheduled Date</label>
+                  <input
+                    type="datetime-local"
+                    value={stepDeadline}
+                    onChange={(e) => setStepDeadline(e.target.value)}
+                    className="w-full rounded-xl border border-gray-300 p-2 font-medium focus:border-kit-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 block mb-1">Meeting / Portal Link (Optional)</label>
+                  <input
+                    type="url"
+                    placeholder="https://meet.google.com/..."
+                    value={stepMeetingLink}
+                    onChange={(e) => setStepMeetingLink(e.target.value)}
+                    className="w-full rounded-xl border border-gray-300 p-2 font-medium focus:border-kit-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                <Button variant="ghost" size="sm" onClick={() => setStepModal(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleCreateStep}
+                  className="bg-kit-600 hover:bg-kit-700 text-white font-bold"
+                >
+                  Schedule Step
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+

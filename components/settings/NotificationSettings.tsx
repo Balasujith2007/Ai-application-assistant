@@ -11,20 +11,29 @@ const TOGGLES = [
   { id: 'tasks', label: 'Task Reminders', desc: 'Reminders for assigned tasks and tests.' },
   { id: 'profile', label: 'Profile Improvement Suggestions', desc: 'Tips to make your profile stand out.' },
   { id: 'email', label: 'Email Notifications', desc: 'Receive summaries and important alerts via email.' },
+  { id: 'whatsapp', label: 'WhatsApp Notifications', desc: 'Receive instant alerts on WhatsApp for urgent updates.' },
   { id: 'push', label: 'Push Notifications', desc: 'Browser push notifications.' },
 ];
 
 export function NotificationSettings({ data, onSave }: { data: any; onSave: (d: any) => void }) {
   const [prefs, setPrefs] = useState<any>(data.notificationPreferences || {
-    appUpdates: true, interviews: true, deadlines: true, jobs: true, hackathons: true, mentor: true, tasks: true, profile: true, email: false, push: false
+    appUpdates: true, interviews: true, deadlines: true, jobs: true, hackathons: true, mentor: true, tasks: true, profile: true, email: false, whatsapp: true, push: false
   });
+  const [whatsappPhone, setWhatsappPhone] = useState<string>(
+    prefs.whatsappPhone || data.profile?.phone || ''
+  );
 
   const toggle = (id: string) => {
     setPrefs({ ...prefs, [id]: !prefs[id] });
   };
 
   const handleSubmit = () => {
-    onSave({ notificationPreferences: prefs });
+    onSave({
+      notificationPreferences: {
+        ...prefs,
+        whatsappPhone: whatsappPhone.trim(),
+      },
+    });
   };
 
   return (
@@ -46,6 +55,24 @@ export function NotificationSettings({ data, onSave }: { data: any; onSave: (d: 
             </button>
           </div>
         ))}
+
+        {prefs.whatsapp && (
+          <div className="pt-2 pb-4 border-b border-gray-100">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              WhatsApp Phone Number (with country code, e.g. +91 98765 43210)
+            </label>
+            <input
+              type="tel"
+              value={whatsappPhone}
+              onChange={(e) => setWhatsappPhone(e.target.value)}
+              placeholder="+91 9876543210"
+              className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-kit-600 focus:border-transparent"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Used for critical application alerts and approved opportunity notifications.
+            </p>
+          </div>
+        )}
       </div>
 
       <button onClick={handleSubmit} className="px-4 py-2 bg-kit-600 text-white rounded-lg hover:bg-kit-700 font-medium">Save Preferences</button>

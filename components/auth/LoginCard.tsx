@@ -93,13 +93,14 @@ export default function LoginCard({ onSuccess, isModal = false }: LoginCardProps
       <button
         type="button"
         onClick={() => handleFillDemo('student@demo.com', 'Demo@1234')}
-        className="mt-5 w-full group flex items-center justify-between gap-2 rounded-xl border border-red-200 bg-red-50/70 hover:bg-red-100/80 px-3.5 py-2.5 text-left text-xs transition-all cursor-pointer"
+        title="Demo login: student@demo.com / Demo@1234"
+        className="mt-5 w-full group flex items-center justify-between gap-2 rounded-xl border border-red-200 bg-red-50/70 hover:bg-red-100/80 px-3 py-2 sm:px-3.5 sm:py-2.5 text-left text-xs transition-all cursor-pointer min-w-0"
       >
-        <div className="flex items-center gap-1.5 text-kit-800 truncate">
-          <span className="font-bold text-kit-700">Demo:</span>
-          <span className="font-mono text-kit-900">student@demo.com</span>
-          <span className="text-kit-400">/</span>
-          <span className="font-mono text-kit-900">Demo@1234</span>
+        <div className="flex items-center gap-1 sm:gap-1.5 text-kit-800 min-w-0 flex-1">
+          <span className="font-bold text-kit-700 shrink-0">Demo:</span>
+          <span className="font-mono text-kit-900 truncate" title="student@demo.com">student@demo.com</span>
+          <span className="text-kit-400 shrink-0">/</span>
+          <span className="font-mono text-kit-900 shrink-0">Demo@1234</span>
         </div>
         <span className="shrink-0 inline-flex items-center gap-1 rounded-md bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-kit-700 shadow-2xs border border-red-200/60 group-hover:bg-kit-600 group-hover:text-white transition-colors">
           {copiedDemo ? (

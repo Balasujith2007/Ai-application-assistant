@@ -233,8 +233,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Menu className="h-6 w-6" aria-hidden="true" />
           </button>
 
-          <div className="flex flex-1 items-center gap-x-4 self-stretch lg:gap-x-6">
-            <form className="flex flex-1" action="#" method="GET">
+          <div className="flex flex-1 items-center gap-x-4 self-stretch lg:gap-x-6 min-w-0">
+            <form className="flex flex-1 min-w-0" action="#" method="GET">
               <label htmlFor="search-field" className="sr-only">
                 Search
               </label>
@@ -245,7 +245,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 />
                 <input
                   id="search-field"
-                  className="block h-full w-full border-0 bg-transparent py-0 pl-8 pr-0 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm"
+                  className="block h-full w-full border-0 bg-transparent py-0 pl-8 pr-0 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm truncate"
                   placeholder="Search students, companies, tasks..."
                   type="search"
                   name="search"

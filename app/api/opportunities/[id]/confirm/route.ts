@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
 import prisma from '@/lib/prisma';
 import { isOpportunityOpen } from '@/lib/utils';
+import { sendRegistrationStatusWhatsApp } from '@/lib/whatsapp/whatsapp.service';
 
 export async function POST(req: Request, context: { params: Promise<{ id: string }> | { id: string } }) {
   try {
@@ -92,7 +93,9 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
     // Determine target status and verification method
     const isExtensionVerified = requestedAction === 'VERIFY' || body.verificationMethod === 'EXTENSION';
     const targetStatus: any = isExtensionVerified ? 'VERIFIED' : 'STUDENT_CONFIRMED';
-    const verificationMethod = isExtensionVerified ? 'EXTENSION' : 'STUDENT_CONFIRMATION';
+    const verificationMethod = isExtensionVerified ? 'EXTENSION' : 'STUDENT_CONFIRMED';
+
+    let wasAlreadyCompleted = false;
 
     // Execute in a transaction to guarantee data integrity
     const [registration, application] = await prisma.$transaction(async (tx: any) => {
@@ -106,7 +109,7 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
         }
       });
 
-      const wasAlreadyCompleted = existingReg && ['VERIFIED', 'STUDENT_CONFIRMED', 'REGISTERED'].includes(existingReg.status);
+      wasAlreadyCompleted = Boolean(existingReg && ['VERIFIED', 'STUDENT_CONFIRMED', 'REGISTERED'].includes(existingReg.status));
 
       let reg;
       if (!existingReg) {
@@ -219,6 +222,18 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
 
       return [reg, app];
     });
+
+    if (!wasAlreadyCompleted) {
+      const studentPhone = (student.notificationPreferences as any)?.whatsappPhone || student.profile?.phone;
+      sendRegistrationStatusWhatsApp({
+        student: { id: student.id, name: student.name, phone: studentPhone },
+        opportunityTitle: opportunity.title,
+        status: targetStatus,
+        notes,
+      }).catch((err) => {
+        console.error('[OpportunityConfirm] WhatsApp dispatch error:', err?.message || err);
+      });
+    }
 
     return NextResponse.json({
       success: true,

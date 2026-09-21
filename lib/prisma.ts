@@ -66,7 +66,15 @@ export function resetPrismaClient() {
   globalForPrisma.prisma = undefined;
 }
 
-const prisma = new Proxy({} as PrismaClient, {
+export type ExtendedPrismaClient = PrismaClient & {
+  opportunityReminder?: any;
+  opportunityWorkflowStep?: any;
+  opportunityStatusHistory?: any;
+  notificationDelivery?: any;
+  [key: string]: any;
+};
+
+const prisma = new Proxy({} as ExtendedPrismaClient, {
   get(_target, prop) {
     const db = getDb();
     const value = (db as unknown as Record<string | symbol, unknown>)[prop];
@@ -78,4 +86,5 @@ const prisma = new Proxy({} as PrismaClient, {
 });
 
 export default prisma;
+
 

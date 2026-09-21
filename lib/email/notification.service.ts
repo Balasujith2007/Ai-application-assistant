@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma';
 import { sendEmail, isValidEmail, isDeliverableEmail, validateRecipientEmail } from './email.service';
+import { sendOpportunityWhatsApp } from '@/lib/whatsapp/whatsapp.service';
 import {
   getOpportunityEmailTemplate,
   getHODAnnouncementEmailTemplate,
@@ -51,7 +52,14 @@ export async function sendOpportunityNotification(params: {
 
   const users = await prisma.user.findMany({
     where: { id: { in: userIds } },
-    select: { id: true, email: true, name: true, role: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      notificationPreferences: true,
+      profile: { select: { phone: true } },
+    },
   });
 
   // 1. Create in-app notifications in bulk for all target users (both real and demo students)
@@ -72,11 +80,24 @@ export async function sendOpportunityNotification(params: {
     console.error('[NotificationService] Error creating in-app opportunity notifications:', err?.message || err);
   }
 
-  // 2. Filter and deduplicate deliverable recipients for email delivery
+  // 2. Dispatch WhatsApp notifications asynchronously to eligible students
+  for (const user of users) {
+    if (user.role === 'STUDENT') {
+      const phone = (user.notificationPreferences as any)?.whatsappPhone || user.profile?.phone;
+      sendOpportunityWhatsApp({
+        student: { id: user.id, name: user.name, phone },
+        opportunity,
+      }).catch((err) => {
+        console.error(`[NotificationService] WhatsApp dispatch error for ${user.name || user.id}:`, err?.message || err);
+      });
+    }
+  }
+
+  // 3. Filter and deduplicate deliverable recipients for email delivery
   const deliverableUsers = deduplicateDeliverableUsers(users);
   const baseUrl = getBaseUrl();
 
-  // 3. Send emails asynchronously only to real, deliverable recipients
+  // 4. Send emails asynchronously only to real, deliverable recipients
   for (const user of deliverableUsers) {
     if (!user.email) continue;
     const link = `${baseUrl}${user.role === 'MENTOR' ? '/dashboard/mentor/opportunities' : '/dashboard/student/opportunities'}`;

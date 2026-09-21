@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { checkAuthAndPermission } from '@/lib/serverAuth';
+import { getActiveWhatsAppProvider, isRealSendEnabled } from '@/lib/whatsapp/whatsapp.service';
 
 export async function GET(req: Request) {
   try {
@@ -9,10 +10,20 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: auth.message || 'Forbidden' }, { status: auth.status || 403 });
     }
 
+    const waProvider = getActiveWhatsAppProvider();
+    const waRealSend = isRealSendEnabled();
+    const waConfig = waProvider.validateConfiguration();
+
     const healthData: any = {
       database: { status: 'UP', message: 'Database is connected and healthy.' },
       authentication: { status: 'UP', message: 'JWT authentication system is fully operational.' },
       notifications: { status: 'UP', message: 'Email and browser notification pipelines are active.' },
+      whatsappService: {
+        status: waConfig.valid ? 'UP' : 'DEGRADED',
+        provider: waProvider.name,
+        realSendEnabled: waRealSend,
+        message: waConfig.message,
+      },
       autoFillAgent: { status: 'UP', message: 'Apply AI Agent systems are online.' },
     };
 
