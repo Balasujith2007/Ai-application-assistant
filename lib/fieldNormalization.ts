@@ -18,6 +18,9 @@ export interface StudentProfileData {
   githubUrl?: string;
   linkedinUrl?: string;
   codolioUrl?: string;
+  codechefUrl?: string;
+  leetcodeUrl?: string;
+  portfolioUrl?: string;
   location?: string;
   skillsList?: string[];
   educationList?: any[];
@@ -157,7 +160,25 @@ export function matchFieldToProfile(fieldIdentifier: string, studentData: Studen
     return { key: 'codolioUrl', label: 'Codolio Profile', value: val, isMatched: !!val, confidence: 'HIGH' };
   }
 
-  // 11. Skills (from Profile/Resume)
+  // 11. CodeChef Profile
+  if (/codechef profile|codechef url|^codechef$/i.test(norm)) {
+    const val = studentData.codechefUrl || '';
+    return { key: 'codechefUrl', label: 'CodeChef Profile', value: val, isMatched: !!val, confidence: 'HIGH' };
+  }
+
+  // 12. LeetCode Profile
+  if (/leetcode profile|leetcode url|^leetcode$/i.test(norm)) {
+    const val = studentData.leetcodeUrl || '';
+    return { key: 'leetcodeUrl', label: 'LeetCode Profile', value: val, isMatched: !!val, confidence: 'HIGH' };
+  }
+
+  // 13. Portfolio Website
+  if (/portfolio url|portfolio website|personal website|^portfolio$/i.test(norm)) {
+    const val = studentData.portfolioUrl || '';
+    return { key: 'portfolioUrl', label: 'Portfolio Website', value: val, isMatched: !!val, confidence: 'HIGH' };
+  }
+
+  // 14. Skills (from Profile/Resume)
   if (/skills|technical skills|key skills/i.test(norm)) {
     const val = (studentData.skillsList || []).join(', ');
     return { key: 'skills', label: 'Skills', value: val, isMatched: !!val, confidence: 'MEDIUM' };

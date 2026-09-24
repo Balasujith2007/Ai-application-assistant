@@ -162,6 +162,26 @@ async function runTests() {
   });
   assert(adminTestResult.status === 'MOCKED' || adminTestResult.status === 'SENT', 'Single test message dispatched');
 
+  // TEST 10: Broadcast Opportunity to ALL Registered Students
+  console.log('\n--- 10. Broadcast Opportunity to ALL Students (Internship / Hackathon) ---');
+  const { broadcastOpportunityToAllStudents } = await import('../lib/whatsapp/whatsapp.service');
+  const broadcastSummary = await broadcastOpportunityToAllStudents({
+    id: `opp_broadcast_test_${Date.now()}`,
+    title: 'Google Cloud Summer Internship 2026',
+    type: 'INTERNSHIP',
+    organization: 'Google Cloud India',
+    applicationDeadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+  });
+
+  assert(typeof broadcastSummary.totalStudents === 'number', 'Broadcast returns total student count');
+  assert(typeof broadcastSummary.sentCount === 'number', 'Broadcast tracks sent/mocked count');
+  assert(typeof broadcastSummary.skippedCount === 'number', 'Broadcast tracks skipped (opt-out / no-phone) count');
+  assert(Array.isArray(broadcastSummary.details), 'Broadcast returns per-student delivery details array');
+  assert(
+    broadcastSummary.totalStudents === broadcastSummary.sentCount + broadcastSummary.skippedCount + broadcastSummary.failedCount,
+    'Broadcast delivery sum matches total registered students'
+  );
+
   console.log('\n======================================================');
   console.log(`  📊 RESULTS: ${passCount} PASSED, ${failCount} FAILED`);
   console.log('======================================================\n');

@@ -44,6 +44,8 @@ export interface Profile {
   githubUrl?: string | null;
   portfolioUrl?: string | null;
   codolioUrl?: string | null;
+  codechefUrl?: string | null;
+  leetcodeUrl?: string | null;
   dob?: string | null;
   gender?: string | null;
   disabilityStatus?: string | null;

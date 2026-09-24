@@ -85,16 +85,16 @@ export default function OpportunityHistoryPage() {
   const getTypeBadge = (type: string) => {
     switch (type) {
       case 'HACKATHON':
-        return <span className="rounded-full bg-kit-100 px-3 py-1 text-xs font-bold text-kit-700">Hackathon 🚀</span>;
+        return <span className="rounded-full bg-kit-100 px-3 py-1 text-xs font-bold text-kit-700">Hackathon</span>;
       case 'INTERNSHIP':
-        return <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">Internship 💼</span>;
+        return <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">Internship</span>;
       case 'JOB':
       case 'FULL_TIME':
-        return <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">Job 🎯</span>;
+        return <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">Job</span>;
       case 'COMPETITION':
-        return <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">Competition 🏆</span>;
+        return <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">Competition</span>;
       case 'WORKSHOP':
-        return <span className="rounded-full bg-kit-100 px-3 py-1 text-xs font-bold text-kit-700">Workshop 📚</span>;
+        return <span className="rounded-full bg-kit-100 px-3 py-1 text-xs font-bold text-kit-700">Workshop</span>;
       default:
         return <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-700">{type}</span>;
     }
@@ -103,7 +103,7 @@ export default function OpportunityHistoryPage() {
   const getStatusBadge = (status: HistoryItem['status']) => {
     switch (status) {
       case 'VERIFIED':
-        return <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-200"><CheckCircle2 className="h-3.5 w-3.5" /> Verified ✓</span>;
+        return <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-200"><CheckCircle2 className="h-3.5 w-3.5" /> Verified</span>;
       case 'STUDENT_CONFIRMED':
         return <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-800 border border-blue-200"><CheckCircle2 className="h-3.5 w-3.5" /> Student Confirmed</span>;
       case 'IN_PROGRESS':
@@ -116,11 +116,11 @@ export default function OpportunityHistoryPage() {
       case 'ONGOING':
         return <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800 border border-amber-200"><Clock className="h-3.5 w-3.5" /> Ongoing</span>;
       case 'REGISTERED':
-        return <span className="inline-flex items-center gap-1 rounded-full bg-kit-100 px-3 py-1 text-xs font-bold text-kit-800 border border-kit-200">Registered ✓</span>;
+        return <span className="inline-flex items-center gap-1 rounded-full bg-kit-100 px-3 py-1 text-xs font-bold text-kit-800 border border-kit-200">Registered</span>;
       case 'SHORTLISTED':
-        return <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-800 border border-blue-200">Shortlisted ✓</span>;
+        return <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-800 border border-blue-200">Shortlisted</span>;
       case 'SELECTED':
-        return <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-200">Selected ✓</span>;
+        return <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-200">Selected</span>;
       default:
         return <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-700">{status}</span>;
     }
@@ -158,13 +158,13 @@ export default function OpportunityHistoryPage() {
           <div className="flex flex-wrap gap-2">
             {[
               { id: 'ALL', label: 'All Activities' },
-              { id: 'HACKATHONS', label: 'Hackathons 🚀' },
-              { id: 'INTERNSHIPS', label: 'Internships 💼' },
-              { id: 'JOBS', label: 'Jobs 🎯' },
-              { id: 'COMPETITIONS', label: 'Competitions 🏆' },
-              { id: 'WORKSHOPS', label: 'Workshops 📚' },
-              { id: 'COMPLETED', label: 'Completed ✓' },
-              { id: 'ONGOING', label: 'Ongoing ⏳' }
+              { id: 'HACKATHONS', label: 'Hackathons' },
+              { id: 'INTERNSHIPS', label: 'Internships' },
+              { id: 'JOBS', label: 'Jobs' },
+              { id: 'COMPETITIONS', label: 'Competitions' },
+              { id: 'WORKSHOPS', label: 'Workshops' },
+              { id: 'COMPLETED', label: 'Completed' },
+              { id: 'ONGOING', label: 'Ongoing' }
             ].map((tab) => (
               <button
                 key={tab.id}

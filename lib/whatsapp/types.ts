@@ -15,6 +15,8 @@ export interface SendWhatsAppOptions {
   metadata?: Record<string, any>;
   userId?: string;
   notificationType?: string;
+  contentSid?: string;
+  contentVariables?: Record<string, string>;
 }
 
 export interface SendWhatsAppResult {

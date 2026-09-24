@@ -334,7 +334,26 @@ export async function POST(req: Request) {
     const { initializeOpportunityReminders, validateStudentEligibility } = await import('@/lib/opportunity/lifecycle.service');
     await initializeOpportunityReminders(newOpportunity.id, deadlineDate);
 
-    // Create Broadcast Notifications if PUBLISHED or REGISTRATION_OPEN
+    // Broadcast WhatsApp notification to ALL registered students for Internship & Hackathon opportunities
+    if (newOpportunity.status === 'PUBLISHED' || newOpportunity.status === 'REGISTRATION_OPEN') {
+      const oppType = (newOpportunity.type || '').toUpperCase();
+      if (oppType === 'INTERNSHIP' || oppType === 'HACKATHON') {
+        try {
+          const { broadcastOpportunityToAllStudents } = await import('@/lib/whatsapp/whatsapp.service');
+          broadcastOpportunityToAllStudents({
+            id: newOpportunity.id,
+            title: newOpportunity.title,
+            type: newOpportunity.type,
+            organization: newOpportunity.organization,
+            applicationDeadline: newOpportunity.applicationDeadline,
+          }).catch((err) => console.error('[OpportunitiesAPI] Broadcast WhatsApp error:', err));
+        } catch (waErr) {
+          console.error('[OpportunitiesAPI] Notice launching WhatsApp broadcast:', waErr);
+        }
+      }
+    }
+
+    // Create In-App and Email Broadcast Notifications if PUBLISHED or REGISTRATION_OPEN
     if (newOpportunity.status === 'PUBLISHED' || newOpportunity.status === 'REGISTRATION_OPEN') {
       try {
         const recipientConditions: any[] = [];

@@ -78,6 +78,12 @@ export function ApplicationDetailModal({
 
           <div className="flex items-center gap-3">
             <StatusBadge status={application.status} className="text-sm px-3 py-1" />
+            {application.statusSource === 'COMPANY_EMAIL' && (
+              <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800 border border-emerald-200">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                Email Verified
+              </span>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -91,6 +97,25 @@ export function ApplicationDetailModal({
             </Button>
           </div>
         </div>
+
+        {/* Company Email Verified Evidence Notice */}
+        {application.statusSource === 'COMPANY_EMAIL' && (
+          <div className="flex items-center justify-between rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs">
+                <FileText className="h-4 w-4" />
+              </div>
+              <div>
+                <h5 className="text-xs font-bold text-emerald-950 uppercase tracking-wide">
+                  Verified Company Email Update
+                </h5>
+                <p className="text-xs text-emerald-800">
+                  Status was automatically parsed from direct official communication ({Math.round((application.statusConfidence || 0.95) * 100)}% confidence).
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Visual Timeline */}
         <div className="space-y-2">

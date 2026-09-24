@@ -96,7 +96,7 @@ export default function HODOpportunitiesPage() {
                 <p className="text-xs text-gray-600 line-clamp-2">{opp.description}</p>
 
                 <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
-                  <span>📅 {new Date(opp.applicationDeadline).toLocaleDateString()}</span>
+                  <span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-gray-400" /> {new Date(opp.applicationDeadline).toLocaleDateString()}</span>
                   <span className="font-bold text-kit-600">{opp.registrationCount} Registrations</span>
                 </div>
               </div>

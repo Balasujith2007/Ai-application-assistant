@@ -56,6 +56,8 @@ export async function PUT(req: Request) {
       githubUrl: profileData.githubUrl,
       portfolioUrl: profileData.portfolioUrl,
       codolioUrl: profileData.codolioUrl,
+      codechefUrl: profileData.codechefUrl,
+      leetcodeUrl: profileData.leetcodeUrl,
       
       // Personal Information
       dob: profileData.dob,

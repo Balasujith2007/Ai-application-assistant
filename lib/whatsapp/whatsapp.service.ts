@@ -325,18 +325,133 @@ export async function sendOpportunityWhatsApp(params: {
 
   const idempotencyKey = generateIdempotencyKey(['OPPORTUNITY', opportunity.id, student.id]);
 
+  const templateSid = (process.env.TWILIO_OPPORTUNITY_TEMPLATE_SID || '').trim();
+  const contentSid = templateSid ? templateSid : undefined;
+  const contentVariables = contentSid
+    ? {
+        '1': student.name || 'Student',
+        '2': typeLabel,
+        '3': opportunity.title,
+        '4': opportunity.organization,
+        '5': deadlineStr,
+        '6': `${baseUrl}/dashboard/student/opportunities`,
+      }
+    : undefined;
+
   return sendWhatsAppNotification({
     to: student.phone || '',
     userId: student.id,
     notificationType: `OPPORTUNITY_${opportunity.type}`,
     message,
     idempotencyKey,
+    contentSid,
+    contentVariables,
     metadata: {
       opportunityId: opportunity.id,
       opportunityTitle: opportunity.title,
       type: opportunity.type,
+      templateSid: contentSid || null,
     },
   });
+}
+
+export interface BroadcastDeliverySummary {
+  opportunityId: string;
+  opportunityTitle: string;
+  opportunityType: string;
+  totalStudents: number;
+  validPhoneCount: number;
+  optedInCount: number;
+  sentCount: number;
+  skippedCount: number;
+  failedCount: number;
+  details: {
+    studentId: string;
+    studentName: string;
+    status: WhatsAppDeliveryStatus;
+    reason?: string;
+  }[];
+}
+
+/**
+ * Broadcasts WhatsApp notification for a newly posted internship/hackathon opportunity to ALL registered students.
+ * Respects student consent (opt-in/opt-out), rate limits, phone normalization, and duplicate suppression.
+ */
+export async function broadcastOpportunityToAllStudents(opportunity: {
+  id: string;
+  title: string;
+  type: string;
+  organization: string;
+  applicationDeadline: Date | string;
+}): Promise<BroadcastDeliverySummary> {
+  const students = await prisma.user.findMany({
+    where: { role: 'STUDENT', active: true },
+    select: {
+      id: true,
+      name: true,
+      notificationPreferences: true,
+      profile: { select: { phone: true } },
+    },
+  });
+
+  const summary: BroadcastDeliverySummary = {
+    opportunityId: opportunity.id,
+    opportunityTitle: opportunity.title,
+    opportunityType: opportunity.type,
+    totalStudents: students.length,
+    validPhoneCount: 0,
+    optedInCount: 0,
+    sentCount: 0,
+    skippedCount: 0,
+    failedCount: 0,
+    details: [],
+  };
+
+  for (const student of students) {
+    const phone = (student.notificationPreferences as any)?.whatsappPhone || student.profile?.phone;
+    const isOptedOut = (student.notificationPreferences as any)?.whatsapp === false;
+
+    if (phone && phone.trim()) {
+      summary.validPhoneCount++;
+    }
+    if (!isOptedOut) {
+      summary.optedInCount++;
+    }
+
+    try {
+      const result = await sendOpportunityWhatsApp({
+        student: { id: student.id, name: student.name, phone },
+        opportunity,
+      });
+
+      if (result.status === 'SENT' || result.status === 'MOCKED' || result.success) {
+        summary.sentCount++;
+      } else if (result.status === 'SKIPPED') {
+        summary.skippedCount++;
+      } else {
+        summary.failedCount++;
+      }
+
+      summary.details.push({
+        studentId: student.id,
+        studentName: student.name || 'Student',
+        status: result.status,
+        reason: result.error || result.skippedReason,
+      });
+    } catch (err: any) {
+      summary.failedCount++;
+      summary.details.push({
+        studentId: student.id,
+        studentName: student.name || 'Student',
+        status: 'FAILED',
+        reason: err?.message || 'Dispatch error',
+      });
+    }
+  }
+
+  console.log(`[WhatsAppService] Broadcast Opportunity Summary for "${opportunity.title}" (${opportunity.type}): Total=${summary.totalStudents}, Sent/Mocked=${summary.sentCount}, Skipped=${summary.skippedCount}, Failed=${summary.failedCount}`);
+
+  return summary;
 }
 
 /**

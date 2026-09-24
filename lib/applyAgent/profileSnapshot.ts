@@ -117,8 +117,10 @@ export async function buildExtensionProfile(userId: string): Promise<ExtensionPr
     links: {
       github: meta(profile?.githubUrl || verifiedMap.get('GITHUB')?.profileUrl, 'existing-profile', { label: 'GitHub', category: 'links' }),
       linkedin: meta(profile?.linkedinUrl || verifiedMap.get('LINKEDIN')?.profileUrl, 'existing-profile', { label: 'LinkedIn', category: 'links' }),
-      portfolio: meta(profile?.portfolioUrl, 'existing-profile', { label: 'Portfolio', category: 'links' }),
+      portfolio: meta(profile?.portfolioUrl || verifiedMap.get('PORTFOLIO')?.profileUrl, 'existing-profile', { label: 'Portfolio', category: 'links' }),
       codolio: meta(profile?.codolioUrl || verifiedMap.get('CODOLIO')?.profileUrl, 'existing-profile', { label: 'Codolio', category: 'links' }),
+      codechef: meta((profile as any)?.codechefUrl || verifiedMap.get('CODECHEF')?.profileUrl, 'existing-profile', { label: 'CodeChef', category: 'links' }),
+      leetcode: meta((profile as any)?.leetcodeUrl || verifiedMap.get('LEETCODE')?.profileUrl, 'existing-profile', { label: 'LeetCode', category: 'links' }),
     },
     preferences: {
       preferredRole: meta(profile?.preferredRole, 'existing-profile', { label: 'Preferred Role', category: 'preferences' }),

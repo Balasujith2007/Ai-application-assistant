@@ -174,14 +174,14 @@ export default function StudentOpportunitiesPage() {
   const getTypeBadge = (type: string) => {
     switch (type) {
       case 'HACKATHON':
-        return <span className="rounded-full bg-kit-100 px-3 py-1 text-xs font-bold text-kit-700">Hackathon 🚀</span>;
+        return <span className="rounded-full bg-kit-100 px-3 py-1 text-xs font-bold text-kit-700">Hackathon</span>;
       case 'INTERNSHIP':
-        return <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">Internship 💼</span>;
+        return <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">Internship</span>;
       case 'JOB':
       case 'FULL_TIME':
-        return <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">Full Time Job 🎯</span>;
+        return <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">Full Time Job</span>;
       case 'COMPETITION':
-        return <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">Competition 🏆</span>;
+        return <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">Competition</span>;
       default:
         return <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-700">{type}</span>;
     }
@@ -197,7 +197,7 @@ export default function StudentOpportunitiesPage() {
     if (stateInfo.registrationStatus === 'VERIFIED') {
       return (
         <span className="inline-flex items-center gap-1 rounded-xl bg-emerald-100 px-3 py-2 text-xs font-bold text-emerald-800 border border-emerald-300">
-          <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Verified ✓
+          <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Verified
         </span>
       );
     }
@@ -213,7 +213,7 @@ export default function StudentOpportunitiesPage() {
     if (stateInfo.registrationStatus === 'PENDING_VERIFICATION') {
       return (
         <span className="inline-flex items-center gap-1 rounded-xl bg-amber-100 px-3 py-2 text-xs font-bold text-amber-800 border border-amber-300">
-          <Clock className="h-4 w-4 text-amber-600" /> Pending Verification ⏳
+          <Clock className="h-4 w-4 text-amber-600" /> Pending Verification
         </span>
       );
     }
@@ -234,7 +234,7 @@ export default function StudentOpportunitiesPage() {
     if (stateInfo.registrationStatus === 'UNDER_REVIEW') {
       return (
         <span className="inline-flex items-center gap-1 rounded-xl bg-indigo-100 px-3 py-2 text-xs font-bold text-indigo-800 border border-indigo-300">
-          <Clock className="h-4 w-4 text-indigo-600" /> Under Review ⏳
+          <Clock className="h-4 w-4 text-indigo-600" /> Under Review
         </span>
       );
     }
@@ -242,7 +242,7 @@ export default function StudentOpportunitiesPage() {
     if (stateInfo.registrationStatus === 'INTERVIEW') {
       return (
         <span className="inline-flex items-center gap-1 rounded-xl bg-purple-100 px-3 py-2 text-xs font-bold text-purple-800 border border-purple-300">
-          <Calendar className="h-4 w-4 text-purple-600" /> Interview Scheduled 🗓️
+          <Calendar className="h-4 w-4 text-purple-600" /> Interview Scheduled
         </span>
       );
     }
@@ -331,10 +331,10 @@ export default function StudentOpportunitiesPage() {
           <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 sm:flex-wrap no-scrollbar">
             {[
               { id: 'ALL', label: 'All Opportunities' },
-              { id: 'HACKATHONS', label: 'Hackathons 🚀' },
-              { id: 'INTERNSHIPS', label: 'Internships 💼' },
-              { id: 'JOBS', label: 'Jobs 🎯' },
-              { id: 'COMPETITIONS', label: 'Competitions 🏆' }
+              { id: 'HACKATHONS', label: 'Hackathons' },
+              { id: 'INTERNSHIPS', label: 'Internships' },
+              { id: 'JOBS', label: 'Jobs' },
+              { id: 'COMPETITIONS', label: 'Competitions' }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -405,7 +405,7 @@ export default function StudentOpportunitiesPage() {
                     <div className="flex flex-wrap gap-1.5 pt-1">
                       {opp.requiredSkills.slice(0, 4).map((skill, idx) => (
                         <span key={idx} className="rounded-md bg-kit-50 px-2 py-0.5 text-[11px] font-semibold text-kit-700">
-                          🏷 {skill}
+                          {skill}
                         </span>
                       ))}
                     </div>

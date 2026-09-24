@@ -27,6 +27,10 @@ export interface ExtendedApplication {
   githubUrl?: string;
   codolioUrl?: string;
   description?: string;
+  statusSource?: 'MANUAL' | 'COMPANY_EMAIL' | 'EXTENSION' | 'SYSTEM';
+  statusConfidence?: number;
+  statusUpdatedAt?: string;
+  emailEvidenceId?: string;
   timeline: ApplicationTimelineItem[];
   createdAt: string;
   updatedAt: string;

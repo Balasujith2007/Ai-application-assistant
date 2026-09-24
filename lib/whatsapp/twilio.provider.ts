@@ -56,12 +56,19 @@ export class TwilioWhatsAppProvider implements WhatsAppProvider {
     const accountSid = (process.env.TWILIO_ACCOUNT_SID || '').trim();
     const apiKeySid = (process.env.TWILIO_API_KEY_SID || '').trim();
     const apiKeySecret = (process.env.TWILIO_API_KEY_SECRET || '').trim();
+    const authToken = (process.env.TWILIO_AUTH_TOKEN || '').trim();
     const whatsappFrom = (process.env.TWILIO_WHATSAPP_FROM || '').trim();
 
     if (!accountSid) missing.push('TWILIO_ACCOUNT_SID');
-    if (!apiKeySid) missing.push('TWILIO_API_KEY_SID');
-    if (!apiKeySecret) missing.push('TWILIO_API_KEY_SECRET');
     if (!whatsappFrom) missing.push('TWILIO_WHATSAPP_FROM');
+
+    const hasApiKeyAuth = Boolean(apiKeySid && apiKeySecret);
+    const hasAuthTokenAuth = Boolean(accountSid && authToken);
+
+    if (!hasApiKeyAuth && !hasAuthTokenAuth) {
+      if (!apiKeySid) missing.push('TWILIO_API_KEY_SID (or TWILIO_AUTH_TOKEN)');
+      if (!apiKeySecret) missing.push('TWILIO_API_KEY_SECRET (or TWILIO_AUTH_TOKEN)');
+    }
 
     if (missing.length > 0) {
       return {
@@ -74,12 +81,14 @@ export class TwilioWhatsAppProvider implements WhatsAppProvider {
     return {
       valid: true,
       missingVariables: [],
-      message: 'Twilio WhatsApp API Key configuration is valid.',
+      message: hasApiKeyAuth
+        ? 'Twilio WhatsApp API Key authentication configuration is valid.'
+        : 'Twilio WhatsApp Auth Token authentication configuration is valid.',
     };
   }
 
   public async sendMessage(options: SendWhatsAppOptions): Promise<SendWhatsAppResult> {
-    const { to, message, notificationType, userId } = options;
+    const { to, message, notificationType, userId, contentSid, contentVariables } = options;
 
     // 1. Validate configuration
     const configCheck = this.validateConfiguration();
@@ -106,8 +115,9 @@ export class TwilioWhatsAppProvider implements WhatsAppProvider {
     }
 
     const accountSid = process.env.TWILIO_ACCOUNT_SID!.trim();
-    const apiKeySid = process.env.TWILIO_API_KEY_SID!.trim();
-    const apiKeySecret = process.env.TWILIO_API_KEY_SECRET!.trim();
+    const apiKeySid = (process.env.TWILIO_API_KEY_SID || '').trim();
+    const apiKeySecret = (process.env.TWILIO_API_KEY_SECRET || '').trim();
+    const authToken = (process.env.TWILIO_AUTH_TOKEN || '').trim();
     let fromNumber = process.env.TWILIO_WHATSAPP_FROM!.trim();
 
     const normalizedFrom = normalizePhoneNumber(fromNumber);
@@ -117,14 +127,27 @@ export class TwilioWhatsAppProvider implements WhatsAppProvider {
       fromNumber = `whatsapp:${fromNumber.replace(/[\s\-\(\)\.]/g, '')}`;
     }
 
-    // 3. Prepare Twilio REST API Request with API Key Basic Auth
+    // 3. Prepare Twilio REST API Request with Basic Auth
     const endpoint = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
-    const basicAuth = Buffer.from(`${apiKeySid}:${apiKeySecret}`).toString('base64');
+    const basicAuth = apiKeySid && apiKeySecret
+      ? Buffer.from(`${apiKeySid}:${apiKeySecret}`).toString('base64')
+      : Buffer.from(`${accountSid}:${authToken}`).toString('base64');
 
     const params = new URLSearchParams();
     params.append('From', fromNumber);
     params.append('To', normalized.formattedWhatsApp);
-    params.append('Body', message);
+
+    // Support Twilio ContentSid template messaging
+    if (contentSid) {
+      params.append('ContentSid', contentSid);
+      if (contentVariables && Object.keys(contentVariables).length > 0) {
+        params.append('ContentVariables', JSON.stringify(contentVariables));
+      }
+    } else {
+      params.append('Body', message);
+    }
+
+    const maskedTo = normalized.e164 ? normalized.e164.replace(/(\+\d{2})\d+(\d{4})/, '$1******$2') : 'UNKNOWN';
 
     try {
       const controller = new AbortController();
@@ -152,11 +175,11 @@ export class TwilioWhatsAppProvider implements WhatsAppProvider {
 
         // Specialized Sandbox & Template Guidance
         if (twilioErrorCode === 21608 || twilioErrorCode === 63016) {
-          userSafeError = `Sandbox restriction (Error ${twilioErrorCode}): Recipient has not joined the Twilio WhatsApp Sandbox. Recipient must send the Sandbox join code to ${fromNumber}.`;
+          userSafeError = `Sandbox restriction (Error ${twilioErrorCode}): Recipient (${maskedTo}) has not joined the Twilio WhatsApp Sandbox. Recipient must send the Sandbox join code to ${fromNumber}.`;
         } else if (twilioErrorCode === 21654) {
-          userSafeError = `Session Window / Template Required (Error 21654): To send a freeform message, the recipient (+917358095641) must first send a WhatsApp message to ${fromNumber} to open an active 24-hour session, or a pre-approved Twilio Content Template (ContentSid) is required.`;
+          userSafeError = `Session Window / Template Required (Error 21654): To send a freeform message, the recipient (${maskedTo}) must first send a WhatsApp message to ${fromNumber} to open an active 24-hour session, or a pre-approved Twilio Content Template (ContentSid) is required.`;
         } else if (twilioErrorCode === 21211) {
-          userSafeError = `Twilio invalid phone number (Error 21211): ${normalized.e164} is not a valid WhatsApp-enabled number.`;
+          userSafeError = `Twilio invalid phone number (Error 21211): ${maskedTo} is not a valid WhatsApp-enabled number.`;
         } else if (twilioErrorCode === 20003) {
           userSafeError = `Twilio authentication failed (Error 20003): Invalid API Key SID, Secret, or Auth Token.`;
         }
@@ -173,7 +196,7 @@ export class TwilioWhatsAppProvider implements WhatsAppProvider {
       }
 
       const messageSid = data.sid;
-      console.log(`[TwilioWhatsAppProvider] WhatsApp sent successfully. SID=${messageSid}, To=${normalized.e164}, Type=${notificationType || 'TEST'}`);
+      console.log(`[TwilioWhatsAppProvider] WhatsApp sent successfully. SID=${messageSid}, To=${maskedTo}, Type=${notificationType || 'TEST'}`);
 
       return {
         success: true,

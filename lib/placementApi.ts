@@ -25,6 +25,42 @@ export const getApplications = async (filters?: { type?: ApplicationType; status
   return res.data;
 };
 
+// Email Status Sync & Evidence
+export const getEmailSyncStatus = async () => {
+  const res = await api.get('/email-sync/status');
+  return res.data;
+};
+
+export const triggerEmailSync = async (mockEmails?: any[]) => {
+  const res = await api.post('/email-sync/sync', { mockEmails });
+  return res.data;
+};
+
+export const getPendingEmailReviews = async () => {
+  const res = await api.get('/email-sync/reviews');
+  return res.data;
+};
+
+export const resolveEmailReview = async (reviewId: string, action: 'CONFIRM' | 'DISMISS', applicationId?: string) => {
+  const res = await api.post('/email-sync/reviews', { reviewId, action, applicationId });
+  return res.data;
+};
+
+export const getEmailEvidence = async (id: string) => {
+  const res = await api.get(`/email-sync/evidence/${id}`);
+  return res.data;
+};
+
+export const disconnectEmailSync = async () => {
+  const res = await api.post('/email-sync/disconnect');
+  return res.data;
+};
+
+export const connectEmailSyncMock = async () => {
+  const res = await api.get('/email-sync/auth?mock=true');
+  return res.data;
+};
+
 export const createApplication = async (data: Partial<ExtendedApplication>) => {
   const res = await api.post<ExtendedApplication>('/applications', data);
   return res.data;
