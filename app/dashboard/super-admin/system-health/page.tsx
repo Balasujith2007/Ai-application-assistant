@@ -78,12 +78,12 @@ export default function SystemHealthPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">System Health Monitor</h1>
-          <p className="mt-1 text-gray-500">Live checks on the database connectivity, authentication flow, and notification queues</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">System Health Monitor</h1>
+          <p className="mt-1 text-sm text-gray-500">Live checks on the database connectivity, authentication flow, and notification queues</p>
         </div>
-        <Button onClick={fetchHealth} className="border border-gray-200 hover:bg-gray-50 p-2.5 rounded-xl">
+        <Button onClick={fetchHealth} className="border border-gray-200 hover:bg-gray-50 p-2.5 rounded-xl w-fit">
           <RefreshCw className="h-4 w-4 text-gray-600" />
         </Button>
       </div>

@@ -122,42 +122,44 @@ export default function HODTasksPage() {
 
           {/* Tasks Table */}
           <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="border-b border-gray-100 bg-gray-50/50 text-gray-500">
-                <tr>
-                  <th className="px-6 py-4 text-left font-semibold">Task Title</th>
-                  <th className="px-6 py-4 text-left font-semibold">Assigned To</th>
-                  <th className="px-6 py-4 text-left font-semibold">Priority</th>
-                  <th className="px-6 py-4 text-left font-semibold">Deadline</th>
-                  <th className="px-6 py-4 text-right font-semibold">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {tasks.map((task) => (
-                  <tr key={task.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4 font-semibold text-gray-900">{task.title}</td>
-                    <td className="px-6 py-4 text-gray-600 font-medium">{task.user.name} ({task.user.role})</td>
-                    <td className="px-6 py-4">
-                      <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">
-                        {task.priority}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-500 text-xs">
-                      {task.deadline ? new Date(task.deadline).toLocaleDateString() : 'No deadline'}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          task.isCompleted ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                        }`}
-                      >
-                        {task.isCompleted ? 'Completed' : 'Pending'}
-                      </span>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="border-b border-gray-100 bg-gray-50/50 text-gray-500">
+                  <tr>
+                    <th className="px-6 py-4 text-left font-semibold">Task Title</th>
+                    <th className="px-6 py-4 text-left font-semibold">Assigned To</th>
+                    <th className="px-6 py-4 text-left font-semibold">Priority</th>
+                    <th className="px-6 py-4 text-left font-semibold">Deadline</th>
+                    <th className="px-6 py-4 text-right font-semibold">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {tasks.map((task) => (
+                    <tr key={task.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-6 py-4 font-semibold text-gray-900">{task.title}</td>
+                      <td className="px-6 py-4 text-gray-600 font-medium">{task.user.name} ({task.user.role})</td>
+                      <td className="px-6 py-4">
+                        <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">
+                          {task.priority}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-gray-500 text-xs">
+                        {task.deadline ? new Date(task.deadline).toLocaleDateString() : 'No deadline'}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            task.isCompleted ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {task.isCompleted ? 'Completed' : 'Pending'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       )}

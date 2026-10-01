@@ -41,23 +41,23 @@ export function InterviewCard({
   const badgeStyle = roundBadgeColors[interview.round] || 'bg-gray-50 text-gray-700 border-gray-200';
 
   return (
-    <div className="group flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-gray-300">
+    <div className="group flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-gray-300">
       {/* Header */}
       <div>
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-kit-50 text-kit-600 font-bold text-lg">
-              <Building2 className="h-6 w-6" />
+        <div className="flex items-start justify-between gap-2 sm:gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl bg-kit-50 text-kit-600 font-bold text-base sm:text-lg">
+              <Building2 className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
-            <div>
-              <h3 className="font-bold text-gray-900 text-lg leading-snug group-hover:text-kit-600 transition-colors">
+            <div className="min-w-0 flex-1">
+              <h3 className="font-bold text-gray-900 text-base sm:text-lg leading-snug group-hover:text-kit-600 transition-colors truncate">
                 {interview.companyName}
               </h3>
-              <p className="text-sm font-medium text-gray-500">{interview.position}</p>
+              <p className="text-xs sm:text-sm font-medium text-gray-500 truncate">{interview.position}</p>
             </div>
           </div>
 
-          <span className={cn('inline-flex rounded-full border px-3 py-0.5 text-xs font-bold', badgeStyle)}>
+          <span className={cn('inline-flex rounded-full border px-2.5 sm:px-3 py-0.5 text-[11px] sm:text-xs font-bold shrink-0', badgeStyle)}>
             {interview.round}
           </span>
         </div>
@@ -110,7 +110,7 @@ export function InterviewCard({
       </div>
 
       {/* Footer Actions */}
-      <div className="mt-6 flex items-center justify-between pt-4 border-t border-gray-100 gap-2">
+      <div className="mt-6 flex flex-wrap items-center justify-between pt-4 border-t border-gray-100 gap-2">
         <button
           onClick={() => onViewDetails(interview)}
           className="rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"

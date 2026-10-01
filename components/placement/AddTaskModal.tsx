@@ -103,7 +103,7 @@ export function AddTaskModal({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-gray-700">Category</label>
             <select
@@ -131,7 +131,7 @@ export function AddTaskModal({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
             label="Due Date *"
             type="text"
@@ -149,7 +149,7 @@ export function AddTaskModal({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-gray-700">Related Application (Optional)</label>
             <select
@@ -179,11 +179,11 @@ export function AddTaskModal({
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-          <Button type="button" variant="outline" onClick={onClose}>
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t border-gray-200">
+          <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto">
             Cancel
           </Button>
-          <Button type="submit" variant="primary">
+          <Button type="submit" variant="primary" className="w-full sm:w-auto">
             {initialData ? 'Save Changes' : 'Add Task'}
           </Button>
         </div>

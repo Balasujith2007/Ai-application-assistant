@@ -588,9 +588,9 @@ export default function MentorReportsPage() {
                 </div>
                 <p className="text-xs text-gray-500 leading-relaxed">{r.desc}</p>
               </div>
-              <div className="mt-6 flex items-center justify-between border-t border-gray-100 pt-4">
+              <div className="mt-6 flex flex-col sm:flex-row gap-2 sm:items-center justify-between border-t border-gray-100 pt-4">
                 <span className="text-xs text-gray-400 font-medium">Generated: {r.date}</span>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   <button
                     disabled={Boolean(downloadingId)}
                     onClick={() => handleDownload(r, 'pdf')}

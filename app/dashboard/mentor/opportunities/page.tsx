@@ -553,12 +553,12 @@ export default function MentorOpportunitiesPage() {
       {/* Student Registrations Modal */}
       <AnimatePresence>
         {selectedOppId && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4 overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-4xl rounded-2xl bg-white p-6 shadow-2xl space-y-5 max-h-[85vh] overflow-y-auto"
+              className="w-full max-w-4xl rounded-2xl bg-white p-4 sm:p-6 shadow-2xl space-y-5 max-h-[85vh] overflow-y-auto my-auto"
             >
               <div className="flex items-center justify-between border-b border-gray-100 pb-4">
                 <div>
@@ -700,12 +700,12 @@ export default function MentorOpportunitiesPage() {
       {/* Disqualification Modal */}
       <AnimatePresence>
         {disqualifyModal && (
-          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 p-4">
+          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 p-3 sm:p-4 overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl space-y-4"
+              className="w-full max-w-md rounded-2xl bg-white p-4 sm:p-6 shadow-2xl space-y-4 my-auto"
             >
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <h3 className="text-base font-bold text-red-600 flex items-center gap-1.5">
@@ -775,12 +775,12 @@ export default function MentorOpportunitiesPage() {
       {/* Next Step Modal */}
       <AnimatePresence>
         {stepModal && (
-          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 p-4">
+          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 p-3 sm:p-4 overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl space-y-4"
+              className="w-full max-w-md rounded-2xl bg-white p-4 sm:p-6 shadow-2xl space-y-4 my-auto"
             >
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <h3 className="text-base font-bold text-gray-900 flex items-center gap-1.5">

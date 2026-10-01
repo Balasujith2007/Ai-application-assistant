@@ -116,57 +116,59 @@ export default function HODResumesPage() {
 
           {/* Table */}
           <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="border-b border-gray-100 bg-gray-50/50 text-gray-500">
-                <tr>
-                  <th className="px-6 py-4 text-left font-semibold">Register No</th>
-                  <th className="px-6 py-4 text-left font-semibold">Student Name</th>
-                  <th className="px-6 py-4 text-left font-semibold">Assigned Mentor</th>
-                  <th className="px-6 py-4 text-left font-semibold">Resume Status</th>
-                  <th className="px-6 py-4 text-left font-semibold">File Name</th>
-                  <th className="px-6 py-4 text-right font-semibold">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filteredResumes.map((r) => (
-                  <tr key={r.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4 font-mono text-xs font-bold text-kit-700">{r.registerNo}</td>
-                    <td className="px-6 py-4 font-semibold text-gray-900">{r.studentName}</td>
-                    <td className="px-6 py-4 text-gray-600">{r.mentorName}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          r.resumeStatus === 'Completed'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : r.resumeStatus === 'Needs Review'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-rose-100 text-rose-800'
-                        }`}
-                      >
-                        {r.resumeStatus}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-500 text-xs truncate max-w-xs">
-                      {r.fileName || 'No file uploaded'}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      {r.fileUrl ? (
-                        <a
-                          href={r.fileUrl.startsWith('/api/resumes/') ? r.fileUrl : `/api/resumes/${r.id}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-kit-700 hover:bg-kit-50 shadow-sm transition-colors"
-                        >
-                          <Eye className="h-3.5 w-3.5" /> View Resume
-                        </a>
-                      ) : (
-                        <span className="text-xs text-gray-400 italic">N/A</span>
-                      )}
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="border-b border-gray-100 bg-gray-50/50 text-gray-500">
+                  <tr>
+                    <th className="px-6 py-4 text-left font-semibold">Register No</th>
+                    <th className="px-6 py-4 text-left font-semibold">Student Name</th>
+                    <th className="px-6 py-4 text-left font-semibold">Assigned Mentor</th>
+                    <th className="px-6 py-4 text-left font-semibold">Resume Status</th>
+                    <th className="px-6 py-4 text-left font-semibold">File Name</th>
+                    <th className="px-6 py-4 text-right font-semibold">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {filteredResumes.map((r) => (
+                    <tr key={r.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-6 py-4 font-mono text-xs font-bold text-kit-700">{r.registerNo}</td>
+                      <td className="px-6 py-4 font-semibold text-gray-900">{r.studentName}</td>
+                      <td className="px-6 py-4 text-gray-600">{r.mentorName}</td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            r.resumeStatus === 'Completed'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : r.resumeStatus === 'Needs Review'
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-rose-100 text-rose-800'
+                          }`}
+                        >
+                          {r.resumeStatus}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-gray-500 text-xs truncate max-w-xs">
+                        {r.fileName || 'No file uploaded'}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {r.fileUrl ? (
+                          <a
+                            href={r.fileUrl.startsWith('/api/resumes/') ? r.fileUrl : `/api/resumes/${r.id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-kit-700 hover:bg-kit-50 shadow-sm transition-colors"
+                          >
+                            <Eye className="h-3.5 w-3.5" /> View Resume
+                          </a>
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">N/A</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       )}

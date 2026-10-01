@@ -77,12 +77,12 @@ export default function InterviewsPage() {
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Interviews</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Interviews</h1>
             <p className="text-sm font-medium text-gray-500 mt-1">
               Prepare, schedule, and track all your placement interviews.
             </p>
           </div>
-          <Button variant="primary" onClick={() => setIsScheduleOpen(true)} className="shadow-sm">
+          <Button variant="primary" onClick={() => setIsScheduleOpen(true)} className="shadow-sm w-fit">
             <Plus className="h-4 w-4" />
             Schedule Interview
           </Button>

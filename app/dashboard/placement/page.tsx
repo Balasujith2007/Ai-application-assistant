@@ -113,7 +113,7 @@ export default function PlacementDashboard() {
       </motion.div>
 
       {/* Stats Cards (8 Cards) */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-4 sm:grid-cols-4">
         {stats.map((stat, idx) => (
           <motion.div
             key={stat.label}
@@ -232,11 +232,11 @@ export default function PlacementDashboard() {
             transition={{ delay: 0.5 }}
             className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm overflow-hidden"
           >
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <h2 className="text-lg font-bold text-gray-900">Student Overview</h2>
-              <div className="flex gap-2">
-                <input type="text" placeholder="Search student..." className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-kit-500" />
-                <button className="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200">Filter</button>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <input type="text" placeholder="Search student..." className="flex-1 sm:w-auto rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-kit-500" />
+                <button className="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200 shrink-0">Filter</button>
               </div>
             </div>
             <div className="overflow-x-auto">

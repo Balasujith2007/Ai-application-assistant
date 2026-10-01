@@ -170,7 +170,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Sidebar */}
       <motion.aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 flex-col border-r border-gray-200 bg-white transition-transform duration-300 lg:static lg:flex lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] lg:max-w-none flex-col border-r border-gray-200 bg-white transition-transform duration-300 lg:static lg:flex lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0 flex' : '-translate-x-full hidden'
         }`}
       >
@@ -290,7 +290,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <div
                     role="menu"
                     aria-labelledby="header-profile-menu-button"
-                    className="absolute right-0 top-full mt-2 w-64 rounded-2xl border border-gray-100 bg-white shadow-2xl z-50 overflow-hidden"
+                    className="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-gray-100 bg-white shadow-2xl z-50 overflow-hidden"
                     style={{
                       animation: 'profileDropdownIn 0.15s cubic-bezier(0.22, 1, 0.36, 1) both',
                     }}

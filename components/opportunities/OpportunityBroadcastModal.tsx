@@ -160,12 +160,12 @@ export function OpportunityBroadcastModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4 overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl space-y-4 max-h-[88vh] overflow-y-auto"
+          className="w-full max-w-2xl rounded-2xl bg-white p-4 sm:p-6 shadow-2xl space-y-4 max-h-[88vh] overflow-y-auto my-auto"
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-gray-100 pb-3">
@@ -196,7 +196,7 @@ export function OpportunityBroadcastModal({
                   Auto-Fill from Official URL
                 </span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="url"
                   placeholder="Paste Official Opportunity URL to auto-fill..."
@@ -209,7 +209,7 @@ export function OpportunityBroadcastModal({
                   size="sm"
                   onClick={handleFetchUrlDetails}
                   disabled={isFetchingUrl}
-                  className="shrink-0 font-bold text-xs"
+                  className="shrink-0 font-bold text-xs w-full sm:w-auto"
                 >
                   {isFetchingUrl ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Fetch'}
                 </Button>
@@ -218,7 +218,7 @@ export function OpportunityBroadcastModal({
             </div>
 
             {/* Title & Organization */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input
                 label="Title *"
                 placeholder="e.g. Software Engineering Intern"
@@ -236,7 +236,7 @@ export function OpportunityBroadcastModal({
             </div>
 
             {/* Dual URLs */}
-            <div className="grid grid-cols-2 gap-3 bg-gray-50 p-3 rounded-xl border border-gray-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50 p-3 rounded-xl border border-gray-200">
               <Input
                 label="Official Opportunity URL"
                 placeholder="https://opportunity-info.com/..."
@@ -261,7 +261,7 @@ export function OpportunityBroadcastModal({
             </div>
 
             {/* Type, Location, Deadline */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="mb-1 block text-xs font-semibold text-gray-700">Type</label>
                 <select
@@ -372,7 +372,7 @@ export function OpportunityBroadcastModal({
                   </label>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                   <div>
                     <label className="mb-1 block text-xs font-semibold text-gray-700">Department</label>
                     <select
@@ -423,15 +423,15 @@ export function OpportunityBroadcastModal({
             )}
 
             {/* Actions */}
-            <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
-              <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-3 border-t border-gray-100">
+              <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto">
                 Cancel
               </Button>
               <Button
                 type="submit"
                 variant="primary"
                 isLoading={isSubmitting}
-                className="font-bold flex items-center gap-1.5"
+                className="font-bold flex items-center justify-center gap-1.5 w-full sm:w-auto"
               >
                 <Send className="h-4 w-4" /> Broadcast Opportunity 🚀
               </Button>

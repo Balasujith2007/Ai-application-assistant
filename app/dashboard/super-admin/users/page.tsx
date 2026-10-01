@@ -144,12 +144,12 @@ export default function UserManagementPage() {
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">User Management</h1>
-          <p className="mt-1 text-gray-500">Create, edit, activate, and manage all CareerAI system roles</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">User Management</h1>
+          <p className="mt-1 text-sm text-gray-500">Create, edit, activate, and manage all CareerAI system roles</p>
         </div>
-        <Button onClick={handleOpenCreate} className="bg-kit-600 hover:bg-kit-700 text-white flex items-center gap-2 rounded-xl px-4 py-2.5">
+        <Button onClick={handleOpenCreate} className="bg-kit-600 hover:bg-kit-700 text-white flex items-center gap-2 rounded-xl px-4 py-2.5 w-fit">
           <Plus className="h-4 w-4" /> Add User
         </Button>
       </div>
@@ -168,7 +168,7 @@ export default function UserManagementPage() {
             className="pl-9 w-full border-gray-200 focus:border-kit-600 focus:ring-kit-600 rounded-xl"
           />
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap items-center gap-3">
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
@@ -257,10 +257,10 @@ export default function UserManagementPage() {
 
       {/* Create / Edit Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm">
-          <Card className="w-full max-w-lg bg-white p-6 rounded-2xl shadow-xl space-y-4 border-gray-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+          <Card className="w-full max-w-lg bg-white p-4 sm:p-6 rounded-2xl shadow-xl space-y-4 border-gray-200 max-h-[90vh] overflow-y-auto my-auto">
             <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-              <h2 className="text-xl font-bold text-gray-900">{editingUser ? 'Edit User Profile' : 'Add New System User'}</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">{editingUser ? 'Edit User Profile' : 'Add New System User'}</h2>
               <button onClick={() => setModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="h-6 w-6" />
               </button>

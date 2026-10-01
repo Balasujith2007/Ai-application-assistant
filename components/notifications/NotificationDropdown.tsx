@@ -128,7 +128,7 @@ export function NotificationDropdown() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 origin-top-right rounded-2xl bg-white shadow-xl ring-1 ring-black/5 z-50 overflow-hidden flex flex-col max-h-[500px]">
+        <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-sm sm:w-96 origin-top-right rounded-2xl bg-white shadow-xl ring-1 ring-black/5 z-50 overflow-hidden flex flex-col max-h-[500px]">
           <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 bg-gray-50/50">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-bold text-gray-900">Notifications</h3>

@@ -183,64 +183,66 @@ export default function HODStudentsPage() {
         </div>
       ) : (
         <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/50">
-              <tr className="text-gray-500">
-                <th className="px-6 py-4 text-left font-semibold">Register No</th>
-                <th className="px-6 py-4 text-left font-semibold">Student Name</th>
-                <th className="px-6 py-4 text-left font-semibold hidden md:table-cell">Class</th>
-                <th className="px-6 py-4 text-left font-semibold">Assigned Mentor</th>
-                <th className="px-6 py-4 text-right font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {students.map((s) => (
-                <tr key={s.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-6 py-4 font-mono text-xs font-bold text-kit-700">{s.registerNo}</td>
-                  <td className="px-6 py-4">
-                    <div>
-                      <p className="font-semibold text-gray-900">{s.name}</p>
-                      <p className="text-xs text-gray-400">{s.email}</p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 hidden md:table-cell text-gray-600">
-                    Year {s.year || 2} · Sec {s.section || 'A'}
-                  </td>
-                  <td className="px-6 py-4">
-                    {s.assignedMentor ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                        {s.assignedMentor.name}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
-                        <UserX className="h-3 w-3" /> Unassigned
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => { setAssignStudent(s); setSelectedMentorId(s.assignedMentor?.id || ''); }}
-                        className="flex items-center gap-1 rounded-lg border border-kit-200 bg-kit-50 px-3 py-1.5 text-xs font-bold text-kit-700 hover:bg-kit-100 transition-colors"
-                      >
-                        <UserPlus className="h-3.5 w-3.5" />
-                        {s.assignedMentor ? 'Change Mentor' : 'Assign Mentor'}
-                      </button>
-                      {s.assignedMentor && (
-                        <button
-                          onClick={() => handleUnassign(s.id, s.name)}
-                          className="rounded-lg border border-gray-200 p-1.5 text-gray-400 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-colors"
-                          title="Unassign mentor"
-                        >
-                          <UserX className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="border-b border-gray-100 bg-gray-50/50">
+                <tr className="text-gray-500">
+                  <th className="px-6 py-4 text-left font-semibold">Register No</th>
+                  <th className="px-6 py-4 text-left font-semibold">Student Name</th>
+                  <th className="px-6 py-4 text-left font-semibold hidden md:table-cell">Class</th>
+                  <th className="px-6 py-4 text-left font-semibold">Assigned Mentor</th>
+                  <th className="px-6 py-4 text-right font-semibold">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {students.map((s) => (
+                  <tr key={s.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4 font-mono text-xs font-bold text-kit-700">{s.registerNo}</td>
+                    <td className="px-6 py-4">
+                      <div>
+                        <p className="font-semibold text-gray-900">{s.name}</p>
+                        <p className="text-xs text-gray-400">{s.email}</p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 hidden md:table-cell text-gray-600">
+                      Year {s.year || 2} · Sec {s.section || 'A'}
+                    </td>
+                    <td className="px-6 py-4">
+                      {s.assignedMentor ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                          {s.assignedMentor.name}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                          <UserX className="h-3 w-3" /> Unassigned
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => { setAssignStudent(s); setSelectedMentorId(s.assignedMentor?.id || ''); }}
+                          className="flex items-center gap-1 rounded-lg border border-kit-200 bg-kit-50 px-3 py-1.5 text-xs font-bold text-kit-700 hover:bg-kit-100 transition-colors"
+                        >
+                          <UserPlus className="h-3.5 w-3.5" />
+                          {s.assignedMentor ? 'Change Mentor' : 'Assign Mentor'}
+                        </button>
+                        {s.assignedMentor && (
+                          <button
+                            onClick={() => handleUnassign(s.id, s.name)}
+                            className="rounded-lg border border-gray-200 p-1.5 text-gray-400 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-colors"
+                            title="Unassign mentor"
+                          >
+                            <UserX className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

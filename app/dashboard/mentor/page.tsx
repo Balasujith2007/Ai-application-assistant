@@ -110,14 +110,14 @@ export default function MentorDashboard() {
       )}
 
       {/* Hero */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
             {greeting()}, {user?.name?.split(' ')[0] || 'Mentor'} 👋
           </h1>
-          <p className="mt-1 text-gray-500">Manage students, review resumes, and guide them efficiently.</p>
+          <p className="mt-1 text-sm text-gray-500">Manage students, review resumes, and guide them efficiently.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Link href="/dashboard/mentor/opportunities">
             <button className="flex items-center gap-2 rounded-xl bg-kit-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-kit-700 transition-colors">
               <Briefcase className="h-4 w-4" /> My Opportunities
@@ -194,7 +194,7 @@ export default function MentorDashboard() {
                           </span>
                         </td>
                         <td className="py-4">
-                          <div className="flex justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                          <div className="flex justify-end gap-2 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
                             <Link href={`/dashboard/mentor/students`}
                               className="flex items-center gap-1 rounded bg-kit-50 px-2 py-1 text-xs font-bold text-kit-700 hover:bg-kit-100">
                               <Eye className="h-3 w-3" /> View

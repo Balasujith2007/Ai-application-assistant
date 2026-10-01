@@ -115,38 +115,40 @@ export default function HODApplicationsPage() {
         </div>
       ) : (
         <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/50">
-              <tr className="text-gray-500">
-                <th className="px-6 py-4 text-left font-semibold">Student</th>
-                <th className="px-6 py-4 text-left font-semibold">Company & Position</th>
-                <th className="px-6 py-4 text-left font-semibold">Mentor</th>
-                <th className="px-6 py-4 text-left font-semibold">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {filteredApps.map((a) => (
-                <tr key={a.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-6 py-4">
-                    <p className="font-semibold text-gray-900">{a.user.name}</p>
-                    <p className="text-xs text-gray-400 font-mono">{a.user.profile?.registerNo || a.user.email}</p>
-                  </td>
-                  <td className="px-6 py-4">
-                    <p className="font-bold text-kit-600">{a.companyName}</p>
-                    <p className="text-xs text-gray-500">{a.position}</p>
-                  </td>
-                  <td className="px-6 py-4 text-gray-600 text-xs">
-                    {a.user.mentor?.name || 'Unassigned'}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex rounded-full bg-kit-50 px-3 py-1 text-xs font-bold text-kit-700">
-                      {a.status}
-                    </span>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="border-b border-gray-100 bg-gray-50/50">
+                <tr className="text-gray-500">
+                  <th className="px-6 py-4 text-left font-semibold">Student</th>
+                  <th className="px-6 py-4 text-left font-semibold">Company & Position</th>
+                  <th className="px-6 py-4 text-left font-semibold">Mentor</th>
+                  <th className="px-6 py-4 text-left font-semibold">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filteredApps.map((a) => (
+                  <tr key={a.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <p className="font-semibold text-gray-900">{a.user.name}</p>
+                      <p className="text-xs text-gray-400 font-mono">{a.user.profile?.registerNo || a.user.email}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="font-bold text-kit-600">{a.companyName}</p>
+                      <p className="text-xs text-gray-500">{a.position}</p>
+                    </td>
+                    <td className="px-6 py-4 text-gray-600 text-xs">
+                      {a.user.mentor?.name || 'Unassigned'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex rounded-full bg-kit-50 px-3 py-1 text-xs font-bold text-kit-700">
+                        {a.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

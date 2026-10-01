@@ -37,7 +37,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 sm:p-6">
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -53,7 +53,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 16 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="relative w-full max-w-md rounded-2xl bg-white p-6 sm:p-8 shadow-2xl border border-gray-100 z-10 overflow-hidden"
+            className="relative w-full max-w-md rounded-2xl bg-white p-5 sm:p-8 shadow-2xl border border-gray-100 z-10 max-h-[90vh] overflow-y-auto my-auto"
           >
             {/* Close Button */}
             <button

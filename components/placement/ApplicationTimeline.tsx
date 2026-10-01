@@ -65,23 +65,23 @@ export function ApplicationTimeline({ timeline, status }: ApplicationTimelinePro
             <div key={step.key} className="flex flex-col items-center gap-2">
               <div
                 className={cn(
-                  'flex h-10 w-10 items-center justify-center rounded-full border-2 bg-white z-10 font-bold transition-all duration-300',
+                  'flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full border-2 bg-white z-10 font-bold transition-all duration-300',
                   isDone
                     ? 'border-kit-600 bg-kit-600 text-white shadow-xs'
                     : 'border-gray-300 text-gray-400 bg-white',
-                  isCurrent && 'ring-4 ring-kit-100 scale-105',
+                  isCurrent && 'ring-2 sm:ring-4 ring-kit-100 scale-105',
                 )}
               >
                 {isDone ? (
-                  <CheckCircle2 className="h-5 w-5" />
+                  <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
                 ) : (
-                  <span className="text-xs">{idx + 1}</span>
+                  <span className="text-[11px] sm:text-xs">{idx + 1}</span>
                 )}
               </div>
 
               <span
                 className={cn(
-                  'text-xs font-semibold',
+                  'text-[10px] sm:text-xs font-semibold text-center',
                   isDone ? 'text-gray-900' : 'text-gray-400',
                   isCurrent && 'text-kit-600 font-bold',
                 )}

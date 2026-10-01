@@ -182,8 +182,8 @@ export default function MentorsPage() {
       </section>
 
       {/* Statistics Band */}
-      <section className="mx-auto max-w-7xl px-6 lg:px-8 mb-32">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:gap-8">
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-32">
+        <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-4 sm:grid-cols-4 lg:gap-8">
           {STATS.map((stat, i) => (
             <motion.div
               key={i}
@@ -191,17 +191,17 @@ export default function MentorsPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
               whileHover={{ y: -4 }}
-              className="flex flex-col items-center justify-center rounded-2xl bg-gray-50 border border-gray-100 p-6 text-center transition-all hover:shadow-lg hover:border-gray-200"
+              className="flex flex-col items-center justify-center rounded-2xl bg-gray-50 border border-gray-100 p-4 sm:p-6 text-center transition-all hover:shadow-lg hover:border-gray-200"
             >
-              <span className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">{stat.value}</span>
-              <span className="mt-2 text-sm font-medium text-gray-500">{stat.label}</span>
+              <span className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 tracking-tight">{stat.value}</span>
+              <span className="mt-2 text-xs sm:text-sm font-medium text-gray-500">{stat.label}</span>
             </motion.div>
           ))}
         </div>
       </section>
 
       {/* Grouped Feature Categories */}
-      <section className="mx-auto max-w-7xl px-6 lg:px-8 space-y-32 mb-32">
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-32 mb-32">
         {CATEGORIES.map((category, catIdx) => (
           <div key={category.id} className="relative">
             {/* Category Header */}
@@ -209,10 +209,10 @@ export default function MentorsPage() {
               <span className="inline-block rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-gray-600 mb-4">
                 {category.badge}
               </span>
-              <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl mb-4">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-gray-900 mb-4">
                 {category.title}
               </h2>
-              <p className="text-lg text-gray-500 leading-relaxed">
+              <p className="text-base sm:text-lg text-gray-500 leading-relaxed">
                 {category.description}
               </p>
             </div>
@@ -229,7 +229,7 @@ export default function MentorsPage() {
                     viewport={{ once: true, margin: '-50px' }}
                     transition={{ duration: 0.4, delay: idx * 0.1 }}
                     whileHover={{ y: -8 }}
-                    className={`group relative flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white p-8 shadow-sm transition-all duration-300 hover:shadow-xl ${color.borderHover}`}
+                    className={`group relative flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 sm:p-8 shadow-sm transition-all duration-300 hover:shadow-xl ${color.borderHover}`}
                   >
                     {/* Header */}
                     <div className="flex items-center gap-4 mb-5">

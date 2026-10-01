@@ -84,57 +84,59 @@ export default function HODProgressPage() {
 
           {/* Student Table */}
           <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="border-b border-gray-100 bg-gray-50/50">
-                <tr className="text-gray-500">
-                  <th className="px-6 py-4 text-left font-semibold">Student</th>
-                  <th className="px-6 py-4 text-left font-semibold">Mentor</th>
-                  <th className="px-6 py-4 text-left font-semibold">Resume</th>
-                  <th className="px-6 py-4 text-left font-semibold">Applications</th>
-                  <th className="px-6 py-4 text-left font-semibold">Readiness Score</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {data?.students.map((s) => (
-                  <tr key={s.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <p className="font-semibold text-gray-900">{s.name}</p>
-                      <p className="text-xs text-gray-400 font-mono">{s.registerNo}</p>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600 text-xs">{s.mentorName}</td>
-                    <td className="px-6 py-4">
-                      {s.hasResume ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">
-                          <CheckCircle className="h-3.5 w-3.5" /> Uploaded
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-rose-600">
-                          <AlertCircle className="h-3.5 w-3.5" /> Missing
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-gray-900 font-semibold">{s.applicationsCount}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-24 h-2 rounded-full bg-gray-100 overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${
-                              s.readinessScore >= 70
-                                ? 'bg-emerald-500'
-                                : s.readinessScore >= 40
-                                ? 'bg-amber-500'
-                                : 'bg-rose-500'
-                            }`}
-                            style={{ width: `${s.readinessScore}%` }}
-                          />
-                        </div>
-                        <span className="font-bold text-xs text-gray-900">{s.readinessScore}%</span>
-                      </div>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="border-b border-gray-100 bg-gray-50/50">
+                  <tr className="text-gray-500">
+                    <th className="px-6 py-4 text-left font-semibold">Student</th>
+                    <th className="px-6 py-4 text-left font-semibold">Mentor</th>
+                    <th className="px-6 py-4 text-left font-semibold">Resume</th>
+                    <th className="px-6 py-4 text-left font-semibold">Applications</th>
+                    <th className="px-6 py-4 text-left font-semibold">Readiness Score</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {data?.students.map((s) => (
+                    <tr key={s.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <p className="font-semibold text-gray-900">{s.name}</p>
+                        <p className="text-xs text-gray-400 font-mono">{s.registerNo}</p>
+                      </td>
+                      <td className="px-6 py-4 text-gray-600 text-xs">{s.mentorName}</td>
+                      <td className="px-6 py-4">
+                        {s.hasResume ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">
+                            <CheckCircle className="h-3.5 w-3.5" /> Uploaded
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-rose-600">
+                            <AlertCircle className="h-3.5 w-3.5" /> Missing
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-gray-900 font-semibold">{s.applicationsCount}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-24 h-2 rounded-full bg-gray-100 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${
+                                s.readinessScore >= 70
+                                  ? 'bg-emerald-500'
+                                  : s.readinessScore >= 40
+                                  ? 'bg-amber-500'
+                                  : 'bg-rose-500'
+                              }`}
+                              style={{ width: `${s.readinessScore}%` }}
+                            />
+                          </div>
+                          <span className="font-bold text-xs text-gray-900">{s.readinessScore}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

@@ -184,8 +184,8 @@ export default function ApplicationsPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Applications</h1>
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Applications</h1>
             {isEmailConnected ? (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-200 shadow-2xs">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -203,7 +203,7 @@ export default function ApplicationsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {/* Email Sync Settings Button */}
           <Button
             variant="secondary"

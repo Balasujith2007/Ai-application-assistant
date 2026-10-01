@@ -124,12 +124,12 @@ export default function SidebarManagementPage() {
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Sidebar Menu Builder</h1>
-          <p className="mt-1 text-gray-500">Arrange link ordering and toggle visibility of sidebar sections dynamically</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Sidebar Menu Builder</h1>
+          <p className="mt-1 text-sm text-gray-500">Arrange link ordering and toggle visibility of sidebar sections dynamically</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <select
             value={selectedRole}
             onChange={(e) => setSelectedRole(e.target.value)}
@@ -155,7 +155,7 @@ export default function SidebarManagementPage() {
       {success && <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">{success}</div>}
 
       {/* Main Panel */}
-      <Card className="border-gray-200 shadow-sm p-6 max-w-3xl space-y-4">
+      <Card className="border-gray-200 shadow-sm p-4 sm:p-6 max-w-3xl space-y-4">
         <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Drag and drop rows or use arrow buttons to sort</p>
         
         {loading ? (
@@ -173,19 +173,19 @@ export default function SidebarManagementPage() {
                 onDragStart={(e) => handleDragStart(e, idx)}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => handleDrop(e, idx)}
-                className={`flex items-center justify-between border rounded-xl p-3 bg-white hover:bg-gray-50/50 transition-colors shadow-sm cursor-grab active:cursor-grabbing ${
+                className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border rounded-xl p-3 bg-white hover:bg-gray-50/50 transition-colors shadow-sm cursor-grab active:cursor-grabbing ${
                   item.enabled ? 'border-gray-200' : 'border-gray-150 opacity-60'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <GripVertical className="h-4 w-4 text-gray-400 cursor-grab" />
-                  <div>
-                    <p className="font-semibold text-gray-800 text-sm">{item.title}</p>
-                    <p className="text-xs text-gray-400">{item.path}</p>
+                <div className="flex items-center gap-3 min-w-0">
+                  <GripVertical className="h-4 w-4 text-gray-400 cursor-grab shrink-0" />
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-800 text-sm truncate">{item.title}</p>
+                    <p className="text-xs text-gray-400 truncate">{item.path}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
                   {/* Arrow Buttons */}
                   <div className="flex gap-1">
                     <button

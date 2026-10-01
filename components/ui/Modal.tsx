@@ -44,7 +44,7 @@ export function Modal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-hidden">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
@@ -59,8 +59,8 @@ export function Modal({
         )}
       >
         {/* Sticky Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-6 py-4 bg-white z-10">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-4 py-3.5 sm:px-6 sm:py-4 bg-white z-10">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900">{title}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -70,7 +70,7 @@ export function Modal({
           </button>
         </div>
         {/* Scrollable Body Content */}
-        <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-gray-300">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin scrollbar-thumb-gray-300">
           {children}
         </div>
       </div>

@@ -121,8 +121,8 @@ export default function PlacementCellPage() {
       </section>
 
       {/* Statistics Band */}
-      <section className="mx-auto max-w-7xl px-6 lg:px-8 mb-24">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:gap-8">
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-24">
+        <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-4 sm:grid-cols-4 lg:gap-8">
           {STATS.map((stat, i) => (
             <motion.div
               key={i}
@@ -130,17 +130,17 @@ export default function PlacementCellPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
               whileHover={{ y: -4 }}
-              className="flex flex-col items-center justify-center rounded-2xl bg-gray-50 border border-gray-100 p-6 text-center transition-all hover:shadow-lg hover:border-gray-200"
+              className="flex flex-col items-center justify-center rounded-2xl bg-gray-50 border border-gray-100 p-4 sm:p-6 text-center transition-all hover:shadow-lg hover:border-gray-200"
             >
-              <span className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">{stat.value}</span>
-              <span className="mt-2 text-sm font-medium text-gray-500">{stat.label}</span>
+              <span className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 tracking-tight">{stat.value}</span>
+              <span className="mt-2 text-xs sm:text-sm font-medium text-gray-500">{stat.label}</span>
             </motion.div>
           ))}
         </div>
       </section>
 
       {/* Grouped Feature Categories */}
-      <section className="mx-auto max-w-7xl px-6 lg:px-8 space-y-24 mb-28">
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-24 mb-28">
         {CATEGORIES.map((category) => (
           <div key={category.id} className="relative">
             {/* Category Header */}
@@ -168,7 +168,7 @@ export default function PlacementCellPage() {
                     viewport={{ once: true, margin: '-50px' }}
                     transition={{ duration: 0.4, delay: idx * 0.1 }}
                     whileHover={{ y: -6 }}
-                    className="group relative flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white p-7 shadow-xs transition-all duration-300 hover:shadow-xl hover:border-kit-300"
+                    className="group relative flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 sm:p-7 shadow-xs transition-all duration-300 hover:shadow-xl hover:border-kit-300"
                   >
                     <div className="flex items-center gap-4 mb-5">
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-kit-50 border border-kit-100 text-kit-600 transition-transform duration-300 group-hover:scale-110">

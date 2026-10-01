@@ -123,50 +123,52 @@ export default function HODPlacementsPage() {
 
           {/* Applications Table */}
           <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="border-b border-gray-100 bg-gray-50/50 text-gray-500">
-                <tr>
-                  <th className="px-6 py-4 text-left font-semibold">Student Name</th>
-                  <th className="px-6 py-4 text-left font-semibold">Register No</th>
-                  <th className="px-6 py-4 text-left font-semibold">Company</th>
-                  <th className="px-6 py-4 text-left font-semibold">Position</th>
-                  <th className="px-6 py-4 text-left font-semibold">Type</th>
-                  <th className="px-6 py-4 text-right font-semibold">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filteredApps.length === 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="border-b border-gray-100 bg-gray-50/50 text-gray-500">
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-400">
-                      No applications recorded yet.
-                    </td>
+                    <th className="px-6 py-4 text-left font-semibold">Student Name</th>
+                    <th className="px-6 py-4 text-left font-semibold">Register No</th>
+                    <th className="px-6 py-4 text-left font-semibold">Company</th>
+                    <th className="px-6 py-4 text-left font-semibold">Position</th>
+                    <th className="px-6 py-4 text-left font-semibold">Type</th>
+                    <th className="px-6 py-4 text-right font-semibold">Status</th>
                   </tr>
-                ) : (
-                  filteredApps.map((app) => (
-                    <tr key={app.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-4 font-semibold text-gray-900">{app.studentName}</td>
-                      <td className="px-6 py-4 font-mono text-xs font-bold text-kit-700">{app.registerNo}</td>
-                      <td className="px-6 py-4 font-medium text-gray-800">{app.companyName}</td>
-                      <td className="px-6 py-4 text-gray-600">{app.position}</td>
-                      <td className="px-6 py-4 text-xs font-semibold text-gray-500">{app.type}</td>
-                      <td className="px-6 py-4 text-right">
-                        <span
-                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                            app.status === 'SELECTED'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : app.status === 'APPLIED'
-                              ? 'bg-kit-100 text-kit-800'
-                              : 'bg-gray-100 text-gray-700'
-                          }`}
-                        >
-                          {app.status}
-                        </span>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {filteredApps.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-400">
+                        No applications recorded yet.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    filteredApps.map((app) => (
+                      <tr key={app.id} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-6 py-4 font-semibold text-gray-900">{app.studentName}</td>
+                        <td className="px-6 py-4 font-mono text-xs font-bold text-kit-700">{app.registerNo}</td>
+                        <td className="px-6 py-4 font-medium text-gray-800">{app.companyName}</td>
+                        <td className="px-6 py-4 text-gray-600">{app.position}</td>
+                        <td className="px-6 py-4 text-xs font-semibold text-gray-500">{app.type}</td>
+                        <td className="px-6 py-4 text-right">
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                              app.status === 'SELECTED'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : app.status === 'APPLIED'
+                                ? 'bg-kit-100 text-kit-800'
+                                : 'bg-gray-100 text-gray-700'
+                            }`}
+                          >
+                            {app.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       )}

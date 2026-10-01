@@ -85,13 +85,13 @@ function ReviewModal({ resume, onClose, onSaved }: ReviewModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 bg-gray-50/50">
-          <h2 className="text-lg font-bold text-gray-900">Review Student Resume</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-4 backdrop-blur-sm overflow-y-auto">
+      <div className="w-full max-w-lg max-h-[90vh] flex flex-col rounded-2xl bg-white shadow-2xl overflow-hidden my-auto">
+        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-6 sm:py-4 bg-gray-50/50 shrink-0">
+          <h2 className="text-base sm:text-lg font-bold text-gray-900">Review Student Resume</h2>
           <button onClick={onClose} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100"><X className="h-5 w-5" /></button>
         </div>
-        <div className="p-6 space-y-5">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto">
           {/* Student Info */}
           <div className="rounded-xl bg-kit-50/50 border border-kit-100 p-4 space-y-1">
             <p className="font-bold text-gray-900">{resume.user.name}</p>
@@ -117,11 +117,11 @@ function ReviewModal({ resume, onClose, onSaved }: ReviewModalProps) {
           {/* Status Selection */}
           <div>
             <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-500">Select Review Decision</label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
                 <button key={key} type="button"
                   onClick={() => setStatus(key)}
-                  className={`rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all ${status === key ? cfg.color + ' ring-2 ring-kit-500 ring-offset-1' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
+                  className={`rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all text-center ${status === key ? cfg.color + ' ring-2 ring-kit-500 ring-offset-1' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
                   {cfg.label}
                 </button>
               ))}
@@ -215,7 +215,7 @@ export default function MentorResumesPage() {
       </motion.div>
 
       {/* Stats Counter Bar */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-5 shadow-sm flex items-center justify-between">
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-amber-700">Pending Review</span>

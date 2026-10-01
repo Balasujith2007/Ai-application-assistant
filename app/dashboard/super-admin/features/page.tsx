@@ -88,8 +88,8 @@ export default function FeatureManagementPage() {
     <div className="space-y-6 pb-12">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Feature Toggle Management</h1>
-        <p className="mt-1 text-gray-500">Globally enable or disable major system modules and restrict role visibility</p>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Feature Toggle Management</h1>
+        <p className="mt-1 text-sm text-gray-500">Globally enable or disable major system modules and restrict role visibility</p>
       </div>
 
       {error && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
@@ -105,7 +105,7 @@ export default function FeatureManagementPage() {
       ) : (
         <div className="grid grid-cols-1 gap-6">
           {features.map((f) => (
-            <Card key={f.name} className="border-gray-200 shadow-sm p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white">
+            <Card key={f.name} className="border-gray-200 shadow-sm p-4 sm:p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white">
               <div className="space-y-1 max-w-lg">
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg font-bold text-gray-900 capitalize">{f.name.replace('-', ' ')}</h3>

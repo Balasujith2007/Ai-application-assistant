@@ -52,7 +52,7 @@ export function TaskCard({
   return (
     <div
       className={cn(
-        'group flex items-start justify-between gap-4 rounded-2xl border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+        'group flex items-start justify-between gap-3 sm:gap-4 rounded-2xl border bg-white p-4 sm:p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
         task.completed ? 'border-gray-200 bg-gray-50/50 opacity-75' : 'border-gray-200 hover:border-gray-300',
       )}
     >
@@ -134,7 +134,7 @@ export function TaskCard({
       </div>
 
       {/* Task Actions */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
         <button
           onClick={() => onEdit(task)}
           className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-kit-600 transition-colors"
