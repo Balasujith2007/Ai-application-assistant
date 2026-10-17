@@ -2,15 +2,14 @@ import { NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
 import prisma from '@/lib/prisma';
 
-export async function GET(req: Request, context: { params: Promise<{ id: string }> | { id: string } }) {
+export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const resolvedParams = await context.params;
-    const opportunityId = resolvedParams?.id;
+    const { id: opportunityId } = await props.params;
 
     if (!opportunityId) {
       return NextResponse.json({ message: 'Opportunity ID is required.' }, { status: 400 });
@@ -54,6 +53,10 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
               take: 1
             }
           }
+        },
+        evidences: {
+          orderBy: { submittedAt: 'desc' },
+          take: 1
         }
       },
       orderBy: { initiatedAt: 'desc' }

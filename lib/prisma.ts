@@ -54,13 +54,14 @@ export function getDb(): PrismaClient {
   // Recreate if missing or if client was created before the latest schema version or missing models
   if (
     !client ||
-    (client as any)._schemaVer !== '2026-v5' ||
+    (client as any)._schemaVer !== '2026-v6' ||
     typeof (client as any).form === 'undefined' ||
     typeof (client as any).studentEmailIntegration === 'undefined' ||
-    typeof (client as any).emailEvidence === 'undefined'
+    typeof (client as any).emailEvidence === 'undefined' ||
+    typeof (client as any).registrationEvidence === 'undefined'
   ) {
     client = createClient();
-    (client as any)._schemaVer = '2026-v5';
+    (client as any)._schemaVer = '2026-v6';
     if (process.env.NODE_ENV !== 'production') {
       globalForPrisma.prisma = client;
     }

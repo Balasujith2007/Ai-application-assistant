@@ -29,7 +29,7 @@ export interface HistoryItem {
   registeredAt?: string | null;
   startedAt?: string | null;
   completedAt?: string | null;
-  status: 'VERIFIED' | 'STUDENT_CONFIRMED' | 'IN_PROGRESS' | 'STARTED' | 'INITIATED' | 'REGISTERED' | 'ONGOING' | 'COMPLETED' | 'SHORTLISTED' | 'SELECTED' | 'REJECTED' | 'WITHDRAWN';
+  status: 'VERIFIED' | 'STUDENT_CONFIRMED' | 'PENDING_REVIEW' | 'PENDING_VERIFICATION' | 'PROOF_SUBMITTED' | 'VERIFYING' | 'FAILED' | 'IN_PROGRESS' | 'STARTED' | 'INITIATED' | 'REGISTERED' | 'ONGOING' | 'COMPLETED' | 'SHORTLISTED' | 'SELECTED' | 'REJECTED' | 'WITHDRAWN';
   outcome?: string | null;
   certificateUrl?: string | null;
   notes?: string | null;
@@ -106,6 +106,13 @@ export default function OpportunityHistoryPage() {
         return <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-200"><CheckCircle2 className="h-3.5 w-3.5" /> Verified</span>;
       case 'STUDENT_CONFIRMED':
         return <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-800 border border-blue-200"><CheckCircle2 className="h-3.5 w-3.5" /> Student Confirmed</span>;
+      case 'PENDING_REVIEW':
+      case 'PENDING_VERIFICATION':
+      case 'PROOF_SUBMITTED':
+      case 'VERIFYING':
+        return <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800 border border-amber-200"><Clock className="h-3.5 w-3.5" /> Pending Review</span>;
+      case 'FAILED':
+        return <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-3 py-1 text-xs font-bold text-rose-800 border border-rose-200"><Clock className="h-3.5 w-3.5" /> Verification Failed</span>;
       case 'IN_PROGRESS':
         return <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800 border border-amber-200"><Clock className="h-3.5 w-3.5" /> In Progress</span>;
       case 'STARTED':

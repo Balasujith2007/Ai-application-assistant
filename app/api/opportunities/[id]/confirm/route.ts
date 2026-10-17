@@ -1,18 +1,17 @@
 import { NextResponse } from 'next/server';
-import { getUserIdFromRequest } from '@/lib/serverAuth';
+import { getUserIdFromRequest, verifyToken } from '@/lib/serverAuth';
 import prisma from '@/lib/prisma';
 import { isOpportunityOpen } from '@/lib/utils';
 import { sendRegistrationStatusWhatsApp } from '@/lib/whatsapp/whatsapp.service';
 
-export async function POST(req: Request, context: { params: Promise<{ id: string }> | { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
       return NextResponse.json({ success: false, error: 'Unauthorized', message: 'Unauthorized' }, { status: 401 });
     }
 
-    const resolvedParams = await context.params;
-    const opportunityId = resolvedParams?.id;
+    const { id: opportunityId } = await props.params;
 
     if (!opportunityId) {
       return NextResponse.json({ success: false, error: 'Opportunity ID is required.', message: 'Opportunity ID is required.' }, { status: 400 });
@@ -90,8 +89,27 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
       });
     }
 
-    // Determine target status and verification method
-    const isExtensionVerified = requestedAction === 'VERIFY' || body.verificationMethod === 'EXTENSION';
+    // CRITICAL SECURITY RULE: Direct API requests cannot spoof VERIFIED status without validated extension token
+    let isExtensionVerified = false;
+    if (requestedAction === 'VERIFY' || body.verificationMethod === 'EXTENSION') {
+      if (body.extensionToken) {
+        const payload: any = verifyToken(body.extensionToken);
+        if (payload && payload.aud === 'careerai-extension' && payload.sub === userId) {
+          isExtensionVerified = true;
+        }
+      }
+      if (!isExtensionVerified) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Direct API requests cannot directly set VERIFIED status. Upload confirmation screenshot evidence for review.',
+            message: 'Direct API requests cannot directly set VERIFIED status. Upload confirmation screenshot evidence for review.'
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     const targetStatus: any = isExtensionVerified ? 'VERIFIED' : 'STUDENT_CONFIRMED';
     const verificationMethod = isExtensionVerified ? 'EXTENSION' : 'STUDENT_CONFIRMED';
 

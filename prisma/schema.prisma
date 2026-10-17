@@ -80,6 +80,9 @@ enum OpportunityRegistrationStatus {
   IN_PROGRESS
   STUDENT_CONFIRMED
   PENDING_VERIFICATION
+  PROOF_SUBMITTED
+  VERIFYING
+  PENDING_REVIEW
   VERIFIED
   REGISTERED
   ONGOING
@@ -136,6 +139,8 @@ model User {
   emailIntegration       StudentEmailIntegration?
   emailEvidences         EmailEvidence[]
   emailReviews           EmailStatusReview[]
+  registrationEvidences  RegistrationEvidence[]  @relation("StudentEvidences")
+  reviewedEvidences      RegistrationEvidence[]  @relation("ReviewedEvidences")
 
   // Mentor-Student relationship
   mentorId      String?
@@ -490,6 +495,7 @@ model Opportunity {
   applications  Application[]
   autofillSessions AutofillSession[]
   reminders     OpportunityReminder[]
+  registrationEvidences RegistrationEvidence[]
 
   @@map("opportunities")
 }
@@ -523,6 +529,7 @@ model OpportunityRegistration {
   student       User                       @relation(fields: [studentId], references: [id], onDelete: Cascade)
   workflowSteps OpportunityWorkflowStep[]
   statusHistory OpportunityStatusHistory[]
+  evidences     RegistrationEvidence[]
 
   @@unique([opportunityId, studentId])
   @@map("opportunity_registrations")
@@ -1039,6 +1046,50 @@ model EmailStatusReview {
   @@index([studentId])
   @@index([status])
   @@map("email_status_reviews")
+}
+
+// ============================================================
+// REGISTRATION VERIFICATION EVIDENCE
+// ============================================================
+
+model RegistrationEvidence {
+  id                 String    @id @default(cuid())
+  registrationId     String
+  opportunityId      String
+  studentId          String
+  evidenceFileUrl    String
+  filePath           String
+  fileName           String
+  fileSize           Int
+  mimeType           String
+  fileHash           String?
+  status             String    @default("PENDING_REVIEW") // PROOF_SUBMITTED, VERIFYING, PENDING_REVIEW, VERIFIED, REJECTED, FAILED
+  verificationMethod String    @default("OCR_SCREENSHOT") // OCR_SCREENSHOT, EXTENSION, OFFICIAL_API, MANUAL_REVIEW
+  ocrTextSnippet     String?
+  ocrConfidence      Float?    @default(0.0)
+  extractedData      Json?
+  validationResults  Json?
+  mismatchReasons    String[]  @default([])
+  isAuthentic        Boolean   @default(false)
+  reviewerId         String?
+  reviewDecision     String?   // APPROVED, REJECTED
+  reviewerNotes      String?
+  reviewedAt         DateTime?
+  submittedAt        DateTime  @default(now())
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  registration OpportunityRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  opportunity  Opportunity             @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  student      User                    @relation("StudentEvidences", fields: [studentId], references: [id], onDelete: Cascade)
+  reviewer     User?                   @relation("ReviewedEvidences", fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  @@index([registrationId])
+  @@index([studentId])
+  @@index([opportunityId])
+  @@index([fileHash])
+  @@index([status])
+  @@map("registration_evidences")
 }
 
 

@@ -22,7 +22,9 @@ import {
   Check,
   X,
   Send,
-  Megaphone
+  Megaphone,
+  Eye,
+  ShieldAlert
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { OpportunityBroadcastModal } from '@/components/opportunities/OpportunityBroadcastModal';
@@ -82,6 +84,19 @@ export interface StudentRegistrationItem {
       fileUrl: string;
     }>;
   };
+  evidences?: Array<{
+    id: string;
+    status: string;
+    evidenceFileUrl: string;
+    fileName: string;
+    fileSize: number;
+    ocrConfidence: number;
+    extractedData?: any;
+    validationResults?: any;
+    mismatchReasons?: string[];
+    reviewerNotes?: string;
+    submittedAt: string;
+  }>;
 }
 
 export default function MentorOpportunitiesPage() {
@@ -100,6 +115,19 @@ export default function MentorOpportunitiesPage() {
   const [selectedOppTitle, setSelectedOppTitle] = useState<string>('');
   const [registrations, setRegistrations] = useState<StudentRegistrationItem[]>([]);
   const [loadingRegs, setLoadingRegs] = useState(false);
+
+  // Evidence Review Modal state
+  const [reviewEvidenceModal, setReviewEvidenceModal] = useState<{
+    isOpen: boolean;
+    regId: string;
+    studentName: string;
+    studentEmail: string;
+    evidence: any;
+  } | null>(null);
+  const [reviewNotes, setReviewNotes] = useState('');
+  const [reviewActionLoading, setReviewActionLoading] = useState(false);
+  const [rejectingReasonInput, setRejectingReasonInput] = useState('');
+  const [showRejectForm, setShowRejectForm] = useState(false);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
@@ -136,6 +164,60 @@ export default function MentorOpportunitiesPage() {
       showToast('Failed to load student registrations.', 'error');
     } finally {
       setLoadingRegs(false);
+    }
+  };
+
+  const handleReviewDecision = async (action: 'APPROVE' | 'REJECT') => {
+    if (!reviewEvidenceModal || !selectedOppId) return;
+    if (action === 'REJECT' && !rejectingReasonInput.trim()) {
+      showToast('Please provide a reason for rejecting the evidence.', 'error');
+      return;
+    }
+
+    setReviewActionLoading(true);
+    try {
+      const res = await api.post(`/opportunities/${selectedOppId}/review`, {
+        evidenceId: reviewEvidenceModal.evidence?.id,
+        registrationId: reviewEvidenceModal.regId,
+        action,
+        reviewerNotes: reviewNotes.trim() || undefined,
+        rejectionReason: action === 'REJECT' ? rejectingReasonInput.trim() : undefined
+      });
+
+      if (res.data.success) {
+        const newStatus = action === 'APPROVE' ? 'VERIFIED' : 'REJECTED';
+        setRegistrations((prev) =>
+          prev.map((r) =>
+            r.id === reviewEvidenceModal.regId
+              ? {
+                  ...r,
+                  status: newStatus,
+                  evidences: r.evidences?.map((e) =>
+                    e.id === reviewEvidenceModal.evidence?.id
+                      ? { ...e, status: newStatus, reviewerNotes: reviewNotes.trim() }
+                      : e
+                  )
+                }
+              : r
+          )
+        );
+        showToast(
+          action === 'APPROVE'
+            ? `Registration verified for ${reviewEvidenceModal.studentName}.`
+            : `Registration evidence rejected.`,
+          'success'
+        );
+        setReviewEvidenceModal(null);
+        setReviewNotes('');
+        setRejectingReasonInput('');
+        setShowRejectForm(false);
+      } else {
+        showToast(res.data.error || 'Failed to complete review.', 'error');
+      }
+    } catch (err: any) {
+      showToast(err?.response?.data?.error || 'Review submission failed.', 'error');
+    } finally {
+      setReviewActionLoading(false);
     }
   };
 
@@ -650,8 +732,32 @@ export default function MentorOpportunitiesPage() {
                         </div>
                       </div>
 
-                      {/* Actions: Status + Next Step */}
+                      {/* Actions: Review Evidence + Status + Next Step */}
                       <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
+                        {reg.evidences && reg.evidences.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setReviewEvidenceModal({
+                                isOpen: true,
+                                regId: reg.id,
+                                studentName: reg.student.name,
+                                studentEmail: reg.student.email,
+                                evidence: reg.evidences![0]
+                              });
+                              setReviewNotes(reg.evidences![0].reviewerNotes || '');
+                              setRejectingReasonInput('');
+                              setShowRejectForm(false);
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 text-xs font-bold shadow-xs transition-colors"
+                          >
+                            <Eye className="h-3.5 w-3.5" /> Review Evidence
+                            {reg.evidences[0].status === 'PENDING_REVIEW' && (
+                              <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
+                            )}
+                          </button>
+                        )}
+
                         <Button
                           variant="outline"
                           size="sm"
@@ -676,6 +782,7 @@ export default function MentorOpportunitiesPage() {
                           >
                             <option value="STARTED">STARTED</option>
                             <option value="INITIATED">INITIATED</option>
+                            <option value="PENDING_REVIEW">PENDING REVIEW ⏳</option>
                             <option value="PENDING_VERIFICATION">PENDING VERIFICATION ⏳</option>
                             <option value="VERIFIED">VERIFIED ✅</option>
                             <option value="REGISTERED">REGISTERED ✓</option>
@@ -690,6 +797,210 @@ export default function MentorOpportunitiesPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Registration Evidence Review Modal */}
+      <AnimatePresence>
+        {reviewEvidenceModal && (
+          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl bg-white shadow-2xl overflow-hidden border border-gray-100 my-auto"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 bg-gradient-to-r from-amber-50/60 via-white to-amber-50/30">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white font-bold shadow-xs">
+                    <ShieldCheck className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-gray-900 leading-tight">
+                      Review Registration Evidence
+                    </h3>
+                    <p className="text-xs text-gray-500 truncate max-w-sm">
+                      {reviewEvidenceModal.studentName} ({reviewEvidenceModal.studentEmail}) • {selectedOppTitle}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setReviewEvidenceModal(null)}
+                  className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+                {/* Screenshot Display */}
+                <div className="rounded-xl border border-gray-200 overflow-hidden bg-gray-900/5 p-2">
+                  <div className="flex items-center justify-between px-2 py-1 mb-1.5">
+                    <span className="text-xs font-bold text-gray-700">Uploaded Confirmation Screenshot</span>
+                    <a
+                      href={reviewEvidenceModal.evidence?.evidenceFileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-kit-600 font-semibold hover:underline flex items-center gap-1"
+                    >
+                      View Full Size <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto rounded-lg bg-white border border-gray-100 flex items-center justify-center p-2">
+                    <img
+                      src={reviewEvidenceModal.evidence?.evidenceFileUrl}
+                      alt="Student Confirmation Evidence"
+                      className="max-h-68 w-auto object-contain mx-auto rounded shadow-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Mismatches / Flags Alert */}
+                {reviewEvidenceModal.evidence?.mismatchReasons && reviewEvidenceModal.evidence.mismatchReasons.length > 0 && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3.5 space-y-1.5 text-xs text-amber-900">
+                    <p className="font-bold flex items-center gap-1.5 text-amber-800">
+                      <ShieldAlert className="h-4 w-4 text-amber-600" />
+                      Discrepancies / Notices Detected:
+                    </p>
+                    <ul className="list-disc list-inside space-y-1 text-amber-800">
+                      {reviewEvidenceModal.evidence.mismatchReasons.map((m: string, i: number) => (
+                        <li key={i}>{m}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Extracted Details Breakdown */}
+                {reviewEvidenceModal.evidence?.extractedData && (
+                  <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 space-y-3 text-xs">
+                    <h5 className="font-bold text-gray-800 uppercase tracking-wider text-[11px]">
+                      Extracted Fields & Verification Analysis
+                    </h5>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div className="p-2.5 rounded-lg bg-white border border-gray-200">
+                        <span className="text-gray-500 text-[11px] block">Extracted Name:</span>
+                        <strong className="text-gray-900 font-medium">
+                          {reviewEvidenceModal.evidence.extractedData.studentName?.value || <span className="text-gray-400 italic">Not found</span>}
+                        </strong>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-white border border-gray-200">
+                        <span className="text-gray-500 text-[11px] block">Extracted Email:</span>
+                        <strong className="text-gray-900 font-medium truncate block">
+                          {reviewEvidenceModal.evidence.extractedData.studentEmail?.value || <span className="text-gray-400 italic">Not found</span>}
+                        </strong>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-white border border-gray-200">
+                        <span className="text-gray-500 text-[11px] block">Opportunity in Image:</span>
+                        <strong className="text-gray-900 font-medium truncate block">
+                          {reviewEvidenceModal.evidence.extractedData.opportunityName?.value || <span className="text-gray-400 italic">Not found</span>}
+                        </strong>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-white border border-gray-200">
+                        <span className="text-gray-500 text-[11px] block">Reference / Reg ID:</span>
+                        <strong className="text-gray-900 font-mono font-medium truncate block">
+                          {reviewEvidenceModal.evidence.extractedData.referenceId?.value || <span className="text-gray-400 italic">None</span>}
+                        </strong>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-white border border-gray-200">
+                        <span className="text-gray-500 text-[11px] block">Platform Identified:</span>
+                        <strong className="text-gray-900 font-medium">
+                          {reviewEvidenceModal.evidence.extractedData.platformName?.value || 'Generic'}
+                        </strong>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-white border border-gray-200">
+                        <span className="text-gray-500 text-[11px] block">Confirmation Status:</span>
+                        <strong className="text-gray-900 font-medium">
+                          {reviewEvidenceModal.evidence.extractedData.confirmationWording?.value || 'Unknown'}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Reviewer Notes */}
+                <div className="space-y-1 text-xs">
+                  <label className="font-bold text-gray-700 block">Reviewer Notes (Optional)</label>
+                  <textarea
+                    placeholder="Add any notes, feedback, or approval remarks..."
+                    value={reviewNotes}
+                    onChange={(e) => setReviewNotes(e.target.value)}
+                    rows={2}
+                    className="w-full rounded-xl border border-gray-300 p-2 text-xs focus:border-kit-500 focus:outline-none"
+                  />
+                </div>
+
+                {/* Rejection Form inline */}
+                {showRejectForm && (
+                  <div className="rounded-xl border border-red-200 bg-red-50/50 p-3.5 space-y-2 text-xs">
+                    <label className="font-bold text-red-800 block">
+                      Rejection Reason (Required) *
+                    </label>
+                    <textarea
+                      placeholder="Explain why this evidence is invalid or rejected..."
+                      value={rejectingReasonInput}
+                      onChange={(e) => setRejectingReasonInput(e.target.value)}
+                      rows={2}
+                      className="w-full rounded-xl border border-red-300 p-2 text-xs focus:border-red-500 focus:outline-none bg-white"
+                    />
+                    <div className="flex items-center justify-end gap-2 pt-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowRejectForm(false)}
+                        className="text-xs text-gray-600"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        disabled={reviewActionLoading || !rejectingReasonInput.trim()}
+                        onClick={() => handleReviewDecision('REJECT')}
+                        className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs"
+                      >
+                        {reviewActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm Rejection'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions Footer */}
+              {!showRejectForm && (
+                <div className="border-t border-gray-100 bg-gray-50 px-6 py-4 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setShowRejectForm(true)}
+                    disabled={reviewActionLoading}
+                    className="rounded-xl border border-red-200 bg-white px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    Reject Evidence
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setReviewEvidenceModal(null)}
+                      className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      Close
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleReviewDecision('APPROVE')}
+                      disabled={reviewActionLoading}
+                      className="rounded-xl bg-emerald-600 px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition-colors flex items-center gap-2"
+                    >
+                      {reviewActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                      Approve Verification
+                    </button>
+                  </div>
                 </div>
               )}
             </motion.div>

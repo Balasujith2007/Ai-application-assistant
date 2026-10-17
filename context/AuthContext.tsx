@@ -32,6 +32,7 @@ interface AuthContextValue {
     department?: string,
     employeeId?: string
   ) => Promise<void>;
+  demoLogin: (role: string) => Promise<void>;
   loginWithToken: (token: string, user: User) => void;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -74,6 +75,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await api.post<{ data: AuthResponse }>('/auth/login', {
         email,
         password,
+      });
+      const { user: loggedInUser, token } = res.data.data;
+      setToken(token);
+      setStoredUser(loggedInUser);
+      setUser(loggedInUser);
+      router.push(getDashboardRoute(loggedInUser.role));
+    },
+    [router],
+  );
+
+  const demoLogin = useCallback(
+    async (role: string) => {
+      const res = await api.post<{ data: AuthResponse }>('/auth/demo', {
+        role,
       });
       const { user: loggedInUser, token } = res.data.data;
       setToken(token);
@@ -137,6 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         login,
+        demoLogin,
         register,
         loginWithToken,
         logout,

@@ -3,15 +3,14 @@ import { getUserIdFromRequest } from '@/lib/serverAuth';
 import prisma from '@/lib/prisma';
 import { getStudentOpportunityStatus } from '@/lib/opportunityUtils';
 
-export async function GET(req: Request, context: { params: Promise<{ id: string }> | { id: string } }) {
+export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const resolvedParams = await context.params;
-    const opportunityId = resolvedParams?.id;
+    const { id: opportunityId } = await props.params;
 
     if (!opportunityId) {
       return NextResponse.json({ message: 'Opportunity ID is required.' }, { status: 400 });

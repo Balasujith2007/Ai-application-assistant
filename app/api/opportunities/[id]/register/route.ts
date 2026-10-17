@@ -5,15 +5,14 @@ import { validateStudentEligibility } from '@/lib/opportunity/lifecycle.service'
 import { isOpportunityOpen } from '@/lib/utils';
 import { OpportunityRegistrationStatus } from '@prisma/client';
 
-export async function POST(req: Request, context: { params: Promise<{ id: string }> | { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const resolvedParams = await context.params;
-    const opportunityId = resolvedParams?.id;
+    const { id: opportunityId } = await props.params;
 
     if (!opportunityId) {
       return NextResponse.json({ message: 'Opportunity ID is required.' }, { status: 400 });

@@ -312,8 +312,29 @@ async function main() {
 
   console.log(`✅ HOD created: ${hod.name}`);
 
-  // 3. Seed Demo Student
+  // 3. Seed Demo Accounts
   const demoStudent = await prisma.user.upsert({
+    where: { email: 'demo.student@careerai.demo' },
+    update: { name: 'Demo Student', role: Role.STUDENT, mentorId: kavithaMentor.id, password: demoPassword },
+    create: {
+      email: 'demo.student@careerai.demo',
+      name: 'Demo Student',
+      password: demoPassword,
+      role: Role.STUDENT,
+      mentorId: kavithaMentor.id,
+      profile: {
+        create: {
+          registerNo: '711524DEMO001',
+          department: 'Artificial Intelligence & Data Science',
+          year: 3,
+          section: 'A',
+        },
+      },
+    },
+  });
+
+  // Legacy demo student fallback
+  await prisma.user.upsert({
     where: { email: 'student@demo.com' },
     update: { name: 'Demo Student', role: Role.STUDENT, mentorId: kavithaMentor.id, password: demoPassword },
     create: {
@@ -332,7 +353,63 @@ async function main() {
       },
     },
   });
-  console.log(`✅ Demo Student created: ${demoStudent.email}`);
+
+  const demoAdvisor = await prisma.user.upsert({
+    where: { email: 'demo.advisor@careerai.demo' },
+    update: { name: 'Demo Advisor', role: Role.MENTOR, password: demoPassword },
+    create: {
+      email: 'demo.advisor@careerai.demo',
+      name: 'Demo Advisor',
+      password: demoPassword,
+      role: Role.MENTOR,
+      profile: {
+        create: {
+          department: 'Artificial Intelligence & Data Science',
+          employeeId: 'DEMO-ADV-001',
+        },
+      },
+    },
+  });
+
+  const demoHod = await prisma.user.upsert({
+    where: { email: 'demo.hod@careerai.demo' },
+    update: { name: 'Demo HOD', role: Role.HOD, password: demoPassword },
+    create: {
+      email: 'demo.hod@careerai.demo',
+      name: 'Demo HOD',
+      password: demoPassword,
+      role: Role.HOD,
+      profile: {
+        create: {
+          department: 'Artificial Intelligence & Data Science',
+          employeeId: 'DEMO-HOD-001',
+        },
+      },
+    },
+  });
+
+  const demoSuperAdmin = await prisma.user.upsert({
+    where: { email: 'demo.superadmin@careerai.demo' },
+    update: { name: 'Demo Super Admin', role: Role.SUPER_ADMIN, password: demoPassword },
+    create: {
+      email: 'demo.superadmin@careerai.demo',
+      name: 'Demo Super Admin',
+      password: demoPassword,
+      role: Role.SUPER_ADMIN,
+      profile: {
+        create: {
+          department: 'Administration',
+          employeeId: 'DEMO-SA-001',
+        },
+      },
+    },
+  });
+
+  console.log(`✅ Demo Accounts created:`);
+  console.log(`   - Student: ${demoStudent.email}`);
+  console.log(`   - Advisor: ${demoAdvisor.email}`);
+  console.log(`   - HOD: ${demoHod.email}`);
+  console.log(`   - Super Admin: ${demoSuperAdmin.email}`);
 
   // 4. Seed Class Students & assign all 33 to Kavitha
   let count = 0;

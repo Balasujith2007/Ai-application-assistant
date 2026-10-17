@@ -7,6 +7,10 @@ export type StudentRegistrationStatus =
   | 'IN_PROGRESS'
   | 'STUDENT_CONFIRMED'
   | 'PENDING_VERIFICATION'
+  | 'PENDING_REVIEW'
+  | 'PROOF_SUBMITTED'
+  | 'VERIFYING'
+  | 'FAILED'
   | 'VERIFIED'
   | 'REGISTERED'
   | 'UNDER_REVIEW'
@@ -54,7 +58,10 @@ export function getOpportunityRegistrationState(
 
   if (rawStatus === 'VERIFIED') registrationStatus = 'VERIFIED';
   else if (rawStatus === 'STUDENT_CONFIRMED') registrationStatus = 'STUDENT_CONFIRMED';
-  else if (rawStatus === 'PENDING_VERIFICATION') registrationStatus = 'PENDING_VERIFICATION';
+  else if (rawStatus === 'PENDING_REVIEW' || rawStatus === 'PENDING_VERIFICATION') registrationStatus = 'PENDING_REVIEW';
+  else if (rawStatus === 'PROOF_SUBMITTED') registrationStatus = 'PROOF_SUBMITTED';
+  else if (rawStatus === 'VERIFYING') registrationStatus = 'VERIFYING';
+  else if (rawStatus === 'FAILED') registrationStatus = 'FAILED';
   else if (rawStatus === 'IN_PROGRESS') registrationStatus = 'IN_PROGRESS';
   else if (rawStatus === 'STARTED') registrationStatus = 'STARTED';
   else if (rawStatus === 'REGISTERED') registrationStatus = 'REGISTERED';
@@ -84,11 +91,21 @@ export function getOpportunityRegistrationState(
     isButtonDisabled = false;
     badgeText = 'Student Confirmed';
     badgeVariant = 'student_confirmed';
-  } else if (registrationStatus === 'PENDING_VERIFICATION') {
-    buttonText = 'Pending Verification ⏳';
+  } else if (registrationStatus === 'PENDING_REVIEW') {
+    buttonText = 'Pending Review ⏳';
     isButtonDisabled = false;
-    badgeText = 'Pending Verification';
+    badgeText = 'Pending Review';
     badgeVariant = 'in_progress';
+  } else if (registrationStatus === 'PROOF_SUBMITTED' || registrationStatus === 'VERIFYING') {
+    buttonText = 'Checking Evidence ⏳';
+    isButtonDisabled = false;
+    badgeText = 'Verifying Evidence';
+    badgeVariant = 'in_progress';
+  } else if (registrationStatus === 'FAILED') {
+    buttonText = 'Retry Verification';
+    isButtonDisabled = false;
+    badgeText = 'Verification Failed';
+    badgeVariant = 'rejected';
   } else if (registrationStatus === 'IN_PROGRESS' || registrationStatus === 'STARTED' || registrationStatus === 'INITIATED') {
     if (isOpen) {
       buttonText = 'Verify Registration';
@@ -185,6 +202,7 @@ export function getStudentOpportunityStatus(
 
   if (regStatus === 'VERIFIED') return 'VERIFIED';
   if (regStatus === 'STUDENT_CONFIRMED') return 'STUDENT_CONFIRMED';
+  if (regStatus === 'PENDING_REVIEW' || regStatus === 'PENDING_VERIFICATION' || regStatus === 'PROOF_SUBMITTED' || regStatus === 'VERIFYING') return 'PENDING_REVIEW';
   if (regStatus === 'IN_PROGRESS') return 'IN_PROGRESS';
   if (regStatus === 'STARTED' || regStatus === 'INITIATED') return 'STARTED';
   if (regStatus === 'REJECTED' || regStatus === 'WITHDRAWN') return regStatus;

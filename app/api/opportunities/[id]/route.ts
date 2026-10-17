@@ -3,15 +3,14 @@ import { getUserIdFromRequest } from '@/lib/serverAuth';
 import prisma from '@/lib/prisma';
 import { getNormalizedDeadline } from '@/lib/utils';
 
-export async function GET(req: Request, context: { params: Promise<{ id: string }> | { id: string } }) {
+export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const resolvedParams = await context.params;
-    const id = resolvedParams?.id;
+    const { id } = await props.params;
 
     if (!id) {
       return NextResponse.json({ message: 'Opportunity ID is required.' }, { status: 400 });
@@ -49,15 +48,14 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
   }
 }
 
-export async function PUT(req: Request, context: { params: Promise<{ id: string }> | { id: string } }) {
+export async function PUT(req: Request, props: { params: Promise<{ id: string }> }) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const resolvedParams = await context.params;
-    const id = resolvedParams?.id;
+    const { id } = await props.params;
 
     if (!id) {
       return NextResponse.json({ message: 'Opportunity ID is required.' }, { status: 400 });
@@ -140,15 +138,14 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
   }
 }
 
-export async function DELETE(req: Request, context: { params: Promise<{ id: string }> | { id: string } }) {
+export async function DELETE(req: Request, props: { params: Promise<{ id: string }> }) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const resolvedParams = await context.params;
-    const id = resolvedParams?.id;
+    const { id } = await props.params;
 
     if (!id) {
       return NextResponse.json({ message: 'Opportunity ID is required.' }, { status: 400 });

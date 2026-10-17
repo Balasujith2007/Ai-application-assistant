@@ -3,7 +3,7 @@ import { getUserIdFromRequest } from '@/lib/serverAuth';
 import prisma from '@/lib/prisma';
 import { isOpportunityOpen } from '@/lib/utils';
 import { evaluateFormMatching } from '@/lib/fieldNormalization';
-import type { ApplicationType, ApplicationStatus, OpportunityRegistrationStatus } from '@prisma/client';
+import type { ApplicationType, ApplicationStatus } from '@prisma/client';
 
 // Helper to fetch complete student profile details & active resume details for Application Assistant
 async function getStudentProfileData(userId: string) {
@@ -71,15 +71,14 @@ async function getStudentProfileData(userId: string) {
   };
 }
 
-export async function GET(req: Request, context: { params: Promise<{ id: string }> | { id: string } }) {
+export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
       return NextResponse.json({ success: false, error: 'Unauthorized', message: 'Unauthorized' }, { status: 401 });
     }
 
-    const resolvedParams = await context.params;
-    const opportunityId = resolvedParams?.id;
+    const { id: opportunityId } = await props.params;
 
     if (!opportunityId) {
       return NextResponse.json({ success: false, error: 'Opportunity ID is required.', message: 'Opportunity ID is required.' }, { status: 400 });
@@ -105,6 +104,12 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
           opportunityId,
           studentId: userId
         }
+      },
+      include: {
+        evidences: {
+          orderBy: { submittedAt: 'desc' },
+          take: 1
+        }
       }
     });
 
@@ -115,6 +120,7 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
 
     const isVerified = existingRegistration?.status === 'VERIFIED';
     const isStudentConfirmed = existingRegistration?.status === 'STUDENT_CONFIRMED';
+    const isPendingReview = existingRegistration?.status === 'PENDING_REVIEW' || existingRegistration?.status === 'PENDING_VERIFICATION';
     const isInProgress = existingRegistration?.status === 'IN_PROGRESS';
     const isStarted = existingRegistration?.status === 'STARTED' || existingRegistration?.status === 'INITIATED';
 
@@ -129,6 +135,8 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
     // Standard registration form fields to evaluate matching against
     const standardFields = ['Full Name', 'Email', 'Phone', 'College', 'Department', 'Year', 'CGPA', 'GitHub Profile', 'LinkedIn Profile', 'Codolio Profile', 'Active Resume'];
     const matchingEvaluation = evaluateFormMatching(standardFields, studentData);
+
+    const latestEvidence = existingRegistration?.evidences?.[0] || null;
 
     return NextResponse.json({
       success: true,
@@ -156,8 +164,20 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
         confirmedAt: existingRegistration.confirmedAt,
         startedAt: existingRegistration.startedAt || existingRegistration.initiatedAt,
         externalRegistrationId: existingRegistration.externalRegistrationId,
+        confirmationEvidenceUrl: existingRegistration.confirmationEvidenceUrl,
         initiatedAt: existingRegistration.initiatedAt,
-        registeredAt: existingRegistration.registeredAt
+        registeredAt: existingRegistration.registeredAt,
+        latestEvidence: latestEvidence ? {
+          id: latestEvidence.id,
+          status: latestEvidence.status,
+          fileName: latestEvidence.fileName,
+          evidenceFileUrl: latestEvidence.evidenceFileUrl,
+          extractedData: latestEvidence.extractedData,
+          validationResults: latestEvidence.validationResults,
+          mismatchReasons: latestEvidence.mismatchReasons,
+          ocrConfidence: latestEvidence.ocrConfidence,
+          submittedAt: latestEvidence.submittedAt
+        } : null
       } : null,
       existingApplication: existingApplication ? {
         id: existingApplication.id,
@@ -166,6 +186,7 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
       } : null,
       isVerified,
       isStudentConfirmed,
+      isPendingReview,
       isInProgress,
       isStarted,
       alreadyExists: isAlreadyCompleted,
@@ -178,15 +199,14 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
   }
 }
 
-export async function POST(req: Request, context: { params: Promise<{ id: string }> | { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
       return NextResponse.json({ success: false, error: 'Unauthorized', message: 'Unauthorized' }, { status: 401 });
     }
 
-    const resolvedParams = await context.params;
-    const opportunityId = resolvedParams?.id;
+    const { id: opportunityId } = await props.params;
 
     if (!opportunityId) {
       return NextResponse.json({ success: false, error: 'Opportunity ID is required.', message: 'Opportunity ID is required.' }, { status: 400 });

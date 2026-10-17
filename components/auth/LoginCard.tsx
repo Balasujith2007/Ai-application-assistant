@@ -3,7 +3,17 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Eye, EyeOff, AlertCircle, Sparkles, Check, ArrowRight } from 'lucide-react';
+import {
+  Eye,
+  EyeOff,
+  AlertCircle,
+  GraduationCap,
+  Building2,
+  UserCheck,
+  ShieldCheck,
+  Loader2,
+  Sparkles,
+} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 interface LoginCardProps {
@@ -11,16 +21,52 @@ interface LoginCardProps {
   isModal?: boolean;
 }
 
+type DemoRoleType = 'STUDENT' | 'HOD' | 'ADVISOR' | 'SUPER_ADMIN';
+
+interface DemoRoleOption {
+  id: DemoRoleType;
+  label: string;
+  roleBadge: string;
+  icon: React.ElementType;
+}
+
+const DEMO_ROLES: DemoRoleOption[] = [
+  {
+    id: 'STUDENT',
+    label: 'Student Demo',
+    roleBadge: 'Student',
+    icon: GraduationCap,
+  },
+  {
+    id: 'HOD',
+    label: 'HOD Demo',
+    roleBadge: 'Department Head',
+    icon: Building2,
+  },
+  {
+    id: 'ADVISOR',
+    label: 'Advisor Demo',
+    roleBadge: 'Advisor / Mentor',
+    icon: UserCheck,
+  },
+  {
+    id: 'SUPER_ADMIN',
+    label: 'Super Admin Demo',
+    roleBadge: 'Super Admin',
+    icon: ShieldCheck,
+  },
+];
+
 export default function LoginCard({ onSuccess, isModal = false }: LoginCardProps) {
-  const { login } = useAuth();
+  const { login, demoLogin } = useAuth();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingDemoRole, setLoadingDemoRole] = useState<DemoRoleType | null>(null);
   const [error, setError] = useState('');
-  const [copiedDemo, setCopiedDemo] = useState(false);
 
   useEffect(() => {
     const errorParam = searchParams?.get('error');
@@ -38,14 +84,6 @@ export default function LoginCard({ onSuccess, isModal = false }: LoginCardProps
       }
     }
   }, [searchParams]);
-
-  const handleFillDemo = (demoEmail = 'student@demo.com', demoPass = 'Demo@1234') => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    setError('');
-    setCopiedDemo(true);
-    setTimeout(() => setCopiedDemo(false), 2000);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,6 +108,25 @@ export default function LoginCard({ onSuccess, isModal = false }: LoginCardProps
     }
   };
 
+  const handleDemoLogin = async (roleId: DemoRoleType) => {
+    if (isLoading || loadingDemoRole) return;
+    setError('');
+    setLoadingDemoRole(roleId);
+    try {
+      await demoLogin(roleId);
+      if (onSuccess) onSuccess();
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Failed to authenticate demo account. Please try again.';
+      setError(msg);
+    } finally {
+      setLoadingDemoRole(null);
+    }
+  };
+
+  const isAnyLoading = isLoading || loadingDemoRole !== null;
+
   return (
     <div className="w-full">
       {/* Top Logo & Title */}
@@ -89,36 +146,71 @@ export default function LoginCard({ onSuccess, isModal = false }: LoginCardProps
         </p>
       </div>
 
-      {/* Demo Credentials Pill / 1-Click Fill Banner */}
-      <button
-        type="button"
-        onClick={() => handleFillDemo('student@demo.com', 'Demo@1234')}
-        title="Demo login: student@demo.com / Demo@1234"
-        className="mt-5 w-full group flex items-center justify-between gap-2 rounded-xl border border-red-200 bg-red-50/70 hover:bg-red-100/80 px-3 py-2 sm:px-3.5 sm:py-2.5 text-left text-xs transition-all cursor-pointer min-w-0"
-      >
-        <div className="flex items-center gap-1 sm:gap-1.5 text-kit-800 min-w-0 flex-1">
-          <span className="font-bold text-kit-700 shrink-0">Demo:</span>
-          <span className="font-mono text-kit-900 truncate" title="student@demo.com">student@demo.com</span>
-          <span className="text-kit-400 shrink-0">/</span>
-          <span className="font-mono text-kit-900 shrink-0">Demo@1234</span>
+      {/* Demo Login Section */}
+      <div className="mt-5">
+        <div className="flex items-center justify-between mb-2.5 px-0.5">
+          <div className="flex items-center gap-1.5">
+            <Sparkles className="h-3.5 w-3.5 text-kit-600" />
+            <span className="text-xs font-bold uppercase tracking-wider text-gray-700">
+              Demo Login
+            </span>
+          </div>
+          <span className="text-[11px] text-gray-500 font-medium">1-Click Instant Access</span>
         </div>
-        <span className="shrink-0 inline-flex items-center gap-1 rounded-md bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-kit-700 shadow-2xs border border-red-200/60 group-hover:bg-kit-600 group-hover:text-white transition-colors">
-          {copiedDemo ? (
-            <>
-              <Check className="h-3 w-3 text-emerald-600 group-hover:text-white" />
-              <span>Filled!</span>
-            </>
-          ) : (
-            <>
-              <Sparkles className="h-2.5 w-2.5" />
-              <span>1-Click Fill</span>
-            </>
-          )}
+
+        <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+          {DEMO_ROLES.map((demo) => {
+            const Icon = demo.icon;
+            const isThisRoleLoading = loadingDemoRole === demo.id;
+
+            return (
+              <button
+                key={demo.id}
+                type="button"
+                id={`demo-login-${demo.id.toLowerCase()}`}
+                onClick={() => handleDemoLogin(demo.id)}
+                disabled={isAnyLoading}
+                className={`group relative flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-2.5 rounded-xl border p-2.5 sm:p-3 text-left transition-all cursor-pointer select-none ${
+                  isThisRoleLoading
+                    ? 'border-kit-600 bg-red-50/80 ring-2 ring-kit-600/20 shadow-xs'
+                    : 'border-gray-200 bg-gray-50/80 hover:bg-white hover:border-kit-300 hover:shadow-xs active:scale-[0.98]'
+                } disabled:opacity-60 disabled:cursor-not-allowed`}
+              >
+                <div
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${
+                    isThisRoleLoading
+                      ? 'bg-kit-600 text-white'
+                      : 'bg-white text-kit-700 shadow-2xs border border-gray-200/80 group-hover:bg-kit-600 group-hover:text-white group-hover:border-kit-600'
+                  }`}
+                >
+                  {isThisRoleLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Icon className="h-4 w-4" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-bold text-gray-900 leading-snug group-hover:text-kit-700 transition-colors truncate">
+                    {isThisRoleLoading ? 'Logging in...' : demo.label}
+                  </div>
+                  <div className="text-[10px] text-gray-500 truncate">{demo.roleBadge}</div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div className="relative my-5 flex items-center justify-center">
+        <div className="w-full border-t border-gray-200"></div>
+        <span className="absolute bg-white px-3 text-xs text-gray-400 font-medium">
+          or sign in with credentials
         </span>
-      </button>
+      </div>
 
       {/* Google Login Button */}
-      <div className="mt-4">
+      <div>
         <a
           href="/api/auth/google"
           className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-kit-500 focus:ring-offset-2 transition-all"
@@ -135,7 +227,7 @@ export default function LoginCard({ onSuccess, isModal = false }: LoginCardProps
       </div>
 
       {/* Or continue with email divider */}
-      <div className="relative my-5 flex items-center justify-center">
+      <div className="relative my-4 flex items-center justify-center">
         <div className="w-full border-t border-gray-200"></div>
         <span className="absolute bg-white px-3 text-xs text-gray-500 font-medium">
           Or continue with email
@@ -216,7 +308,7 @@ export default function LoginCard({ onSuccess, isModal = false }: LoginCardProps
         {/* Big Crimson Sign In Button */}
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={isAnyLoading}
           className="w-full flex items-center justify-center gap-2 rounded-xl bg-kit-600 hover:bg-kit-700 active:bg-kit-800 px-4 py-3 text-sm font-bold text-white shadow-sm hover:shadow-md transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
         >
           {isLoading ? (
