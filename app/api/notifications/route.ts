@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
+import { markAllNotificationsRead } from '@/lib/notifications/notificationService';
 
 export async function GET(req: Request) {
   try {
@@ -23,7 +24,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: true, data: notifications });
   } catch (error: any) {
     console.error('GET /api/notifications error:', error);
-    return NextResponse.json({ success: false, message: 'Internal server error', data: [], error: String(error) }, { status: 200 });
+    return NextResponse.json({ success: false, message: 'Internal server error', data: [], error: String(error) }, { status: 500 });
   }
 }
 
@@ -34,14 +35,11 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
-    await prisma.notification.updateMany({
-      where: { userId, isRead: false },
-      data: { isRead: true },
-    });
+    await markAllNotificationsRead(userId);
 
     return NextResponse.json({ success: true, message: 'All notifications marked as read' });
   } catch (error: any) {
     console.error('PUT /api/notifications error:', error);
-    return NextResponse.json({ success: false, message: 'Internal server error', error: String(error) }, { status: 200 });
+    return NextResponse.json({ success: false, message: 'Internal server error', error: String(error) }, { status: 500 });
   }
 }

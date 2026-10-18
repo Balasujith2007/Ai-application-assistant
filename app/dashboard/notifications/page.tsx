@@ -1,79 +1,49 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Bell, Check, Trash2, ExternalLink, Loader2, Megaphone,
-  FileText, CheckSquare, Calendar, Briefcase, User, Sparkles, CheckCheck
+  Bell,
+  Check,
+  Trash2,
+  ExternalLink,
+  Loader2,
+  Megaphone,
+  FileText,
+  CheckSquare,
+  Calendar,
+  Briefcase,
+  User,
+  Sparkles,
+  CheckCheck,
+  AlertCircle,
+  RotateCw,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import api from '@/lib/api';
-
-export interface NotificationItem {
-  id: string;
-  title: string;
-  message: string;
-  isRead: boolean;
-  link?: string | null;
-  createdAt: string;
-}
+import { useNotifications, NotificationItem } from '@/context/NotificationContext';
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [markingAll, setMarkingAll] = useState(false);
+  const {
+    notifications,
+    unreadCount,
+    status,
+    error,
+    refetch,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+  } = useNotifications();
+
   const [filter, setFilter] = useState<'ALL' | 'UNREAD' | 'READ'>('ALL');
+  const [markingAll, setMarkingAll] = useState(false);
   const router = useRouter();
 
-  const fetchNotifications = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/notifications');
-      setNotifications(res.data.data || []);
-    } catch (err: any) {
-      if (err.response) {
-        console.error('Failed to load notifications:', err);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
-
-  const markAsRead = async (id: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    try {
-      await api.patch(`/notifications/${id}/read`);
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-      );
-    } catch (err) {
-      console.error('Failed to mark notification as read:', err);
-    }
-  };
-
-  const markAllAsRead = async () => {
+  const handleMarkAllRead = async () => {
     setMarkingAll(true);
     try {
-      await api.put('/notifications', {});
-      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    } catch (err) {
-      console.error('Failed to mark all as read:', err);
+      await markAllAsRead();
     } finally {
       setMarkingAll(false);
-    }
-  };
-
-  const deleteNotification = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      await api.delete(`/notifications/${id}`);
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
-    } catch (err) {
-      console.error('Failed to delete notification:', err);
     }
   };
 
@@ -86,14 +56,18 @@ export default function NotificationsPage() {
     }
   };
 
-  const getIcon = (title: string) => {
-    const titleLower = title.toLowerCase();
-    if (titleLower.includes('📢') || titleLower.includes('announcement')) return <Megaphone className="h-5 w-5 text-kit-600" />;
-    if (titleLower.includes('resume')) return <FileText className="h-5 w-5 text-emerald-600" />;
-    if (titleLower.includes('task')) return <CheckSquare className="h-5 w-5 text-amber-600" />;
-    if (titleLower.includes('interview')) return <Calendar className="h-5 w-5 text-kit-600" />;
-    if (titleLower.includes('application')) return <Briefcase className="h-5 w-5 text-blue-600" />;
-    if (titleLower.includes('profile')) return <User className="h-5 w-5 text-green-600" />;
+  const getIcon = (title: string, type?: string | null) => {
+    const text = `${title} ${type || ''}`.toLowerCase();
+    if (text.includes('📢') || text.includes('announcement') || text.includes('hod')) {
+      return <Megaphone className="h-5 w-5 text-kit-600" />;
+    }
+    if (text.includes('resume')) return <FileText className="h-5 w-5 text-emerald-600" />;
+    if (text.includes('task') || text.includes('verified')) return <CheckSquare className="h-5 w-5 text-amber-600" />;
+    if (text.includes('interview')) return <Calendar className="h-5 w-5 text-kit-600" />;
+    if (text.includes('opportunity') || text.includes('application') || text.includes('internship') || text.includes('hackathon')) {
+      return <Briefcase className="h-5 w-5 text-blue-600" />;
+    }
+    if (text.includes('profile') || text.includes('mentor')) return <User className="h-5 w-5 text-green-600" />;
     return <Sparkles className="h-5 w-5 text-kit-500" />;
   };
 
@@ -103,28 +77,31 @@ export default function NotificationsPage() {
     return true;
   });
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
-
   return (
     <div className="space-y-6 pb-12">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* Header & Controls */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+      >
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Bell className="h-6 w-6 text-kit-600" /> Notification Center
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Stay updated with announcements, task assignments, resume reviews, and status updates
+            Stay updated with real-time announcements, task assignments, application reviews, and deadlines
           </p>
         </div>
 
         {unreadCount > 0 && (
           <button
-            onClick={markAllAsRead}
+            onClick={handleMarkAllRead}
             disabled={markingAll}
             className="inline-flex items-center gap-2 rounded-xl bg-kit-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-kit-700 disabled:opacity-60 shadow-sm transition-colors"
           >
             {markingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCheck className="h-4 w-4" />}
-            Mark all as read
+            Mark all as read ({unreadCount})
           </button>
         )}
       </motion.div>
@@ -134,7 +111,9 @@ export default function NotificationsPage() {
         <button
           onClick={() => setFilter('ALL')}
           className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
-            filter === 'ALL' ? 'bg-kit-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+            filter === 'ALL'
+              ? 'bg-kit-600 text-white shadow-sm'
+              : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
           }`}
         >
           All ({notifications.length})
@@ -142,7 +121,9 @@ export default function NotificationsPage() {
         <button
           onClick={() => setFilter('UNREAD')}
           className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
-            filter === 'UNREAD' ? 'bg-kit-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+            filter === 'UNREAD'
+              ? 'bg-kit-600 text-white shadow-sm'
+              : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
           }`}
         >
           Unread ({unreadCount})
@@ -150,17 +131,35 @@ export default function NotificationsPage() {
         <button
           onClick={() => setFilter('READ')}
           className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
-            filter === 'READ' ? 'bg-kit-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+            filter === 'READ'
+              ? 'bg-kit-600 text-white shadow-sm'
+              : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
           }`}
         >
-          Read ({notifications.length - unreadCount})
+          Read ({Math.max(0, notifications.length - unreadCount)})
         </button>
       </div>
 
-      {/* Notifications Grid/List */}
-      {loading ? (
+      {/* Notifications List / States */}
+      {status === 'loading' && notifications.length === 0 ? (
         <div className="flex h-64 items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-kit-600" />
+        </div>
+      ) : status === 'error' && notifications.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-rose-200 bg-rose-50/30 py-16 px-4 text-center">
+          <div className="h-12 w-12 rounded-full bg-rose-100 flex items-center justify-center mb-3 text-rose-600">
+            <AlertCircle className="h-6 w-6" />
+          </div>
+          <p className="text-base font-semibold text-gray-900">Unable to load notifications</p>
+          <p className="text-xs text-gray-500 mt-1 max-w-sm mb-4">
+            {error || 'A network or server error occurred while retrieving your notifications.'}
+          </p>
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50 shadow-sm transition-colors"
+          >
+            <RotateCw className="h-4 w-4" /> Try Again
+          </button>
         </div>
       ) : filteredNotifications.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-white py-16 px-4 text-center">
@@ -171,7 +170,9 @@ export default function NotificationsPage() {
             {filter === 'UNREAD' ? 'No unread notifications' : 'No notifications yet'}
           </p>
           <p className="text-xs text-gray-400 mt-1 max-w-sm">
-            When you receive announcements, task updates, or resume reviews, they will appear here.
+            {filter === 'UNREAD'
+              ? "You're all caught up! There are no unread notifications remaining."
+              : 'When you receive announcements, task updates, or reviews, they will appear here.'}
           </p>
         </div>
       ) : (
@@ -182,13 +183,17 @@ export default function NotificationsPage() {
               onClick={() => handleNotificationClick(n)}
               className={`group flex flex-col sm:flex-row sm:items-center justify-between rounded-2xl border p-5 transition-all cursor-pointer hover:shadow-md ${
                 !n.isRead
-                  ? 'border-kit-200 bg-kit-50/40 ring-1 ring-kit-500/20'
+                  ? 'border-kit-200 bg-rose-50/40 ring-1 ring-kit-500/20'
                   : 'border-gray-200 bg-white'
               }`}
             >
               <div className="flex items-start gap-4 min-w-0 flex-1">
-                <div className={`shrink-0 rounded-2xl p-3 mt-0.5 ${!n.isRead ? 'bg-white shadow-sm' : 'bg-gray-50'}`}>
-                  {getIcon(n.title)}
+                <div
+                  className={`shrink-0 rounded-2xl p-3 mt-0.5 border ${
+                    !n.isRead ? 'bg-white shadow-sm border-kit-100' : 'bg-gray-50 border-gray-100'
+                  }`}
+                >
+                  {getIcon(n.title, n.type)}
                 </div>
                 <div className="space-y-1 min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -196,13 +201,17 @@ export default function NotificationsPage() {
                       {n.title}
                     </h3>
                     {!n.isRead && (
-                      <span className="shrink-0 h-2 w-2 rounded-full bg-kit-600" />
+                      <span className="shrink-0 h-2 w-2 rounded-full bg-kit-600 ring-2 ring-rose-200" />
                     )}
                   </div>
                   <p className="text-xs text-gray-600 leading-relaxed">{n.message}</p>
                   <p className="text-[11px] text-gray-400 font-medium pt-1">
                     {new Date(n.createdAt).toLocaleString(undefined, {
-                      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
                     })}
                   </p>
                 </div>
@@ -217,7 +226,10 @@ export default function NotificationsPage() {
 
                 {!n.isRead && (
                   <button
-                    onClick={(e) => markAsRead(n.id, e)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      markAsRead(n.id);
+                    }}
                     title="Mark as Read"
                     className="inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 shadow-sm transition-colors"
                   >
@@ -226,7 +238,10 @@ export default function NotificationsPage() {
                 )}
 
                 <button
-                  onClick={(e) => deleteNotification(n.id, e)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteNotification(n.id);
+                  }}
                   title="Delete notification"
                   className="rounded-xl p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"
                 >

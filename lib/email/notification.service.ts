@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import { sendEmail, isValidEmail, isDeliverableEmail, validateRecipientEmail } from './email.service';
 import { sendOpportunityWhatsApp } from '@/lib/whatsapp/whatsapp.service';
+import { createNotification, createManyNotifications } from '@/lib/notifications/notificationService';
 import {
   getOpportunityEmailTemplate,
   getHODAnnouncementEmailTemplate,
@@ -75,7 +76,7 @@ export async function sendOpportunityNotification(params: {
   }));
 
   try {
-    await prisma.notification.createMany({ data: notificationsData });
+    await createManyNotifications(notificationsData);
   } catch (err: any) {
     console.error('[NotificationService] Error creating in-app opportunity notifications:', err?.message || err);
   }
@@ -152,7 +153,7 @@ export async function sendHODAnnouncementNotification(params: {
   }));
 
   try {
-    await prisma.notification.createMany({ data: notificationsData });
+    await createManyNotifications(notificationsData);
   } catch (err: any) {
     console.error('[NotificationService] Error creating in-app HOD announcement notifications:', err?.message || err);
   }
@@ -203,15 +204,13 @@ export async function sendMentorMessageNotification(params: {
 
   // 1. Create in-app notification
   try {
-    await prisma.notification.create({
-      data: {
-        userId: student.id,
-        senderId,
-        type: 'MENTOR_MESSAGE',
-        title,
-        message,
-        link: '/dashboard/student',
-      },
+    await createNotification({
+      userId: student.id,
+      senderId,
+      type: 'MENTOR_MESSAGE',
+      title,
+      message,
+      link: '/dashboard/student',
     });
   } catch (err: any) {
     console.error('[NotificationService] Error creating in-app mentor message notification:', err?.message || err);
@@ -274,7 +273,7 @@ export async function sendMentorReminderNotification(params: {
   }));
 
   try {
-    await prisma.notification.createMany({ data: notificationsData });
+    await createManyNotifications(notificationsData);
   } catch (err: any) {
     console.error('[NotificationService] Error creating in-app mentor reminder notifications:', err?.message || err);
   }

@@ -44,6 +44,8 @@ import { LoadingSpinner } from '@/components/ui/index';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import type { Profile, Education, Project, Experience, Skill } from '@/types';
+import MentorProfilePage from '@/app/dashboard/mentor/profile/page';
+import HODProfilePage from '@/app/dashboard/hod/profile/page';
 
 function GithubIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -83,6 +85,16 @@ function LeetCodeIcon(props: React.SVGProps<SVGSVGElement>) {
 
 export default function ProfilePage() {
   const { user, refreshUser } = useAuth();
+
+  // If authenticated user is a Head of Department, render the dedicated HOD Profile
+  if (user?.role === 'HOD') {
+    return <HODProfilePage />;
+  }
+
+  // If authenticated user is a Faculty Mentor, render the dedicated Faculty Profile
+  if (user?.role === 'MENTOR' || user?.role === 'FACULTY') {
+    return <MentorProfilePage />;
+  }
   const [profile, setProfile] = useState<Profile | null>(null);
   const [verifiedList, setVerifiedList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

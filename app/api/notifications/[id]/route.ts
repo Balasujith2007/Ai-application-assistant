@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
+import { markNotificationRead, deleteNotification } from '@/lib/notifications/notificationService';
 
 export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
   try {
@@ -32,15 +33,10 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
 
     const { id } = await props.params;
 
-    const existing = await prisma.notification.findUnique({ where: { id } });
-    if (!existing || existing.userId !== userId) {
+    const updated = await markNotificationRead(id, userId);
+    if (!updated) {
       return NextResponse.json({ success: false, message: 'Notification not found' }, { status: 404 });
     }
-
-    const updated = await prisma.notification.update({
-      where: { id },
-      data: { isRead: true },
-    });
 
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {
@@ -58,12 +54,10 @@ export async function DELETE(req: Request, props: { params: Promise<{ id: string
 
     const { id } = await props.params;
 
-    const existing = await prisma.notification.findUnique({ where: { id } });
-    if (!existing || existing.userId !== userId) {
+    const deleted = await deleteNotification(id, userId);
+    if (!deleted) {
       return NextResponse.json({ success: false, message: 'Notification not found' }, { status: 404 });
     }
-
-    await prisma.notification.delete({ where: { id } });
 
     return NextResponse.json({ success: true, message: 'Notification deleted successfully' });
   } catch (error) {

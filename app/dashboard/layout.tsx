@@ -132,6 +132,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const allowedSubpaths = [
       '/dashboard/settings',
       '/dashboard/notifications',
+      '/dashboard/mentor/profile',
+      '/dashboard/hod/profile',
       '/profile',
       '/resume'
     ];
@@ -154,7 +156,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50/50 font-[var(--font-inter)]">
+    <div className="flex h-screen h-[100dvh] w-full overflow-hidden bg-gray-50/50 font-[var(--font-inter)]">
       {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -170,7 +172,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Sidebar */}
       <motion.aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] lg:max-w-none flex-col border-r border-gray-200 bg-white transition-transform duration-300 lg:static lg:flex lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] flex-col border-r border-gray-200 bg-white transition-transform duration-300 lg:static lg:flex lg:h-full lg:w-72 lg:max-w-none lg:shrink-0 lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0 flex' : '-translate-x-full hidden'
         }`}
       >
@@ -209,7 +211,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             })}
           </div>
 
-          <div className="mt-auto pt-4 border-t border-gray-100">
+          <div className="mt-auto pt-4 border-t border-gray-100 shrink-0">
             <button
               onClick={logout}
               className="w-full group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 transition-all duration-200 hover:bg-red-50"
@@ -222,9 +224,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </motion.aside>
 
       {/* Main Content Area */}
-      <div className="flex flex-1 flex-col min-w-0">
+      <div className="flex flex-1 flex-col min-w-0 h-full overflow-hidden">
         {/* Top Navbar */}
-        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white/80 backdrop-blur-md px-4 sm:gap-x-6 sm:px-6 lg:px-8">
+        <header className="z-30 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white/95 backdrop-blur-md px-4 sm:gap-x-6 sm:px-6 lg:px-8">
           <button
             onClick={() => setSidebarOpen(true)}
             className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
@@ -314,7 +316,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {/* Menu Items */}
                     <div role="none" className="py-1.5">
                       <Link
-                        href="/profile"
+                        href={
+                          user?.role === 'HOD'
+                            ? '/dashboard/hod/profile'
+                            : user?.role === 'MENTOR' || user?.role === 'FACULTY'
+                            ? '/dashboard/mentor/profile'
+                            : '/profile'
+                        }
                         role="menuitem"
                         onClick={closeProfile}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-kit-50 hover:text-kit-700 transition-colors group"
@@ -362,7 +370,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 py-8">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden py-8 focus:outline-none">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             {children}
           </div>

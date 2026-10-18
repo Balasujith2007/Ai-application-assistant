@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
+import { markAllNotificationsRead } from '@/lib/notifications/notificationService';
 
 export async function PATCH(req: Request) {
   try {
@@ -9,10 +9,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
-    await prisma.notification.updateMany({
-      where: { userId, isRead: false },
-      data: { isRead: true },
-    });
+    await markAllNotificationsRead(userId);
 
     return NextResponse.json({ success: true, message: 'All notifications marked as read' });
   } catch (error) {

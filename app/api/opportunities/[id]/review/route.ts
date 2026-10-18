@@ -3,6 +3,7 @@ import { getUserIdFromRequest } from '@/lib/serverAuth';
 import prisma from '@/lib/prisma';
 import { sendRegistrationStatusWhatsApp } from '@/lib/whatsapp/whatsapp.service';
 import { verificationLedger } from '@/lib/leaderboard/verificationLedger';
+import { createNotification } from '@/lib/notifications/notificationService';
 
 export async function POST(
   req: Request,
@@ -196,17 +197,15 @@ export async function POST(
       }
 
       // 5. Notify Student
-      await prisma.notification.create({
-        data: {
-          userId: registration.studentId,
-          senderId: reviewer.id,
-          type: 'REGISTRATION_VERIFIED',
-          title: '✓ Registration Verified',
-          message: `Your registration for "${opportunity?.title || 'the opportunity'}" has been verified by ${reviewer.name}.`,
-          relatedEntityId: opportunityId,
-          relatedEntityType: 'OPPORTUNITY',
-          link: '/dashboard/student/opportunity-history'
-        }
+      await createNotification({
+        userId: registration.studentId,
+        senderId: reviewer.id,
+        type: 'REGISTRATION_VERIFIED',
+        title: '✓ Registration Verified',
+        message: `Your registration for "${opportunity?.title || 'the opportunity'}" has been verified by ${reviewer.name}.`,
+        relatedEntityId: opportunityId,
+        relatedEntityType: 'OPPORTUNITY',
+        link: '/dashboard/student/opportunity-history'
       });
 
       // WhatsApp dispatch if enabled
@@ -289,17 +288,15 @@ export async function POST(
       });
 
       // 4. Notify Student
-      await prisma.notification.create({
-        data: {
-          userId: registration.studentId,
-          senderId: reviewer.id,
-          type: 'REGISTRATION_REJECTED',
-          title: 'Registration Evidence Rejected',
-          message: `Your confirmation evidence for "${opportunity?.title || 'the opportunity'}" was reviewed and rejected. Reason: ${rejectionReason.trim()}`,
-          relatedEntityId: opportunityId,
-          relatedEntityType: 'OPPORTUNITY',
-          link: '/dashboard/student/opportunity-history'
-        }
+      await createNotification({
+        userId: registration.studentId,
+        senderId: reviewer.id,
+        type: 'REGISTRATION_REJECTED',
+        title: 'Registration Evidence Rejected',
+        message: `Your confirmation evidence for "${opportunity?.title || 'the opportunity'}" was reviewed and rejected. Reason: ${rejectionReason.trim()}`,
+        relatedEntityId: opportunityId,
+        relatedEntityType: 'OPPORTUNITY',
+        link: '/dashboard/student/opportunity-history'
       });
 
       return NextResponse.json({

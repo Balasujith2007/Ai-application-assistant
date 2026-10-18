@@ -11,6 +11,7 @@ import {
   VerificationServiceResult
 } from './types';
 import prisma from '@/lib/prisma';
+import { createNotification } from '@/lib/notifications/notificationService';
 
 export interface ProcessEvidenceOptions {
   imageBuffer: Buffer;
@@ -226,16 +227,14 @@ export async function processRegistrationEvidence(
 
     // 11. Notifications
     // Student Notification
-    await prisma.notification.create({
-      data: {
-        userId: student.id,
-        type: 'REGISTRATION_EVIDENCE_SUBMITTED',
-        title: 'Evidence Submitted for Review',
-        message: `Your confirmation evidence for "${opportunity.title}" has been submitted and is awaiting mentor review.`,
-        relatedEntityId: opportunity.id,
-        relatedEntityType: 'OPPORTUNITY',
-        link: '/dashboard/student/opportunity-history'
-      }
+    await createNotification({
+      userId: student.id,
+      type: 'REGISTRATION_EVIDENCE_SUBMITTED',
+      title: 'Evidence Submitted for Review',
+      message: `Your confirmation evidence for "${opportunity.title}" has been submitted and is awaiting mentor review.`,
+      relatedEntityId: opportunity.id,
+      relatedEntityType: 'OPPORTUNITY',
+      link: '/dashboard/student/opportunity-history'
     });
 
     // Mentor Notification if mentor exists
@@ -245,17 +244,15 @@ export async function processRegistrationEvidence(
     });
 
     if (userWithMentor?.mentorId) {
-      await prisma.notification.create({
-        data: {
-          userId: userWithMentor.mentorId,
-          senderId: student.id,
-          type: 'REGISTRATION_REVIEW_REQUESTED',
-          title: 'Review Registration Evidence',
-          message: `${student.name} uploaded registration confirmation evidence for "${opportunity.title}". Review required.`,
-          relatedEntityId: opportunity.id,
-          relatedEntityType: 'OPPORTUNITY',
-          link: '/dashboard/mentor/opportunities'
-        }
+      await createNotification({
+        userId: userWithMentor.mentorId,
+        senderId: student.id,
+        type: 'REGISTRATION_REVIEW_REQUESTED',
+        title: 'Review Registration Evidence',
+        message: `${student.name} uploaded registration confirmation evidence for "${opportunity.title}". Review required.`,
+        relatedEntityId: opportunity.id,
+        relatedEntityType: 'OPPORTUNITY',
+        link: '/dashboard/mentor/opportunities'
       });
     }
 
