@@ -141,6 +141,11 @@ model User {
   emailReviews           EmailStatusReview[]
   registrationEvidences  RegistrationEvidence[]  @relation("StudentEvidences")
   reviewedEvidences      RegistrationEvidence[]  @relation("ReviewedEvidences")
+  verifiedActivities     VerifiedActivity[]      @relation("StudentVerifiedActivities")
+  reviewedActivities     VerifiedActivity[]      @relation("ReviewedActivities")
+  pointsLedgers          PointsLedger[]
+  syncHistories          SyncHistory[]
+  leaderboardSnapshots   LeaderboardSnapshot[]
 
   // Mentor-Student relationship
   mentorId      String?
@@ -190,6 +195,7 @@ model Profile {
   codolioUrl       String?
   codechefUrl      String?
   leetcodeUrl      String?
+  codeforcesUrl    String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   careerPreferences Json?
@@ -496,6 +502,7 @@ model Opportunity {
   autofillSessions AutofillSession[]
   reminders     OpportunityReminder[]
   registrationEvidences RegistrationEvidence[]
+  verifiedActivities VerifiedActivity[]
 
   @@map("opportunities")
 }
@@ -1090,6 +1097,107 @@ model RegistrationEvidence {
   @@index([fileHash])
   @@index([status])
   @@map("registration_evidences")
+}
+
+// ============================================================
+// VERIFIED CLASS LEADERBOARD MODELS
+// ============================================================
+
+model VerifiedActivity {
+  id                 String    @id @default(cuid())
+  studentId          String
+  sourceType         String    // CONTEST, HACKATHON, INTERNSHIP, CONSISTENCY
+  sourcePlatform     String    // CODEFORCES, LEETCODE, CODECHEF, CODOLIO, GITHUB, CAREERAI
+  sourceAccountId    String?   // External handle, username, or registrationId
+  activityType       String    // CONTEST_PARTICIPATION, RATING_ACHIEVEMENT, PROBLEMS_SOLVED, HACKATHON_REGISTRATION, HACKATHON_PARTICIPATION, HACKATHON_WINNER, INTERNSHIP_APPLICATION, INTERNSHIP_INTERVIEW, INTERNSHIP_OFFER, CONSISTENCY_STREAK
+  externalActivityId String    // Unique external activity identifier for deduplication
+  opportunityId      String?
+  verificationStatus String    @default("PENDING") // VERIFIED, PENDING_REVIEW, REJECTED, UNAVAILABLE
+  verificationMethod String?   // OFFICIAL_API, REVIEWER_APPROVAL, SYSTEM_CROSS_CHECK
+  evidenceReference  String?
+  verifiedAt         DateTime?
+  occurredAt         DateTime?
+  lastSyncedAt       DateTime? @default(now())
+  reviewerId         String?
+  rejectionReason    String?
+  rawMetadata        Json?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  student            User         @relation("StudentVerifiedActivities", fields: [studentId], references: [id], onDelete: Cascade)
+  reviewer           User?        @relation("ReviewedActivities", fields: [reviewerId], references: [id], onDelete: SetNull)
+  opportunity        Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  pointsEntries      PointsLedger[]
+
+  @@unique([studentId, sourceType, sourcePlatform, externalActivityId, activityType], name: "studentId_sourceType_sourcePlatform_externalActivityId_activityType")
+  @@index([studentId, verificationStatus])
+  @@index([opportunityId])
+  @@map("verified_activities")
+}
+
+model PointsLedger {
+  id                 String   @id @default(cuid())
+  studentId          String
+  verifiedActivityId String
+  category           String   // CODING, HACKATHON, INTERNSHIP, CONSISTENCY
+  pointsAwarded      Float
+  scoringRuleVersion String   @default("1.0.0")
+  reason             String
+  periodKey          String   // e.g. 2026-W42, 2026-M10, 2026-S2, ALL_TIME
+  createdAt          DateTime @default(now())
+
+  student            User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  verifiedActivity   VerifiedActivity @relation(fields: [verifiedActivityId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, verifiedActivityId, periodKey], name: "studentId_verifiedActivityId_periodKey")
+  @@index([studentId, category, periodKey])
+  @@map("points_ledger")
+}
+
+model SyncHistory {
+  id                   String    @id @default(cuid())
+  studentId            String
+  sourcePlatform       String
+  status               String    // SUCCESS, FAILED, RATE_LIMITED, NO_PROFILE
+  lastAttemptAt        DateTime  @default(now())
+  lastSuccessfulSyncAt DateTime?
+  recordsProcessed     Int       @default(0)
+  errorCode            String?
+  errorMessage         String?
+  createdAt            DateTime  @default(now())
+
+  student              User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, sourcePlatform])
+  @@map("sync_history")
+}
+
+model LeaderboardSnapshot {
+  id             String    @id @default(cuid())
+  studentId      String
+  department     String?
+  year           Int?
+  section        String?
+  college        String?
+  periodType     String    // WEEKLY, MONTHLY, SEMESTER, ALL_TIME
+  periodKey      String    // e.g. 2026-W42, 2026-M10, 2026-S2, ALL_TIME
+  codingScore    Float     @default(0.0)
+  hackathonScore Float     @default(0.0)
+  internshipScore Float    @default(0.0)
+  consistencyScore Float   @default(0.0)
+  totalScore     Float     @default(0.0)
+  rank           Int       @default(0)
+  previousRank   Int?
+  badges         Json?     @default("[]")
+  isProvisional  Boolean   @default(false)
+  calculatedAt   DateTime  @default(now())
+
+  student        User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, periodType, periodKey], name: "studentId_periodType_periodKey")
+  @@index([department, year, section, periodType, periodKey])
+  @@index([studentId, periodType, periodKey])
+  @@map("leaderboard_snapshots")
 }
 
 

@@ -1856,6 +1856,7 @@ function SocialSection({ profile, onUpdate }: { profile: Profile | null; onUpdat
     codolioUrl: (profile as any)?.codolioUrl ?? '',
     codechefUrl: (profile as any)?.codechefUrl ?? '',
     leetcodeUrl: (profile as any)?.leetcodeUrl ?? '',
+    codeforcesUrl: (profile as any)?.codeforcesUrl ?? '',
     portfolioUrl: profile?.portfolioUrl ?? ''
   });
 
@@ -1887,17 +1888,19 @@ function SocialSection({ profile, onUpdate }: { profile: Profile | null; onUpdat
       codolioUrl: (profile as any)?.codolioUrl ?? '',
       codechefUrl: (profile as any)?.codechefUrl ?? '',
       leetcodeUrl: (profile as any)?.leetcodeUrl ?? '',
+      codeforcesUrl: (profile as any)?.codeforcesUrl ?? '',
       portfolioUrl: profile?.portfolioUrl ?? ''
     });
   }, [profile]);
 
-  const verifyPlatform = async (platform: 'GITHUB' | 'LINKEDIN' | 'CODOLIO' | 'CODECHEF' | 'LEETCODE' | 'PORTFOLIO') => {
+  const verifyPlatform = async (platform: 'GITHUB' | 'LINKEDIN' | 'CODOLIO' | 'CODECHEF' | 'LEETCODE' | 'CODEFORCES' | 'PORTFOLIO') => {
     const fieldMapping: Record<string, string> = {
       GITHUB: 'githubUrl',
       LINKEDIN: 'linkedinUrl',
       CODOLIO: 'codolioUrl',
       CODECHEF: 'codechefUrl',
       LEETCODE: 'leetcodeUrl',
+      CODEFORCES: 'codeforcesUrl',
       PORTFOLIO: 'portfolioUrl'
     };
     const fieldName = fieldMapping[platform];
@@ -1934,6 +1937,15 @@ function SocialSection({ profile, onUpdate }: { profile: Profile | null; onUpdat
   };
 
   const platforms = [
+    {
+      key: 'CODEFORCES' as const,
+      label: 'Codeforces Profile',
+      subtitle: 'Public contest handle or profile URL',
+      placeholder: 'https://codeforces.com/profile/username',
+      urlKey: 'codeforcesUrl' as const,
+      icon: Code,
+      color: 'bg-rose-600 text-white'
+    },
     {
       key: 'GITHUB' as const,
       label: 'GitHub Profile',

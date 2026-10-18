@@ -4,6 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { usePlacement } from '@/context/PlacementContext';
 import { FileText, User, Award, Briefcase, CheckSquare, Calendar, PieChart } from 'lucide-react';
+import { ClassLeaderboard } from '@/components/leaderboard/ClassLeaderboard';
 
 export default function StudentProgressPage() {
   const { stats, applications, interviews, isLoading } = usePlacement();
@@ -85,6 +86,15 @@ export default function StudentProgressPage() {
           </motion.div>
         ))}
       </div>
+
+      {/* Verified Class Leaderboard Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <ClassLeaderboard />
+      </motion.div>
     </div>
   );
 }

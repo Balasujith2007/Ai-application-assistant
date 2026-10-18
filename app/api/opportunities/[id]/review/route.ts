@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
 import prisma from '@/lib/prisma';
 import { sendRegistrationStatusWhatsApp } from '@/lib/whatsapp/whatsapp.service';
+import { verificationLedger } from '@/lib/leaderboard/verificationLedger';
 
 export async function POST(
   req: Request,
@@ -170,6 +171,29 @@ export async function POST(
           })
         }
       });
+
+      // 4b. Record to Verified Activity Ledger for Class Leaderboard
+      const oppType = opportunity?.type || 'OTHER';
+      const isHack = oppType === 'HACKATHON' || oppType === 'COMPETITION';
+      const isIntern = oppType === 'INTERNSHIP' || oppType === 'JOB' || oppType === 'FULL_TIME';
+
+      if (isHack || isIntern) {
+        await verificationLedger.recordActivity({
+          studentId: registration.studentId,
+          sourceType: isHack ? 'HACKATHON' : 'INTERNSHIP',
+          sourcePlatform: 'CAREERAI',
+          sourceAccountId: registration.id,
+          activityType: isHack ? 'HACKATHON_REGISTRATION' : 'INTERNSHIP_APPLICATION',
+          externalActivityId: `${isHack ? 'hackathon-reg' : 'intern-app'}-${registration.id}`,
+          opportunityId,
+          verificationStatus: 'VERIFIED',
+          verificationMethod: 'REVIEWER_APPROVAL',
+          evidenceReference: evidence?.evidenceFileUrl || undefined,
+          occurredAt: now,
+          reviewerId: reviewer.id,
+          rawMetadata: { title: opportunity?.title, reviewedBy: reviewer.name },
+        });
+      }
 
       // 5. Notify Student
       await prisma.notification.create({

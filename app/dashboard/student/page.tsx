@@ -22,6 +22,7 @@ import {
 import { StatCard } from '@/components/placement/StatCard';
 import { MatchBadge } from '@/components/placement/MatchBadge';
 import { ApplicationAssistantModal, ApplicationAssistantOpportunity } from '@/components/opportunities/ApplicationAssistantModal';
+import { ClassLeaderboard } from '@/components/leaderboard/ClassLeaderboard';
 import Link from 'next/link';
 
 export default function StudentDashboard() {
@@ -225,6 +226,15 @@ export default function StudentDashboard() {
                 </div>
               </div>
             </div>
+          </motion.div>
+
+          {/* Verified Class Leaderboard Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+          >
+            <ClassLeaderboard />
           </motion.div>
 
           {/* Upcoming Deadlines Section */}
