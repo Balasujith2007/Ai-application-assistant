@@ -138,7 +138,13 @@ export const RESOURCES_LIST = [
 
 export const ACTIONS_LIST = ['VIEW', 'CREATE', 'EDIT', 'DELETE', 'EXPORT', 'APPROVE'];
 
+// In-process guard: skip redundant DB writes once a role is initialized per process lifecycle
+const initializedRoles = new Set<Role>();
+
 export async function ensureRoleSidebarDefaults(role: Role) {
+  // Skip if already initialized in this process instance
+  if (initializedRoles.has(role)) return;
+
   // Clean up any redundant Preferences items from main sidebar table
   await prisma.roleSidebarItem.deleteMany({
     where: {
@@ -158,10 +164,17 @@ export async function ensureRoleSidebarDefaults(role: Role) {
   }
 
   const count = await prisma.roleSidebarItem.count({ where: { role } });
-  if (count > 0) return;
+  if (count > 0) {
+    // Mark as initialized — DB already has data, no need to seed
+    initializedRoles.add(role);
+    return;
+  }
 
   const defaults = CANONICAL_SIDEBARS[role] || [];
-  if (defaults.length === 0) return;
+  if (defaults.length === 0) {
+    initializedRoles.add(role);
+    return;
+  }
 
   for (const item of defaults) {
     await prisma.roleSidebarItem.upsert({
@@ -170,6 +183,8 @@ export async function ensureRoleSidebarDefaults(role: Role) {
       create: { role, title: item.title, path: item.path, order: item.order, enabled: item.enabled },
     });
   }
+
+  initializedRoles.add(role);
 }
 
 export async function ensureAllDefaults() {

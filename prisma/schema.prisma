@@ -152,6 +152,8 @@ model User {
   mentor        User?   @relation("StudentMentor", fields: [mentorId], references: [id], onDelete: SetNull)
   students      User[]  @relation("StudentMentor")
 
+  @@index([role])
+  @@index([mentorId])
   @@map("users")
 }
 
@@ -348,6 +350,8 @@ model Resume {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([userId, isActive])
   @@map("resumes")
 }
 
@@ -591,6 +595,8 @@ model Notification {
   user   User  @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
   sender User? @relation("SentNotifications", fields: [senderId], references: [id], onDelete: SetNull)
 
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, isRead])
   @@map("notifications")
 }
 

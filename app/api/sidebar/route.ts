@@ -76,39 +76,41 @@ export async function GET(req: Request) {
       return NextResponse.json({ data: dbItems.filter(i => i.enabled) });
     }
 
-    // Query active features to cross-reference
-    const allFeatures = await prisma.appFeature.findMany();
+    // PERF FIX: Batch-fetch ALL data needed in 2 parallel queries instead of N+1
+    const enabledItems = dbItems.filter(i => i.enabled);
+    const itemTitles = enabledItems.map(i => i.title);
+
+    const [allFeatures, allPermissions] = await Promise.all([
+      prisma.appFeature.findMany(),
+      // Single batch query for all VIEW permissions for this role — replaces N individual lookups
+      prisma.rolePermission.findMany({
+        where: {
+          role: user.role,
+          resource: { in: itemTitles },
+          action: 'VIEW',
+        },
+        select: { resource: true, allowed: true },
+      }),
+    ]);
+
     const featureStates = new Map(allFeatures.map(f => [f.name, f]));
+    // Build a Map<resource, allowed> for O(1) permission lookups
+    const permissionMap = new Map(allPermissions.map(p => [p.resource, p.allowed]));
 
     const filteredItems = [];
 
-    for (const item of dbItems) {
-      if (!item.enabled) continue;
-
+    for (const item of enabledItems) {
       const featureName = FEATURE_MAP[item.title];
       if (featureName) {
         const feature = featureStates.get(featureName);
-        if (feature) {
-          // If the feature is globally disabled or this role is excluded, hide the link
-          if (!feature.enabled || !feature.roles.includes(user.role)) {
-            continue;
-          }
+        if (feature && (!feature.enabled || !feature.roles.includes(user.role))) {
+          continue;
         }
       }
 
-      // Check view permission for this resource
-      const permission = await prisma.rolePermission.findUnique({
-        where: {
-          role_resource_action: {
-            role: user.role,
-            resource: item.title,
-            action: 'VIEW'
-          }
-        }
-      });
-
-      // Default permissions: allow if there is no explicit view check, or if permitted
-      if (permission && !permission.allowed) {
+      // O(1) Map lookup instead of DB query
+      const allowed = permissionMap.get(item.title);
+      if (allowed === false) {
         continue;
       }
 

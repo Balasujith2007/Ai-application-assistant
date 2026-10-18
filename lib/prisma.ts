@@ -10,13 +10,19 @@ const globalForPrisma = globalThis as unknown as {
 
 function getPool(): Pool {
   if (!globalForPrisma.pgPool) {
-    globalForPrisma.pgPool = new Pool({
+    const pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: { rejectUnauthorized: false },
       max: 10,
-      idleTimeoutMillis: 30000,
+      idleTimeoutMillis: 15000,
       connectionTimeoutMillis: 10000,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10000,
     });
+    pool.on('error', (err) => {
+      console.warn('PostgreSQL pool idle connection error (auto-reconnecting):', err?.message || err);
+    });
+    globalForPrisma.pgPool = pool;
   }
   return globalForPrisma.pgPool;
 }
@@ -28,25 +34,8 @@ function getPool(): Pool {
  */
 function createClient(): PrismaClient {
   const pool = getPool();
-  try {
-    const nativeRequire = typeof eval !== 'undefined' ? eval('require') : require;
-
-    if (nativeRequire?.cache) {
-      Object.keys(nativeRequire.cache).forEach((key) => {
-        if (key.includes('@prisma') || key.includes('.prisma')) {
-          delete nativeRequire.cache[key];
-        }
-      });
-    }
-
-    const { PrismaClient: NativePrismaClient } = nativeRequire('@prisma/client');
-    const { PrismaPg: NativePrismaPg } = nativeRequire('@prisma/adapter-pg');
-    const adapter = new NativePrismaPg(pool);
-    return new NativePrismaClient({ adapter }) as PrismaClient;
-  } catch {
-    const adapter = new PrismaPg(pool);
-    return new PrismaClient({ adapter });
-  }
+  const adapter = new PrismaPg(pool);
+  return new PrismaClient({ adapter });
 }
 
 export function getDb(): PrismaClient {

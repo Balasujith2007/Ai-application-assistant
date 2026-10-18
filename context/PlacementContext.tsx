@@ -73,6 +73,20 @@ const INITIAL_PROFILE: StudentProfile = {
 
 const PlacementContext = createContext<PlacementContextType | undefined>(undefined);
 
+// Module-level cache: avoids re-fetching when navigating between dashboard pages
+interface PlacementCache {
+  data: {
+    dashboardStats: any;
+    applications: ExtendedApplication[];
+    tasks: Task[];
+    interviews: Interview[];
+    opportunities: Opportunity[];
+  } | null;
+  fetchedAt: number;
+}
+const CACHE_TTL_MS = 30_000; // 30 seconds
+const placementCache: PlacementCache = { data: null, fetchedAt: 0 };
+
 export function PlacementProvider({ children }: { children: React.ReactNode }) {
   const [studentProfile, setStudentProfile] = useState<StudentProfile>(INITIAL_PROFILE);
   const [applications, setApplications] = useState<ExtendedApplication[]>([]);
@@ -83,8 +97,22 @@ export function PlacementProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardStats, setDashboardStats] = useState<any>({});
 
-  const fetchData = async () => {
+  const fetchData = async (force = false) => {
     if (typeof window !== 'undefined' && !localStorage.getItem('token')) {
+      setIsLoading(false);
+      return;
+    }
+
+    // Return cached data immediately if within TTL and not forced
+    const now = Date.now();
+    if (!force && placementCache.data && (now - placementCache.fetchedAt) < CACHE_TTL_MS) {
+      const c = placementCache.data;
+      setDashboardStats(c.dashboardStats);
+      setActivities(c.dashboardStats?.activities || []);
+      setApplications(c.applications);
+      setTasks(c.tasks);
+      setInterviews(c.interviews);
+      setOpportunities(c.opportunities);
       setIsLoading(false);
       return;
     }
@@ -105,15 +133,28 @@ export function PlacementProvider({ children }: { children: React.ReactNode }) {
         api.getRecommendedOpportunities()
       ]);
 
-      if (dashboardRes.status === 'fulfilled') {
-        const d = dashboardRes.value;
-        setDashboardStats(d);
-        setActivities(d?.activities || []);
-      }
-      if (appsRes.status === 'fulfilled') setApplications(appsRes.value);
-      if (tasksRes.status === 'fulfilled') setTasks(tasksRes.value);
-      if (interviewsRes.status === 'fulfilled') setInterviews(interviewsRes.value);
-      if (oppsRes.status === 'fulfilled') setOpportunities(oppsRes.value);
+      const newStats = dashboardRes.status === 'fulfilled' ? dashboardRes.value : dashboardStats;
+      const newApps = appsRes.status === 'fulfilled' ? appsRes.value : applications;
+      const newTasks = tasksRes.status === 'fulfilled' ? tasksRes.value : tasks;
+      const newInterviews = interviewsRes.status === 'fulfilled' ? interviewsRes.value : interviews;
+      const newOpps = oppsRes.status === 'fulfilled' ? oppsRes.value : opportunities;
+
+      // Update module-level cache
+      placementCache.data = {
+        dashboardStats: newStats,
+        applications: newApps,
+        tasks: newTasks,
+        interviews: newInterviews,
+        opportunities: newOpps,
+      };
+      placementCache.fetchedAt = Date.now();
+
+      setDashboardStats(newStats);
+      setActivities(newStats?.activities || []);
+      setApplications(newApps);
+      setTasks(newTasks);
+      setInterviews(newInterviews);
+      setOpportunities(newOpps);
     } catch (error) {
       console.error('Failed to fetch placement data', error);
     } finally {
@@ -127,6 +168,8 @@ export function PlacementProvider({ children }: { children: React.ReactNode }) {
 
   const refreshDashboard = async () => {
     try {
+      // Invalidate module-level cache so next fetchData() gets fresh data
+      placementCache.fetchedAt = 0;
       const dashboardData = await api.getDashboardStats();
       setDashboardStats(dashboardData.data || dashboardData);
     } catch (e) {}

@@ -110,7 +110,7 @@ export async function GET(req: Request) {
       total: registrations.length
     };
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       user: {
         name: user?.name || 'Student',
         email: user?.email || '',
@@ -123,6 +123,9 @@ export async function GET(req: Request) {
       resumeScore: 78,
       activities,
     });
+    // Allow client to cache for 10s and revalidate in background for 60s
+    response.headers.set('Cache-Control', 'private, s-maxage=10, stale-while-revalidate=60');
+    return response;
   } catch (error) {
     console.error('Dashboard Error:', error);
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });

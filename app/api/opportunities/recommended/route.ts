@@ -38,7 +38,10 @@ export async function GET(req: Request) {
       };
     });
 
-    return NextResponse.json(formatted);
+    const response = NextResponse.json(formatted);
+    // Opportunities change infrequently — cache 30s, stale-while-revalidate 2 min
+    response.headers.set('Cache-Control', 'private, s-maxage=30, stale-while-revalidate=120');
+    return response;
   } catch (error) {
     console.error('Error fetching recommended opportunities:', error);
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });

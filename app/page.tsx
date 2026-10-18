@@ -1,16 +1,19 @@
 'use client';
 
 import React, { Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import Navbar from '@/components/landing/Navbar';
 import HeroSection from '@/components/landing/HeroSection';
-import ProductPreview from '@/components/landing/ProductPreview';
-import FeaturesSection from '@/components/landing/FeaturesSection';
-import HowItWorks from '@/components/landing/HowItWorks';
-import RoleSection from '@/components/landing/RoleSection';
-import ProfileCompletionSection from '@/components/landing/ProfileCompletionSection';
-import SafetySection from '@/components/landing/SafetySection';
-import FinalCTA from '@/components/landing/FinalCTA';
-import Footer from '@/components/landing/Footer';
+
+// Lazy-load all below-the-fold sections to reduce initial bundle size
+const ProductPreview = dynamic(() => import('@/components/landing/ProductPreview'), { ssr: false });
+const FeaturesSection = dynamic(() => import('@/components/landing/FeaturesSection'), { ssr: false });
+const HowItWorks = dynamic(() => import('@/components/landing/HowItWorks'), { ssr: false });
+const RoleSection = dynamic(() => import('@/components/landing/RoleSection'), { ssr: false });
+const ProfileCompletionSection = dynamic(() => import('@/components/landing/ProfileCompletionSection'), { ssr: false });
+const SafetySection = dynamic(() => import('@/components/landing/SafetySection'), { ssr: false });
+const FinalCTA = dynamic(() => import('@/components/landing/FinalCTA'), { ssr: false });
+const Footer = dynamic(() => import('@/components/landing/Footer'), { ssr: false });
 
 function LandingPageContent() {
   return (
@@ -57,4 +60,3 @@ export default function LandingPage() {
     </Suspense>
   );
 }
-

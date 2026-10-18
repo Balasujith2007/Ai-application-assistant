@@ -34,50 +34,65 @@ export async function GET(req: Request) {
     const scopedStudentIds = scopedStudents.map((s) => s.id);
 
     const totalStudents = scopedStudents.length;
-    const totalMentors = await prisma.user.count({ where: { role: 'MENTOR' } });
-
-    const activeApplications = await prisma.application.count({
-      where: {
-        userId: { in: scopedStudentIds },
-        status: { in: ['APPLIED', 'SHORTLISTED', 'INTERVIEW', 'SELECTED'] }
-      },
-    });
-
-    const upcomingInterviews = await prisma.interview.count({
-      where: {
-        userId: { in: scopedStudentIds },
-        date: { gte: new Date() }
-      },
-    });
-
-    const unassignedStudents = await prisma.user.count({
-      where: {
-        id: { in: scopedStudentIds },
-        role: 'STUDENT',
-        mentorId: null
-      } as Prisma.UserWhereInput,
-    });
-
-    const studentsWithResumes = await prisma.resume.groupBy({
-      by: ['userId'],
-      where: {
-        userId: { in: scopedStudentIds },
-        isActive: true
-      },
-    });
-
-    // HOD Registration Analytics - Source of truth: OpportunityRegistration with status === 'REGISTERED' ONLY
-    const registrations = await prisma.opportunityRegistration.findMany({
-      where: {
-        studentId: { in: scopedStudentIds },
-        status: 'REGISTERED'
-      },
-      include: {
-        student: { select: { name: true } },
-        opportunity: { select: { title: true, type: true } }
-      },
-      orderBy: { registeredAt: 'desc' }
-    });
+    const [
+      totalMentors,
+      activeApplications,
+      upcomingInterviews,
+      unassignedStudents,
+      studentsWithResumes,
+      registrations,
+      yearGroups,
+      sectionGroups,
+    ] = await Promise.all([
+      prisma.user.count({ where: { role: 'MENTOR' } }),
+      prisma.application.count({
+        where: {
+          userId: { in: scopedStudentIds },
+          status: { in: ['APPLIED', 'SHORTLISTED', 'INTERVIEW', 'SELECTED'] },
+        },
+      }),
+      prisma.interview.count({
+        where: {
+          userId: { in: scopedStudentIds },
+          date: { gte: new Date() },
+        },
+      }),
+      prisma.user.count({
+        where: {
+          id: { in: scopedStudentIds },
+          role: 'STUDENT',
+          mentorId: null,
+        } as Prisma.UserWhereInput,
+      }),
+      prisma.resume.groupBy({
+        by: ['userId'],
+        where: {
+          userId: { in: scopedStudentIds },
+          isActive: true,
+        },
+      }),
+      prisma.opportunityRegistration.findMany({
+        where: {
+          studentId: { in: scopedStudentIds },
+          status: 'REGISTERED',
+        },
+        include: {
+          student: { select: { name: true } },
+          opportunity: { select: { title: true, type: true } },
+        },
+        orderBy: { registeredAt: 'desc' },
+      }),
+      prisma.profile.groupBy({
+        by: ['year'],
+        where: { userId: { in: scopedStudentIds }, year: { in: [2, 3, 4] } },
+        _count: { _all: true },
+      }),
+      prisma.profile.groupBy({
+        by: ['section'],
+        where: { userId: { in: scopedStudentIds }, section: { in: ['A', 'B'] } },
+        _count: { _all: true },
+      }),
+    ]);
 
     const hackathonStudentSet = new Set<string>();
     const internshipStudentSet = new Set<string>();
@@ -102,24 +117,21 @@ export async function GET(req: Request) {
       registeredAt: r.registeredAt || r.updatedAt,
     }));
 
-    // Year-wise student counts
-    const secondYear = await prisma.profile.count({
-      where: { userId: { in: scopedStudentIds }, year: 2 }
-    });
-    const thirdYear = await prisma.profile.count({
-      where: { userId: { in: scopedStudentIds }, year: 3 }
-    });
-    const fourthYear = await prisma.profile.count({
-      where: { userId: { in: scopedStudentIds }, year: 4 }
-    });
+    let secondYear = 0;
+    let thirdYear = 0;
+    let fourthYear = 0;
+    for (const yg of yearGroups) {
+      if (yg.year === 2) secondYear = yg._count._all;
+      else if (yg.year === 3) thirdYear = yg._count._all;
+      else if (yg.year === 4) fourthYear = yg._count._all;
+    }
 
-    // Section-wise counts
-    const sectionA = await prisma.profile.count({
-      where: { userId: { in: scopedStudentIds }, section: 'A' }
-    });
-    const sectionB = await prisma.profile.count({
-      where: { userId: { in: scopedStudentIds }, section: 'B' }
-    });
+    let sectionA = 0;
+    let sectionB = 0;
+    for (const sg of sectionGroups) {
+      if (sg.section === 'A') sectionA = sg._count._all;
+      else if (sg.section === 'B') sectionB = sg._count._all;
+    }
 
     return NextResponse.json({
       data: {
