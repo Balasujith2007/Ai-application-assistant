@@ -352,8 +352,11 @@ function extractOpportunityName(
     );
     if (phraseMatch && phraseMatch[1]) {
       const opp = phraseMatch[1].trim();
-      // Avoid capturing trailing words like "is confirmed", "successfully", etc.
-      const cleanOpp = opp.replace(/\s+(?:is\s+confirmed|confirmed|successfully|on|at|with)\s*$/i, '').trim();
+      // Avoid capturing trailing words like "is confirmed", "successfully", "submitted", etc.
+      const cleanOpp = opp
+        .replace(/\s+(?:(?:has\s+been\s+)?(?:successfully\s+)?submitted|is\s+confirmed|confirmed|successfully).*$/i, '')
+        .replace(/\s+(?:on|at|with)\s*$/i, '')
+        .trim();
       if (cleanOpp.length >= 3) {
         return { value: cleanOpp, found: true, confidence: confidence * 0.85, rawSnippet: line };
       }
@@ -469,6 +472,12 @@ export function classifyConfirmationWording(
     /you're\s+in!/i,
     /you\s+have\s+successfully\s+applied/i,
     /application\s+(?:successfully\s+)?submitted/i,
+    /application[\s\S]{0,120}?(?:has\s+been\s+)?submitted(?:\s+successfully)?/i,
+    /application[\s\S]{0,120}?successfully\s+submitted/i,
+    /submitted\s+successfully/i,
+    /successfully\s+submitted/i,
+    /has\s+been\s+submitted/i,
+    /application\s+submitted/i,
     /thank\s+you\s+for\s+registering/i
   ];
 

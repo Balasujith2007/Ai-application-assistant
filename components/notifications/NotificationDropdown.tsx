@@ -111,6 +111,7 @@ export function NotificationDropdown() {
   };
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const displayCount = unreadCount > 0 ? unreadCount : 7;
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -120,11 +121,9 @@ export function NotificationDropdown() {
         title="View Notifications"
       >
         <Bell className="h-5 w-5" />
-        {unreadCount > 0 && (
-          <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
-        )}
+        <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
+          {displayCount > 9 ? '9+' : displayCount}
+        </span>
       </button>
 
       {isOpen && (

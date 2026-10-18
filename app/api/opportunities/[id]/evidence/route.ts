@@ -128,7 +128,8 @@ export async function POST(
       evidenceId: verificationResult.evidenceId,
       ocrConfidence: verificationResult.ocrConfidence,
       ocrSnippet: verificationResult.ocrSnippet,
-      message: verificationResult.decision.decisionReason
+      message: verificationResult.decision.decisionReason,
+      error: verificationResult.success ? undefined : (verificationResult.errorMessage || verificationResult.decision.decisionReason || 'Verification processing failed.')
     });
 
   } catch (error: any) {

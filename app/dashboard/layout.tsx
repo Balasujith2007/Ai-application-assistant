@@ -269,13 +269,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   aria-haspopup="menu"
                   aria-expanded={profileOpen}
                 >
-                  <div className={`h-8 w-8 rounded-full bg-kit-100 flex items-center justify-center text-kit-700 font-bold text-sm ring-2 transition-all ${profileOpen ? 'ring-kit-500' : 'ring-transparent group-hover:ring-kit-300'}`}>
-                    {user?.name?.charAt(0).toUpperCase() || 'U'}
+                  <div className={`h-8 w-8 rounded-full bg-rose-100 flex items-center justify-center text-[#990024] font-bold text-sm ring-2 transition-all ${profileOpen ? 'ring-kit-500' : 'ring-transparent group-hover:ring-kit-300'}`}>
+                    {user?.name?.charAt(0).toUpperCase() || 'B'}
                   </div>
                   <div className="hidden lg:flex lg:flex-col lg:items-start lg:justify-center text-left">
-                    <span className="text-sm font-semibold text-gray-900 leading-tight group-hover:text-kit-700 transition-colors">{user?.name}</span>
+                    <span className="text-sm font-semibold text-gray-900 leading-tight group-hover:text-kit-700 transition-colors">
+                      {user?.name || 'Bala Sujith'}
+                    </span>
                     <span className="text-xs font-medium text-gray-500 capitalize leading-tight mt-0.5">
-                      {user?.role ? user.role.toLowerCase().replace(/_/g, ' ') : 'student'}
+                      {user?.role ? user.role.toLowerCase().replace(/_/g, ' ') : 'Student'}
                     </span>
                   </div>
                   <ChevronDown

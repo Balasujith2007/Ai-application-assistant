@@ -346,7 +346,7 @@ export function ApplicationAssistantModal({
       formData.append('file', selectedFile);
 
       const res = await api.post(`/opportunities/${opportunity.id}/evidence`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': undefined }
       });
 
       if (res.data.success) {

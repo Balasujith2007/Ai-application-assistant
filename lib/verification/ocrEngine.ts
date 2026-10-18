@@ -6,14 +6,40 @@ export interface OcrResult {
   error?: string;
 }
 
+let activeWorker: any = null;
+let workerInitPromise: Promise<any> | null = null;
+let workerBusy = false;
+
+async function getOrInitWorker(): Promise<any> {
+  if (activeWorker) return activeWorker;
+  if (workerInitPromise) return workerInitPromise;
+
+  workerInitPromise = (async () => {
+    try {
+      const langPath = process.cwd();
+      const worker = await createWorker('eng', 1, {
+        langPath,
+        cachePath: langPath,
+      });
+      activeWorker = worker;
+      return worker;
+    } finally {
+      workerInitPromise = null;
+    }
+  })();
+
+  return workerInitPromise;
+}
+
 /**
  * Robust OCR processing using Tesseract.js.
  * Handles timeouts, crashes, image errors, and sanitizes OCR output.
  * Treats all OCR output strictly as untrusted input.
  */
-export async function runOcrOnImage(imageBuffer: Buffer, timeoutMs = 25000): Promise<OcrResult> {
-  let worker: any = null;
+export async function runOcrOnImage(imageBuffer: Buffer, timeoutMs = 60000): Promise<OcrResult> {
   let timer: NodeJS.Timeout | null = null;
+  let localWorker: any = null;
+  let usedActiveWorker = false;
 
   try {
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -23,8 +49,27 @@ export async function runOcrOnImage(imageBuffer: Buffer, timeoutMs = 25000): Pro
     });
 
     const ocrPromise = (async () => {
-      worker = await createWorker('eng');
-      const ret = await worker.recognize(imageBuffer);
+      let workerToUse: any = null;
+      if (!workerBusy) {
+        workerBusy = true;
+        usedActiveWorker = true;
+        try {
+          workerToUse = await getOrInitWorker();
+        } catch (initErr) {
+          console.warn('[OCR Engine] Failed to get shared worker, creating one-off worker:', initErr);
+          usedActiveWorker = false;
+        }
+      }
+
+      if (!workerToUse) {
+        localWorker = await createWorker('eng', 1, {
+          langPath: process.cwd(),
+          cachePath: process.cwd(),
+        });
+        workerToUse = localWorker;
+      }
+
+      const ret = await workerToUse.recognize(imageBuffer);
       const rawText = ret.data?.text || '';
       const confidence = typeof ret.data?.confidence === 'number' ? Math.max(0, Math.min(1, ret.data.confidence / 100)) : 0;
 
@@ -44,6 +89,13 @@ export async function runOcrOnImage(imageBuffer: Buffer, timeoutMs = 25000): Pro
     return result;
   } catch (err: any) {
     console.error('[OCR Engine] Error running OCR on image:', err?.message || err);
+    // If active worker failed, reset it
+    if (usedActiveWorker && activeWorker) {
+      try {
+        await activeWorker.terminate();
+      } catch {}
+      activeWorker = null;
+    }
     return {
       text: '',
       confidence: 0,
@@ -51,12 +103,16 @@ export async function runOcrOnImage(imageBuffer: Buffer, timeoutMs = 25000): Pro
     };
   } finally {
     if (timer) clearTimeout(timer);
-    if (worker) {
+    if (usedActiveWorker) {
+      workerBusy = false;
+    }
+    if (localWorker) {
       try {
-        await worker.terminate();
+        await localWorker.terminate();
       } catch (termErr) {
         // Ignore worker cleanup warnings
       }
     }
   }
 }
+

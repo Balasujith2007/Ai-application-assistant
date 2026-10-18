@@ -299,6 +299,24 @@ export function verifyOpportunity(
     opportunity.companyName
   ].filter(Boolean) as string[];
 
+  if (opportunity.registrationUrl) {
+    try {
+      const url = new URL(opportunity.registrationUrl);
+      const segments = url.pathname.split('/').filter(Boolean);
+      for (const seg of segments) {
+        const cleanSeg = seg
+          .replace(/-[0-9]+$/, '')
+          .replace(/[-_]+/g, ' ')
+          .trim();
+        if (cleanSeg.length >= 5 && !['internships', 'jobs', 'competitions', 'hackathons', 'events'].includes(cleanSeg.toLowerCase())) {
+          targetCandidates.push(cleanSeg);
+        }
+      }
+    } catch {
+      // Ignore URL parsing errors
+    }
+  }
+
   const extractedCandidates = [extractedOppName, subject].filter(Boolean) as string[];
 
   if (extractedCandidates.length === 0) {
