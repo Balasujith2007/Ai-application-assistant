@@ -53,7 +53,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (token && storedUser) {
         setUser(storedUser);
-        // Optionally verify token against /auth/me
+        setIsLoading(false);
+        // Verify token in background (SWR pattern)
         try {
           const res = await api.get<{ data: User }>('/auth/me');
           const freshUser = res.data.data;
@@ -63,8 +64,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           removeToken();
           setUser(null);
         }
+      } else {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     restoreSession();

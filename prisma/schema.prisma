@@ -384,6 +384,9 @@ model Application {
   opportunity Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
   emailEvidences EmailEvidence[]
 
+  @@index([userId])
+  @@index([userId, status])
+  @@index([opportunityId])
   @@map("applications")
 }
 
@@ -417,6 +420,8 @@ model Task {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([userId, isCompleted])
   @@map("tasks")
 }
 
@@ -448,6 +453,8 @@ model Interview {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([userId, date])
   @@map("interviews")
 }
 
@@ -504,6 +511,8 @@ model Opportunity {
   registrationEvidences RegistrationEvidence[]
   verifiedActivities VerifiedActivity[]
 
+  @@index([status, deadline])
+  @@index([type, status])
   @@map("opportunities")
 }
 
@@ -539,6 +548,8 @@ model OpportunityRegistration {
   evidences     RegistrationEvidence[]
 
   @@unique([opportunityId, studentId])
+  @@index([studentId])
+  @@index([studentId, status])
   @@map("opportunity_registrations")
 }
 
@@ -556,6 +567,7 @@ model Activity {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, createdAt])
   @@map("activities")
 }
 

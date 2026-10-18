@@ -92,12 +92,12 @@ export function PlacementProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       const [
-        dashboardData,
-        appsData,
-        tasksData,
-        interviewsData,
-        oppsData
-      ] = await Promise.all([
+        dashboardRes,
+        appsRes,
+        tasksRes,
+        interviewsRes,
+        oppsRes
+      ] = await Promise.allSettled([
         api.getDashboardStats(),
         api.getApplications(),
         api.getTasks(),
@@ -105,12 +105,15 @@ export function PlacementProvider({ children }: { children: React.ReactNode }) {
         api.getRecommendedOpportunities()
       ]);
 
-      setDashboardStats(dashboardData);
-      setApplications(appsData);
-      setTasks(tasksData);
-      setInterviews(interviewsData);
-      setOpportunities(oppsData);
-      setActivities(dashboardData?.activities || []); // Activity feed if returned by dashboard
+      if (dashboardRes.status === 'fulfilled') {
+        const d = dashboardRes.value;
+        setDashboardStats(d);
+        setActivities(d?.activities || []);
+      }
+      if (appsRes.status === 'fulfilled') setApplications(appsRes.value);
+      if (tasksRes.status === 'fulfilled') setTasks(tasksRes.value);
+      if (interviewsRes.status === 'fulfilled') setInterviews(interviewsRes.value);
+      if (oppsRes.status === 'fulfilled') setOpportunities(oppsRes.value);
     } catch (error) {
       console.error('Failed to fetch placement data', error);
     } finally {
