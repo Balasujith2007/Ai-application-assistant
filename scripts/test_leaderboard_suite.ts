@@ -449,7 +449,11 @@ async function runLeaderboardTestSuite() {
       ]
     );
 
-    // Award tieStu1 and tieStu2 identical verified points (e.g. 20 pts from Hackathon Winner)
+    // Award tieStu1 and tieStu2 identical verified points (20 pts from Hackathon Winner)
+    // tieStu1 completed 1 hour earlier than tieStu2
+    const earlierTime = new Date(Date.now() - 3600000);
+    const laterTime = new Date();
+
     await verificationLedger.recordActivity({
       studentId: testTieStu1,
       sourceType: 'HACKATHON',
@@ -458,7 +462,7 @@ async function runLeaderboardTestSuite() {
       activityType: 'HACKATHON_WINNER',
       externalActivityId: `tie-hack-1-${ts}`,
       verificationStatus: 'VERIFIED',
-      occurredAt: new Date(),
+      occurredAt: earlierTime,
     });
 
     await verificationLedger.recordActivity({
@@ -469,7 +473,7 @@ async function runLeaderboardTestSuite() {
       activityType: 'HACKATHON_WINNER',
       externalActivityId: `tie-hack-2-${ts}`,
       verificationStatus: 'VERIFIED',
-      occurredAt: new Date(),
+      occurredAt: laterTime,
     });
 
     // tieStu3 has 0 points
@@ -488,9 +492,19 @@ async function runLeaderboardTestSuite() {
       'Students with identical top scores share rank #1',
       `rankTie1: ${rankTie1}, rankTie2: ${rankTie2}`
     );
+
+    // Verify tie-breaker: tieStu1 completed first, so tieStu1 is ordered ahead of tieStu2 in the lineup
+    const idxTie1 = tieLeaderboard.rankings.findIndex((r) => r.studentId === testTieStu1);
+    const idxTie2 = tieLeaderboard.rankings.findIndex((r) => r.studentId === testTieStu2);
     assert(
-      rankTie3 === 3,
-      'Subsequent student receives rank #3 (skips rank #2 according to Standard 1224 Ranking)',
+      idxTie1 < idxTie2,
+      'Student who completed first is ordered first in the lineup during ties',
+      `idxTie1: ${idxTie1}, idxTie2: ${idxTie2}`
+    );
+
+    assert(
+      rankTie3 === 2,
+      'Subsequent student receives rank #2 (dense ranking: ranks increase one by one like 1, 2, 3...)',
       `rankTie3: ${rankTie3}`
     );
 

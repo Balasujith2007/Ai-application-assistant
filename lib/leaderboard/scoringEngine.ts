@@ -10,6 +10,60 @@ import {
 import { getAllTimePeriodKey, getPeriodKey, getPreviousPeriodKey } from './periodUtils';
 import { verificationLedger } from './verificationLedger';
 
+export function getDepartmentVariants(dept: string): string[] {
+  if (!dept) return [];
+  const trimmed = dept.trim();
+  const lower = trimmed.toLowerCase();
+
+  // AI & DS / Artificial Intelligence and Data Science
+  if (
+    lower === 'ai&ds' ||
+    lower === 'ai & ds' ||
+    lower === 'aids' ||
+    lower.includes('artificial intelligence') ||
+    (lower.includes('ai') && lower.includes('ds'))
+  ) {
+    return [
+      'Artificial Intelligence & Data Science',
+      'Artificial Intelligence and Data Science',
+      'Artificial intelligence and data science',
+      'AI&DS',
+      'Ai&ds',
+      'ai&ds',
+      'AI & DS',
+      'AIDS',
+      trimmed,
+    ];
+  }
+
+  // Computer Science & Engineering / CSE
+  if (lower === 'cse' || lower.includes('computer science')) {
+    return [
+      'Computer Science Engineering',
+      'Computer Science and Engineering',
+      'Computer Science & Engineering',
+      'CSE',
+      trimmed,
+    ];
+  }
+
+  // Electronics and Communication Engineering / ECE
+  if (
+    lower === 'ece' ||
+    lower.includes('electronics and communication') ||
+    lower.includes('electronics & communication')
+  ) {
+    return [
+      'Electronics and Communication Engineering',
+      'Electronics & Communication Engineering',
+      'ECE',
+      trimmed,
+    ];
+  }
+
+  return [trimmed];
+}
+
 export class ScoringEngine {
   private weights: ScoringWeights;
 
@@ -31,6 +85,7 @@ export class ScoringEngine {
     badges: AchievementBadge[];
     isProvisional: boolean;
     provisionalReason?: string;
+    completedAtTimestamp: number;
   }> {
     // 1. Fetch all VERIFIED activities for this student
     const verifiedActivities = await prisma.verifiedActivity.findMany({
@@ -372,6 +427,26 @@ export class ScoringEngine {
       },
     };
 
+    // Calculate when student achieved/completed their activities
+    let completedAtTimestamp = 0;
+    for (const act of verifiedActivities) {
+      const d = act.occurredAt || act.verifiedAt || act.createdAt;
+      if (d) {
+        const t = new Date(d).getTime();
+        if (t > completedAtTimestamp) {
+          completedAtTimestamp = t;
+        }
+      }
+    }
+
+    if (completedAtTimestamp === 0) {
+      const u = await prisma.user.findUnique({
+        where: { id: studentId },
+        select: { createdAt: true },
+      });
+      completedAtTimestamp = u?.createdAt ? new Date(u.createdAt).getTime() : 0;
+    }
+
     return {
       codingScore,
       hackathonScore,
@@ -382,6 +457,7 @@ export class ScoringEngine {
       badges,
       isProvisional,
       provisionalReason,
+      completedAtTimestamp,
     };
   }
 
@@ -435,26 +511,49 @@ export class ScoringEngine {
     const periodKey = getPeriodKey(periodType);
     const prevPeriodKey = getPreviousPeriodKey(periodType);
 
-    // 1. Find all students belonging strictly to this class
+    // 1. Find all students belonging strictly to this class cohort (matching department aliases)
+    const deptVariants = getDepartmentVariants(department);
     const whereClause: any = {
       role: 'STUDENT',
       profile: {
-        department: { equals: department, mode: 'insensitive' },
+        department: { in: deptVariants, mode: 'insensitive' },
         year: year,
         section: { equals: section, mode: 'insensitive' },
       },
     };
 
-    if (college) {
-      whereClause.profile.college = { equals: college, mode: 'insensitive' };
-    }
-
-    const students = await prisma.user.findMany({
+    let students = await prisma.user.findMany({
       where: whereClause,
       include: {
         profile: true,
       },
     });
+
+    // If section has fewer than 5 students, expand to include department cohort
+    if (students.length < 5) {
+      students = await prisma.user.findMany({
+        where: {
+          role: 'STUDENT',
+          profile: {
+            department: { in: deptVariants, mode: 'insensitive' },
+          },
+        },
+        include: {
+          profile: true,
+        },
+      });
+    }
+
+    // Ensure current student is included in the ranking calculation
+    if (!students.some((s) => s.id === currentStudentId)) {
+      const currentStu = await prisma.user.findUnique({
+        where: { id: currentStudentId },
+        include: { profile: true },
+      });
+      if (currentStu) {
+        students.push(currentStu);
+      }
+    }
 
     if (students.length === 0) {
       return {
@@ -470,70 +569,97 @@ export class ScoringEngine {
       };
     }
 
-    // 2. Compute scores for all class members
-    const scoredList: Array<{
-      student: any;
-      scores: Awaited<ReturnType<ScoringEngine['calculateStudentScore']>>;
-      previousRank: number | null;
-    }> = [];
+    // 2. Compute scores for all class members concurrently
+    const scoredList = await Promise.all(
+      students.map(async (stu) => {
+        const scores = await this.calculateStudentScore(stu.id, periodKey);
 
-    for (const stu of students) {
-      const scores = await this.calculateStudentScore(stu.id, periodKey);
-
-      // Check previous snapshot if available
-      let previousRank: number | null = null;
-      if (prevPeriodKey) {
-        const prevSnap = await prisma.leaderboardSnapshot.findUnique({
-          where: {
-            studentId_periodType_periodKey: {
-              studentId: stu.id,
-              periodType,
-              periodKey: prevPeriodKey,
+        // Check previous snapshot if available
+        let previousRank: number | null = null;
+        if (prevPeriodKey) {
+          const prevSnap = await prisma.leaderboardSnapshot.findUnique({
+            where: {
+              studentId_periodType_periodKey: {
+                studentId: stu.id,
+                periodType,
+                periodKey: prevPeriodKey,
+              },
             },
-          },
-        });
-        if (prevSnap) {
-          previousRank = prevSnap.rank;
+          });
+          if (prevSnap) {
+            previousRank = prevSnap.rank;
+          }
         }
-      }
 
-      scoredList.push({
-        student: stu,
-        scores,
-        previousRank,
-      });
-    }
+        return {
+          student: stu,
+          scores,
+          previousRank,
+        };
+      })
+    );
 
-    // 3. Sort students descending by totalScore (ties broken by highest codingScore, then hackathonScore)
+    // 2b. Batch-fetch streak counts and total points ledger XP for all class members
+    const studentIds = students.map((s) => s.id);
+    const [streakRows, xpRows] = await Promise.all([
+      prisma.$queryRawUnsafe<Array<{ studentId: string; streakDays: number }>>(
+        `SELECT "studentId", COUNT(DISTINCT "activityDate")::int AS "streakDays"
+         FROM student_daily_streaks
+         WHERE "studentId" = ANY($1)
+         GROUP BY "studentId"`,
+        studentIds
+      ).catch(() => []),
+      prisma.pointsLedger.groupBy({
+        by: ['studentId'],
+        where: { studentId: { in: studentIds } },
+        _sum: { pointsAwarded: true },
+      }).catch(() => []),
+    ]);
+
+    const streakMap = new Map<string, number>();
+    (streakRows || []).forEach((r) => streakMap.set(r.studentId, Number(r.streakDays) || 0));
+
+    const xpMap = new Map<string, number>();
+    (xpRows || []).forEach((r) => xpMap.set(r.studentId, Number(r._sum?.pointsAwarded) || 0));
+
+    // 3. Sort students:
+    // - Highest totalScore first (descending)
+    // - Tie breaker: who completed first (completedAtTimestamp ASC: earlier timestamp comes first in the lineup)
+    // - Secondary tie breaker: codingScore (descending)
+    // - Tertiary tie breaker: alphabetical by name
     scoredList.sort((a, b) => {
       if (b.scores.totalScore !== a.scores.totalScore) {
         return b.scores.totalScore - a.scores.totalScore;
       }
+      const xpA = xpMap.get(a.student.id) || 0;
+      const xpB = xpMap.get(b.student.id) || 0;
+      if (xpB !== xpA) {
+        return xpB - xpA;
+      }
+      if (a.scores.completedAtTimestamp !== b.scores.completedAtTimestamp) {
+        return a.scores.completedAtTimestamp - b.scores.completedAtTimestamp;
+      }
       if (b.scores.codingScore !== a.scores.codingScore) {
         return b.scores.codingScore - a.scores.codingScore;
       }
-      return b.scores.hackathonScore - a.scores.hackathonScore;
+      return (a.student.name || '').localeCompare(b.student.name || '');
     });
 
-    // 4. Assign Standard Competition Ranks (Ties get same rank)
+    // 4. Assign Sequential Ranks (1 to 67 across cohort students):
     const rankings: LeaderboardStudentEntry[] = [];
-    let currentRank = 1;
 
     for (let i = 0; i < scoredList.length; i++) {
       const item = scoredList[i];
-
-      // If score equals previous student's score, assign same rank; otherwise rank is (i + 1)
-      if (i > 0 && item.scores.totalScore === scoredList[i - 1].scores.totalScore) {
-        // Keep currentRank same
-      } else {
-        currentRank = i + 1;
-      }
+      const sequentialRank = i + 1;
 
       const prevRank = item.previousRank;
-      const rankMovement = prevRank !== null ? prevRank - currentRank : 0;
+      const rankMovement = prevRank !== null ? prevRank - sequentialRank : 0;
+
+      const rawLedgerXp = xpMap.get(item.student.id) || 0;
+      const studentEarnedXp = rawLedgerXp > 0 ? rawLedgerXp : Math.round(item.scores.totalScore * 10);
 
       const entry: LeaderboardStudentEntry = {
-        rank: currentRank,
+        rank: sequentialRank,
         previousRank: prevRank,
         rankMovement,
         studentId: item.student.id,
@@ -553,56 +679,67 @@ export class ScoringEngine {
         isProvisional: item.scores.isProvisional,
         provisionalReason: item.scores.provisionalReason,
         lastSyncedAt: new Date().toISOString(),
+        completedAt: item.scores.completedAtTimestamp
+          ? new Date(item.scores.completedAtTimestamp).toISOString()
+          : null,
+        streak: streakMap.get(item.student.id) || (item.scores.totalScore > 0 ? 1 : 0),
+        earnedXp: studentEarnedXp,
+        registerNo: item.student.profile?.registerNo || undefined,
       };
 
       rankings.push(entry);
+    }
 
-      // Persist snapshot to leaderboard_snapshots table
-      await prisma.leaderboardSnapshot.upsert({
-        where: {
-          studentId_periodType_periodKey: {
+    // Persist snapshots to leaderboard_snapshots table concurrently
+    await Promise.all(
+      rankings.map((r, i) => {
+        const item = scoredList[i];
+        return prisma.leaderboardSnapshot.upsert({
+          where: {
+            studentId_periodType_periodKey: {
+              studentId: item.student.id,
+              periodType,
+              periodKey,
+            },
+          },
+          update: {
+            department,
+            year,
+            section,
+            college: college || null,
+            codingScore: item.scores.codingScore,
+            hackathonScore: item.scores.hackathonScore,
+            internshipScore: item.scores.internshipScore,
+            consistencyScore: item.scores.consistencyScore,
+            totalScore: item.scores.totalScore,
+            rank: r.rank,
+            previousRank: item.previousRank,
+            badges: item.scores.badges as any,
+            isProvisional: item.scores.isProvisional,
+            calculatedAt: new Date(),
+          },
+          create: {
             studentId: item.student.id,
+            department,
+            year,
+            section,
+            college: college || null,
             periodType,
             periodKey,
+            codingScore: item.scores.codingScore,
+            hackathonScore: item.scores.hackathonScore,
+            internshipScore: item.scores.internshipScore,
+            consistencyScore: item.scores.consistencyScore,
+            totalScore: item.scores.totalScore,
+            rank: r.rank,
+            previousRank: item.previousRank,
+            badges: item.scores.badges as any,
+            isProvisional: item.scores.isProvisional,
+            calculatedAt: new Date(),
           },
-        },
-        update: {
-          department,
-          year,
-          section,
-          college: college || null,
-          codingScore: item.scores.codingScore,
-          hackathonScore: item.scores.hackathonScore,
-          internshipScore: item.scores.internshipScore,
-          consistencyScore: item.scores.consistencyScore,
-          totalScore: item.scores.totalScore,
-          rank: currentRank,
-          previousRank: prevRank,
-          badges: item.scores.badges as any,
-          isProvisional: item.scores.isProvisional,
-          calculatedAt: new Date(),
-        },
-        create: {
-          studentId: item.student.id,
-          department,
-          year,
-          section,
-          college: college || null,
-          periodType,
-          periodKey,
-          codingScore: item.scores.codingScore,
-          hackathonScore: item.scores.hackathonScore,
-          internshipScore: item.scores.internshipScore,
-          consistencyScore: item.scores.consistencyScore,
-          totalScore: item.scores.totalScore,
-          rank: currentRank,
-          previousRank: prevRank,
-          badges: item.scores.badges as any,
-          isProvisional: item.scores.isProvisional,
-          calculatedAt: new Date(),
-        },
-      });
-    }
+        });
+      })
+    );
 
     const currentStudentEntry = rankings.find((r) => r.isCurrentUser) || null;
     const currentStudentScores = scoredList.find((s) => s.student.id === currentStudentId)?.scores;

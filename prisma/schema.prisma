@@ -146,12 +146,18 @@ model User {
   pointsLedgers          PointsLedger[]
   syncHistories          SyncHistory[]
   leaderboardSnapshots   LeaderboardSnapshot[]
+  studentBadges          StudentBadge[]
+  dailyStreaks           StudentDailyStreak[]
+  achievementHistories   AchievementHistory[]
+  dailyCheckIns          DailyCheckIn[]
 
   // Mentor-Student relationship
   mentorId      String?
   mentor        User?   @relation("StudentMentor", fields: [mentorId], references: [id], onDelete: SetNull)
   students      User[]  @relation("StudentMentor")
 
+  @@index([role])
+  @@index([mentorId])
   @@map("users")
 }
 
@@ -348,6 +354,8 @@ model Resume {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([userId, isActive])
   @@map("resumes")
 }
 
@@ -384,6 +392,9 @@ model Application {
   opportunity Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
   emailEvidences EmailEvidence[]
 
+  @@index([userId])
+  @@index([userId, status])
+  @@index([opportunityId])
   @@map("applications")
 }
 
@@ -417,6 +428,8 @@ model Task {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([userId, isCompleted])
   @@map("tasks")
 }
 
@@ -448,6 +461,8 @@ model Interview {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([userId, date])
   @@map("interviews")
 }
 
@@ -504,6 +519,8 @@ model Opportunity {
   registrationEvidences RegistrationEvidence[]
   verifiedActivities VerifiedActivity[]
 
+  @@index([status, deadline])
+  @@index([type, status])
   @@map("opportunities")
 }
 
@@ -539,6 +556,8 @@ model OpportunityRegistration {
   evidences     RegistrationEvidence[]
 
   @@unique([opportunityId, studentId])
+  @@index([studentId])
+  @@index([studentId, status])
   @@map("opportunity_registrations")
 }
 
@@ -556,6 +575,7 @@ model Activity {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, createdAt])
   @@map("activities")
 }
 
@@ -579,6 +599,8 @@ model Notification {
   user   User  @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
   sender User? @relation("SentNotifications", fields: [senderId], references: [id], onDelete: SetNull)
 
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, isRead])
   @@map("notifications")
 }
 
@@ -1200,5 +1222,75 @@ model LeaderboardSnapshot {
   @@map("leaderboard_snapshots")
 }
 
+// ============================================================
+// ACHIEVEMENT & BADGE GAMIFICATION MODELS
+// ============================================================
 
+model StudentBadge {
+  id                String   @id @default(cuid())
+  studentId         String
+  badgeId           String
+  category          String   // CODING, CONSISTENCY, SKILL, CAREER, XP
+  tier              String   @default("BRONZE") // BRONZE, SILVER, GOLD, PLATINUM, DIAMOND
+  title             String
+  description       String
+  icon              String
+  awardedAt         DateTime @default(now())
+  evidenceData      Json?
+  unlockedToastSeen Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
+  student           User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, badgeId], name: "studentId_badgeId")
+  @@index([studentId, category])
+  @@map("student_badges")
+}
+
+model StudentDailyStreak {
+  id              String   @id @default(cuid())
+  studentId       String
+  activityDate    String   // YYYY-MM-DD
+  activityType    String
+  sourceReference String?
+  qualifyingScore Float    @default(1.0)
+  createdAt       DateTime @default(now())
+
+  student         User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, activityDate], name: "studentId_activityDate")
+  @@index([studentId, activityDate])
+  @@map("student_daily_streaks")
+}
+
+model AchievementHistory {
+  id           String   @id @default(cuid())
+  studentId    String
+  badgeId      String
+  title        String
+  category     String
+  xpEarned     Float    @default(0.0)
+  eventDetails String
+  achievedAt   DateTime @default(now())
+
+  student      User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, achievedAt])
+  @@map("achievement_history")
+}
+
+model DailyCheckIn {
+  id          String   @id @default(cuid())
+  studentId   String
+  checkInDate String   // YYYY-MM-DD in institution timezone (e.g. Asia/Kolkata)
+  xpAwarded   Int      @default(5)
+  timeZone    String   @default("Asia/Kolkata")
+  createdAt   DateTime @default(now())
+
+  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, checkInDate], name: "studentId_checkInDate")
+  @@index([studentId, checkInDate])
+  @@map("daily_check_ins")
+}

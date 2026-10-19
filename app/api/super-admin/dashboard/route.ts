@@ -9,34 +9,51 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: auth.message || 'Forbidden' }, { status: auth.status || 403 });
     }
 
-    const totalStudents = await prisma.user.count({ where: { role: 'STUDENT' } });
-    const totalMentors = await prisma.user.count({ where: { role: 'MENTOR' } });
-    const totalHODs = await prisma.user.count({ where: { role: 'HOD' } });
-    
-    // Active users: users with active === true
-    const activeUsers = await prisma.user.count({ where: { active: true } });
+    const [
+      roleGroups,
+      activeUsers,
+      totalOpportunities,
+      totalApplications,
+      registrationGroups,
+      recentRegistrationsDb,
+    ] = await Promise.all([
+      prisma.user.groupBy({
+        by: ['role'],
+        _count: { _all: true },
+      }),
+      prisma.user.count({ where: { active: true } }),
+      prisma.opportunity.count(),
+      prisma.application.count(),
+      prisma.opportunityRegistration.groupBy({
+        by: ['status'],
+        where: { status: { in: ['REGISTERED', 'INITIATED'] } },
+        _count: { _all: true },
+      }),
+      prisma.opportunityRegistration.findMany({
+        take: 5,
+        orderBy: { updatedAt: 'desc' },
+        include: {
+          student: { select: { name: true, email: true } },
+          opportunity: { select: { title: true, type: true } },
+        },
+      }),
+    ]);
 
-    const totalOpportunities = await prisma.opportunity.count();
-    
-    const totalApplications = await prisma.application.count();
+    let totalStudents = 0;
+    let totalMentors = 0;
+    let totalHODs = 0;
+    for (const group of roleGroups) {
+      if (group.role === 'STUDENT') totalStudents = group._count._all;
+      else if (group.role === 'MENTOR') totalMentors = group._count._all;
+      else if (group.role === 'HOD') totalHODs = group._count._all;
+    }
 
-    const registrations = await prisma.opportunityRegistration.count({
-      where: { status: 'REGISTERED' }
-    });
-
-    const pendingRegistrations = await prisma.opportunityRegistration.count({
-      where: { status: 'INITIATED' }
-    });
-
-    // Recent registrations to display on the dashboard (limit 5)
-    const recentRegistrationsDb = await prisma.opportunityRegistration.findMany({
-      take: 5,
-      orderBy: { updatedAt: 'desc' },
-      include: {
-        student: { select: { name: true, email: true } },
-        opportunity: { select: { title: true, type: true } }
-      }
-    });
+    let registrations = 0;
+    let pendingRegistrations = 0;
+    for (const group of registrationGroups) {
+      if (group.status === 'REGISTERED') registrations = group._count._all;
+      else if (group.status === 'INITIATED') pendingRegistrations = group._count._all;
+    }
 
     const recentRegistrations = recentRegistrationsDb.map(r => ({
       id: r.id,

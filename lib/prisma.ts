@@ -10,13 +10,19 @@ const globalForPrisma = globalThis as unknown as {
 
 function getPool(): Pool {
   if (!globalForPrisma.pgPool) {
-    globalForPrisma.pgPool = new Pool({
+    const pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: { rejectUnauthorized: false },
       max: 10,
-      idleTimeoutMillis: 30000,
+      idleTimeoutMillis: 15000,
       connectionTimeoutMillis: 10000,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10000,
     });
+    pool.on('error', (err) => {
+      console.warn('PostgreSQL pool idle connection error (auto-reconnecting):', err?.message || err);
+    });
+    globalForPrisma.pgPool = pool;
   }
   return globalForPrisma.pgPool;
 }
@@ -28,44 +34,16 @@ function getPool(): Pool {
  */
 function createClient(): PrismaClient {
   const pool = getPool();
-  try {
-    const nativeRequire = typeof eval !== 'undefined' ? eval('require') : require;
-
-    if (nativeRequire?.cache) {
-      Object.keys(nativeRequire.cache).forEach((key) => {
-        if (key.includes('@prisma') || key.includes('.prisma')) {
-          delete nativeRequire.cache[key];
-        }
-      });
-    }
-
-    const { PrismaClient: NativePrismaClient } = nativeRequire('@prisma/client');
-    const { PrismaPg: NativePrismaPg } = nativeRequire('@prisma/adapter-pg');
-    const adapter = new NativePrismaPg(pool);
-    return new NativePrismaClient({ adapter }) as PrismaClient;
-  } catch {
-    const adapter = new PrismaPg(pool);
-    return new PrismaClient({ adapter });
-  }
+  const adapter = new PrismaPg(pool);
+  return new PrismaClient({ adapter });
 }
 
 export function getDb(): PrismaClient {
   let client = globalForPrisma.prisma;
-  // Recreate if missing or if client was created before the latest schema version or missing models
-  if (
-    !client ||
-    (client as any)._schemaVer !== '2026-v7' ||
-    typeof (client as any).form === 'undefined' ||
-    typeof (client as any).studentEmailIntegration === 'undefined' ||
-    typeof (client as any).emailEvidence === 'undefined' ||
-    typeof (client as any).registrationEvidence === 'undefined' ||
-    typeof (client as any).verifiedActivity === 'undefined'
-  ) {
+  if (!client || (client as any)._schemaVer !== '2026-v10' || !(client as any).dailyCheckIn || !(client as any).studentDailyStreak) {
     client = createClient();
-    (client as any)._schemaVer = '2026-v7';
-    if (process.env.NODE_ENV !== 'production') {
-      globalForPrisma.prisma = client;
-    }
+    (client as any)._schemaVer = '2026-v10';
+    globalForPrisma.prisma = client;
   }
   return client;
 }
@@ -79,13 +57,21 @@ export type ExtendedPrismaClient = PrismaClient & {
   opportunityWorkflowStep?: any;
   opportunityStatusHistory?: any;
   notificationDelivery?: any;
+  dailyCheckIn?: any;
+  studentDailyStreak?: any;
+  achievementHistory?: any;
   [key: string]: any;
 };
 
 const prisma = new Proxy({} as ExtendedPrismaClient, {
   get(_target, prop) {
-    const db = getDb();
-    const value = (db as unknown as Record<string | symbol, unknown>)[prop];
+    let db = getDb();
+    let value = (db as unknown as Record<string | symbol, unknown>)[prop];
+    if (value === undefined && typeof prop === 'string' && !['then', 'catch', 'finally', 'toJSON'].includes(prop)) {
+      globalForPrisma.prisma = undefined;
+      db = getDb();
+      value = (db as unknown as Record<string | symbol, unknown>)[prop];
+    }
     if (typeof value === 'function') {
       return (value as (...args: unknown[]) => unknown).bind(db);
     }

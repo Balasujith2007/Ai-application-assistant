@@ -62,6 +62,25 @@ export async function GET(req: Request) {
     // 6. Sanitize Leaderboard Entries to prevent PII exposure
     const sanitizedRankings = rankings.map((r) => sanitizeLeaderboardEntry(r));
 
+    // 7. Optional Search Filtering and Pagination
+    const search = (url.searchParams.get('search') || '').trim().toLowerCase();
+    const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
+    const limit = Math.max(0, parseInt(url.searchParams.get('limit') || '0', 10)); // 0 = return all
+
+    let filteredRankings = sanitizedRankings;
+    if (search) {
+      filteredRankings = filteredRankings.filter(
+        (r: any) =>
+          (r.name && r.name.toLowerCase().includes(search)) ||
+          (r.registerNo && r.registerNo.toLowerCase().includes(search))
+      );
+    }
+
+    const totalCount = filteredRankings.length;
+    const paginatedRankings = limit > 0
+      ? filteredRankings.slice((page - 1) * limit, page * limit)
+      : filteredRankings;
+
     return NextResponse.json({
       success: true,
       classInfo: {
@@ -81,6 +100,8 @@ export async function GET(req: Request) {
         currentUserScore: currentStudentEntry?.totalScore || null,
         currentUserPreviousRank: currentStudentEntry?.previousRank || null,
         rankMovement: currentStudentEntry?.rankMovement || 0,
+        currentUserStreak: currentStudentEntry?.streak || 0,
+        currentUserEarnedXp: currentStudentEntry?.earnedXp || 0,
       },
       currentStudent: {
         entry: currentStudentEntry ? sanitizeLeaderboardEntry(currentStudentEntry) : null,
@@ -91,7 +112,14 @@ export async function GET(req: Request) {
           connectedPlatforms,
         },
       },
-      rankings: sanitizedRankings,
+      rankings: paginatedRankings,
+      pagination: {
+        total: totalCount,
+        page,
+        limit: limit > 0 ? limit : totalCount,
+        totalPages: limit > 0 ? Math.ceil(totalCount / limit) : 1,
+        hasMore: limit > 0 ? page * limit < totalCount : false,
+      },
     });
   } catch (error: any) {
     console.error('Error fetching class leaderboard:', error);

@@ -100,18 +100,57 @@ export async function GET(req: Request) {
 
     const studentIds = students.map((s: any) => s.id);
 
-    // Registration Analytics - Unique student counts using OpportunityRegistration with status === 'REGISTERED' ONLY
-    const registrations = await prisma.opportunityRegistration.findMany({
-      where: {
-        studentId: { in: studentIds },
-        status: 'REGISTERED'
-      },
-      include: {
-        student: { select: { name: true } },
-        opportunity: { select: { title: true, type: true } }
-      },
-      orderBy: { registeredAt: 'desc' }
-    });
+    const resumeWhere: Prisma.ResumeWhereInput = {
+      userId: { in: studentIds },
+      reviewStatus: 'PENDING_REVIEW',
+      isActive: true,
+    };
+
+    const [
+      registrations,
+      pendingResumes,
+      todayInterviews,
+      upcomingDeadlines,
+      upcomingInterviewsList,
+      notifications,
+      recentActivities,
+    ] = await Promise.all([
+      prisma.opportunityRegistration.findMany({
+        where: {
+          studentId: { in: studentIds },
+          status: 'REGISTERED',
+        },
+        include: {
+          student: { select: { name: true } },
+          opportunity: { select: { title: true, type: true } },
+        },
+        orderBy: { registeredAt: 'desc' },
+      }),
+      prisma.resume.count({ where: resumeWhere }),
+      prisma.interview.count({
+        where: { userId: { in: studentIds }, date: { gte: todayStart, lt: todayEnd } },
+      }),
+      prisma.application.count({
+        where: { userId: { in: studentIds }, deadline: { gte: now, lte: nextWeek } },
+      }),
+      prisma.interview.findMany({
+        where: { userId: { in: studentIds }, date: { gte: now } },
+        orderBy: { date: 'asc' },
+        take: 5,
+        include: { user: { select: { name: true } } },
+      }),
+      prisma.notification.findMany({
+        where: { userId: mentor.id },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      }),
+      prisma.activity.findMany({
+        where: { userId: { in: studentIds } },
+        orderBy: { createdAt: 'desc' },
+        take: 8,
+        include: { user: { select: { name: true } } },
+      }),
+    ]);
 
     const hackathonStudentSet = new Set<string>();
     const internshipStudentSet = new Set<string>();
@@ -136,22 +175,6 @@ export async function GET(req: Request) {
       registeredAt: r.registeredAt || r.updatedAt,
     }));
 
-    // Pending resume reviews
-    const resumeWhere: Prisma.ResumeWhereInput = {
-      userId: { in: studentIds },
-      reviewStatus: 'PENDING_REVIEW',
-      isActive: true,
-    };
-    const pendingResumes = await prisma.resume.count({ where: resumeWhere });
-
-    const todayInterviews = await prisma.interview.count({
-      where: { userId: { in: studentIds }, date: { gte: todayStart, lt: todayEnd } },
-    });
-
-    const upcomingDeadlines = await prisma.application.count({
-      where: { userId: { in: studentIds }, deadline: { gte: now, lte: nextWeek } },
-    });
-
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const attentionStudents = students.filter((s: any) => {
       const hasResume = s.resumes.length > 0;
@@ -165,26 +188,6 @@ export async function GET(req: Request) {
       issue: !s.resumes.length ? 'No Resume Uploaded' : 'No Recent Activity',
       priority: !s.resumes.length ? 'High' : 'Medium',
     }));
-
-    const upcomingInterviewsList = await prisma.interview.findMany({
-      where: { userId: { in: studentIds }, date: { gte: now } },
-      orderBy: { date: 'asc' },
-      take: 5,
-      include: { user: { select: { name: true } } },
-    });
-
-    const notifications = await prisma.notification.findMany({
-      where: { userId: mentor.id },
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-    });
-
-    const recentActivities = await prisma.activity.findMany({
-      where: { userId: { in: studentIds } },
-      orderBy: { createdAt: 'desc' },
-      take: 8,
-      include: { user: { select: { name: true } } },
-    });
 
     return NextResponse.json({
       data: {

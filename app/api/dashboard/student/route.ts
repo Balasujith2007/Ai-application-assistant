@@ -8,31 +8,69 @@ export async function GET(req: Request) {
     const userId = getUserIdFromRequest(req);
     if (!userId) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const userPromise = prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true }
+    });
 
-    // Aggregate stats similar to NestJS DashboardService
+    // Aggregate stats efficiently using groupBy to minimize round trips to DB
     const [
-      totalApplications,
-      activeApplications,
-      interviewsCount,
-      selectedCount,
-      totalTasks,
-      completedTasks,
+      user,
+      appGroups,
+      taskGroups,
       activities,
       registrations
     ] = await Promise.all([
-      prisma.application.count({ where: { userId } }),
-      prisma.application.count({ where: { userId, status: { in: ['APPLIED', 'SHORTLISTED', 'INTERVIEW'] } } }),
-      prisma.application.count({ where: { userId, status: 'INTERVIEW' } }),
-      prisma.application.count({ where: { userId, status: 'SELECTED' } }),
-      prisma.task.count({ where: { userId } }),
-      prisma.task.count({ where: { userId, isCompleted: true } }),
-      prisma.activity.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 5 }),
+      userPromise,
+      prisma.application.groupBy({
+        by: ['status'],
+        where: { userId },
+        _count: { _all: true },
+      }),
+      prisma.task.groupBy({
+        by: ['isCompleted'],
+        where: { userId },
+        _count: { _all: true },
+      }),
+      prisma.activity.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 5
+      }),
       prisma.opportunityRegistration.findMany({
         where: { studentId: userId },
         include: { opportunity: true }
       })
     ]);
+
+    let totalApplications = 0;
+    let activeApplications = 0;
+    let interviewsCount = 0;
+    let selectedCount = 0;
+
+    for (const group of appGroups) {
+      const count = group._count._all;
+      totalApplications += count;
+      if (group.status === 'APPLIED' || group.status === 'SHORTLISTED' || group.status === 'INTERVIEW') {
+        activeApplications += count;
+      }
+      if (group.status === 'INTERVIEW') {
+        interviewsCount += count;
+      }
+      if (group.status === 'SELECTED') {
+        selectedCount += count;
+      }
+    }
+
+    let totalTasks = 0;
+    let completedTasks = 0;
+    for (const group of taskGroups) {
+      const count = group._count._all;
+      totalTasks += count;
+      if (group.isCompleted) {
+        completedTasks += count;
+      }
+    }
 
     // Calculate Career Activity metrics
     let hackathons = 0;
@@ -72,7 +110,7 @@ export async function GET(req: Request) {
       total: registrations.length
     };
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       user: {
         name: user?.name || 'Student',
         email: user?.email || '',
@@ -85,6 +123,9 @@ export async function GET(req: Request) {
       resumeScore: 78,
       activities,
     });
+    // Allow client to cache for 10s and revalidate in background for 60s
+    response.headers.set('Cache-Control', 'private, s-maxage=10, stale-while-revalidate=60');
+    return response;
   } catch (error) {
     console.error('Dashboard Error:', error);
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });

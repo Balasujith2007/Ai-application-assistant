@@ -23,6 +23,7 @@ import {
   ShieldCheck,
   Activity,
   Sparkles,
+  Award,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
@@ -41,6 +42,8 @@ const ICON_MAP: Record<string, any> = {
   'Student Progress': PieChart,
   'My Progress': PieChart,
   'Analytics': PieChart,
+  'Achievements': Award,
+  'Badges': Award,
   'Opportunities': Trophy,
   'Opportunity History': Trophy,
   'Internship / Hackathon': Trophy,

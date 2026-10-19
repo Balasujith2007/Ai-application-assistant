@@ -85,6 +85,10 @@ export interface LeaderboardStudentEntry {
   isProvisional: boolean;
   provisionalReason?: string;
   lastSyncedAt: string | null;
+  completedAt?: string | null;
+  streak?: number;
+  earnedXp?: number;
+  registerNo?: string;
 }
 
 export interface ClassLeaderboardSummary {

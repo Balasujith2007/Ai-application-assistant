@@ -67,6 +67,10 @@ const ICON_MAP: Record<string, any> = {
   'System Health': Activity,
 };
 
+// Module-level sidebar cache: keyed by role, 5 min TTL
+const sidebarCache: Record<string, { links: any[]; fetchedAt: number }> = {};
+const SIDEBAR_TTL_MS = 5 * 60_000; // 5 minutes
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading, isAuthenticated, logout } = useAuth();
   const router = useRouter();
@@ -108,11 +112,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!user) return;
     const fetchSidebar = async () => {
       try {
+        // Check module-level cache first (keyed by role)
+        const cacheKey = user.role;
+        const cached = sidebarCache[cacheKey];
+        const now = Date.now();
+        if (cached && (now - cached.fetchedAt) < SIDEBAR_TTL_MS) {
+          setMainLinks(cached.links);
+          return;
+        }
+
         const token = localStorage.getItem('token');
         const res = await axios.get('/api/sidebar', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setMainLinks(res.data.data);
+        const links = res.data.data;
+        // Update module-level cache
+        sidebarCache[cacheKey] = { links, fetchedAt: Date.now() };
+        setMainLinks(links);
       } catch (err) {
         console.error('Failed to load dynamic layout sidebar', err);
       }

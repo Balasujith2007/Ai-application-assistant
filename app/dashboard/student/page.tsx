@@ -17,13 +17,12 @@ import {
   CheckCircle2,
   PieChart,
   Bell,
-  Award,
   Flag,
 } from 'lucide-react';
 import { StatCard } from '@/components/placement/StatCard';
 import { MatchBadge } from '@/components/placement/MatchBadge';
 import { ApplicationAssistantModal, ApplicationAssistantOpportunity } from '@/components/opportunities/ApplicationAssistantModal';
-import { ClassLeaderboard } from '@/components/leaderboard/ClassLeaderboard';
+import { ClassLeaderboard } from '@/components/leaderboard/StudentClassLeaderboard';
 import Link from 'next/link';
 
 export default function StudentDashboard() {
