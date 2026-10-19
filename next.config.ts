@@ -29,16 +29,6 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Cache static assets aggressively (JS/CSS chunks)
-        source: '/_next/static/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      {
         // Security headers for all pages
         source: '/(.*)',
         headers: [
