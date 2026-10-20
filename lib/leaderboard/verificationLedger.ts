@@ -1,7 +1,8 @@
 import prisma from '@/lib/prisma';
 import { platformRegistry } from './adapters/adapterRegistry';
-import { getAllTimePeriodKey, getPeriodKey } from './periodUtils';
+import { getAllTimePeriodKey, getMonthlyPeriodKey, getPeriodKey } from './periodUtils';
 import { DEFAULT_SCORING_WEIGHTS } from './types';
+import { invalidateLeaderboardCache } from './scoringEngine';
 
 export interface RecordActivityInput {
   studentId: string;
@@ -75,6 +76,10 @@ export class VerificationLedgerService {
       },
     });
 
+    if (input.verificationStatus === 'VERIFIED') {
+      invalidateLeaderboardCache();
+    }
+
     return activity;
   }
 
@@ -84,6 +89,10 @@ export class VerificationLedgerService {
    */
   async awardPoints(input: AwardPointsInput) {
     const periodKey = input.periodKey || getAllTimePeriodKey();
+
+    if (!input.verifiedActivityId) {
+      return null;
+    }
 
     // Verify activity exists and is VERIFIED before awarding points
     const activity = await prisma.verifiedActivity.findUnique({
@@ -119,6 +128,7 @@ export class VerificationLedgerService {
         },
       });
 
+      invalidateLeaderboardCache();
       return entry;
     } catch (err: any) {
       console.warn('Points ledger award skipped/failed:', err?.message);

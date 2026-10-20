@@ -25,35 +25,23 @@ import {
   Clock,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
 
 interface ClassLeaderboardProps {
   initialPeriod?: 'WEEKLY' | 'MONTHLY' | 'SEMESTER' | 'ALL_TIME';
   variant?: 'compact' | 'full';
 }
 
-const AVATAR_COLORS = [
-  'bg-teal-600',
-  'bg-blue-600',
-  'bg-indigo-600',
-  'bg-purple-600',
-  'bg-amber-600',
-  'bg-rose-600',
-  'bg-sky-600',
-  'bg-emerald-600',
-];
-
-function getAvatarBg(name: string): string {
-  if (!name) return 'bg-slate-700';
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash += name.charCodeAt(i);
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
-
-function getInitials(name: string): string {
-  if (!name) return 'S';
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+/**
+ * Produces an optimized CDN thumbnail URL for fast leaderboard rendering.
+ * Automatically requests appropriately sized, auto-quality, auto-format image from Cloudinary CDN edge.
+ */
+function getOptimizedAvatarUrl(url: string | null | undefined, size: number = 64): string | null {
+  if (!url) return null;
+  if (url.includes('res.cloudinary.com') && url.includes('/upload/')) {
+    return url.replace('/upload/', `/upload/c_fill,w_${size},h_${size},g_face,q_auto,f_auto/`);
+  }
+  return url;
 }
 
 /**
@@ -156,6 +144,7 @@ export function ClassLeaderboard({
   variant = 'compact'
 }: ClassLeaderboardProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const [period, setPeriod] = useState<'WEEKLY' | 'MONTHLY' | 'SEMESTER' | 'ALL_TIME'>(initialPeriod);
   const [activeNavTab, setActiveNavTab] = useState<'monthly' | 'leaderboard' | 'badges'>('leaderboard');
   const [data, setData] = useState<any>(null);
@@ -456,9 +445,11 @@ export function ClassLeaderboard({
     return (a.name || '').localeCompare(b.name || '');
   });
 
-  // Assign distinct sequential ranks 1 to 67
+  // Preserve authoritative server ranks (fallback to sequential if missing)
   for (let i = 0; i < uniqueRankings.length; i++) {
-    uniqueRankings[i].rank = i + 1;
+    if (!uniqueRankings[i].rank || uniqueRankings[i].rank <= 0) {
+      uniqueRankings[i].rank = i + 1;
+    }
   }
 
   const currentLearnerEntry = uniqueRankings.find((r: any) => r.isCurrentUser);
@@ -470,7 +461,7 @@ export function ClassLeaderboard({
         ? currentLearnerEntry.earnedXp
         : (currentStudent?.earnedXp != null && currentStudent.earnedXp > 0
             ? currentStudent.earnedXp
-            : (currentStudent?.totalScore != null ? Math.round(Number(currentStudent.totalScore) * 10) : 0)));
+            : (currentStudent?.totalScore != null ? Number(currentStudent.totalScore) : 0)));
 
   const realCurrentStreak = checkInState?.streak?.currentStreak != null
     ? checkInState.streak.currentStreak
@@ -504,31 +495,41 @@ export function ClassLeaderboard({
       ? Number(r.earnedXp)
       : (r.totalScore != null ? Number(r.totalScore) : 0);
 
+    const resolvedPhoto = isYou && !r.profilePhotoUrl
+      ? ((user as any)?.profile?.profilePhotoUrl || null)
+      : (r.profilePhotoUrl || null);
+
     return {
       id: r.studentId,
       rank: r.rank,
       name: r.name,
-      initials: getInitials(r.name),
-      avatarBg: getAvatarBg(r.name),
       xpScore: scoreNum.toLocaleString(),
       isCurrentUser: isYou,
       completedAt: r.completedAt,
       streak: r.streak || 0,
       registerNo: r.registerNo,
+      profilePhotoUrl: resolvedPhoto,
     };
   });
 
   const displayPerformers = filteredRankings.slice(0, 5).map((r: any) => {
+    const isYou = r.isCurrentUser;
     const scoreNum = r.earnedXp != null && r.earnedXp > 0
       ? Number(r.earnedXp)
       : (r.totalScore != null ? Number(r.totalScore) : 0);
+
+    const resolvedPhoto = isYou && !r.profilePhotoUrl
+      ? ((user as any)?.profile?.profilePhotoUrl || null)
+      : (r.profilePhotoUrl || null);
+
     return {
       id: r.studentId,
       rank: r.rank,
       name: r.name,
       points: `${scoreNum.toLocaleString()} pts`,
-      isCurrentUser: r.isCurrentUser,
+      isCurrentUser: isYou,
       streak: r.streak || 0,
+      profilePhotoUrl: resolvedPhoto,
     };
   });
 
@@ -802,12 +803,19 @@ export function ClassLeaderboard({
                         {/* Learners Column */}
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
-                            <div
-                              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white text-xs font-bold shadow-2xs ${
-                                learner.avatarBg || 'bg-slate-700'
-                              }`}
-                            >
-                              {learner.initials}
+                            <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full overflow-hidden bg-slate-100 border border-slate-200/90 shadow-2xs">
+                              {learner.profilePhotoUrl ? (
+                                <img
+                                  src={getOptimizedAvatarUrl(learner.profilePhotoUrl, 64) || learner.profilePhotoUrl}
+                                  alt={learner.name}
+                                  loading="lazy"
+                                  decoding="async"
+                                  className="h-full w-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = 'none';
+                                  }}
+                                />
+                              ) : null}
                             </div>
                             <div className="min-w-0">
                               <span className="text-gray-900 font-bold text-xs truncate block">
@@ -1363,13 +1371,20 @@ export function ClassLeaderboard({
                           {/* 3D Coin Medal Badge matching Image 1 */}
                           <RankMedalBadge rank={performer.rank} size="md" />
 
-                          {/* Circular Avatar with Initial */}
-                          <div
-                            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white text-[11px] font-bold shadow-2xs ${getAvatarBg(
-                              performer.name
-                            )}`}
-                          >
-                            {getInitials(performer.name)}
+                          {/* Circular Avatar */}
+                          <div className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full overflow-hidden bg-slate-100 border border-slate-200/90 shadow-2xs">
+                            {performer.profilePhotoUrl ? (
+                              <img
+                                src={getOptimizedAvatarUrl(performer.profilePhotoUrl, 56) || performer.profilePhotoUrl}
+                                alt={performer.name}
+                                loading="lazy"
+                                decoding="async"
+                                className="h-full w-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.display = 'none';
+                                }}
+                              />
+                            ) : null}
                           </div>
 
                           {/* Student Name */}
@@ -1399,9 +1414,30 @@ export function ClassLeaderboard({
               <div className="rounded-xl border border-gray-100 bg-white p-3.5 space-y-1 shadow-2xs">
                 <span className="text-xs font-bold text-[#990024] block">Your Rank</span>
                 <div className="flex items-center justify-between">
-                  <span className="text-2xl sm:text-3xl font-black text-gray-900 leading-none">
-                    {currentStudent?.rank ? `#${currentStudent.rank}` : loading ? '...' : '#3'}
-                  </span>
+                  <div className="flex items-center gap-2.5">
+                    <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full overflow-hidden bg-slate-100 border border-slate-200/90 shadow-2xs">
+                      {(currentLearnerEntry?.profilePhotoUrl || (user as any)?.profile?.profilePhotoUrl) ? (
+                        <img
+                          src={
+                            getOptimizedAvatarUrl(
+                              currentLearnerEntry?.profilePhotoUrl || (user as any)?.profile?.profilePhotoUrl,
+                              64
+                            ) || (currentLearnerEntry?.profilePhotoUrl || (user as any)?.profile?.profilePhotoUrl)
+                          }
+                          alt="Your profile photo"
+                          loading="lazy"
+                          decoding="async"
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : null}
+                    </div>
+                    <span className="text-2xl sm:text-3xl font-black text-gray-900 leading-none">
+                      {currentStudent?.rank ? `#${currentStudent.rank}` : loading ? '...' : '#3'}
+                    </span>
+                  </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs sm:text-sm font-bold text-gray-800">
                       {currentStudent?.totalScore != null

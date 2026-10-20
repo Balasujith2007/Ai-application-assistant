@@ -10,12 +10,13 @@ const globalForPrisma = globalThis as unknown as {
 
 function getPool(): Pool {
   if (!globalForPrisma.pgPool) {
+    const maxConnections = parseInt(process.env.DB_POOL_MAX || '75', 10);
     const pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: { rejectUnauthorized: false },
-      max: 10,
-      idleTimeoutMillis: 15000,
-      connectionTimeoutMillis: 10000,
+      max: maxConnections,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 30000,
       keepAlive: true,
       keepAliveInitialDelayMillis: 10000,
     });

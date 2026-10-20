@@ -287,8 +287,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   aria-haspopup="menu"
                   aria-expanded={profileOpen}
                 >
-                  <div className={`h-8 w-8 rounded-full bg-rose-100 flex items-center justify-center text-[#990024] font-bold text-sm ring-2 transition-all ${profileOpen ? 'ring-kit-500' : 'ring-transparent group-hover:ring-kit-300'}`}>
-                    {user?.name?.charAt(0).toUpperCase() || 'B'}
+                  <div className={`relative h-8 w-8 rounded-full overflow-hidden bg-rose-100 flex items-center justify-center text-[#990024] font-bold text-sm ring-2 transition-all ${profileOpen ? 'ring-kit-500' : 'ring-transparent group-hover:ring-kit-300'}`}>
+                    {user?.profile?.profilePhotoUrl ? (
+                      <img
+                        src={user.profile.profilePhotoUrl}
+                        alt={user.name || 'User'}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      user?.name?.charAt(0).toUpperCase() || 'B'
+                    )}
                   </div>
                   <div className="hidden lg:flex lg:flex-col lg:items-start lg:justify-center text-left">
                     <span className="text-sm font-semibold text-gray-900 leading-tight group-hover:text-kit-700 transition-colors">
@@ -317,8 +325,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   >
                     {/* User Header */}
                     <div className="flex items-center gap-3 px-4 py-3.5 bg-gradient-to-br from-kit-50 via-white to-white border-b border-gray-100">
-                      <div className="h-9 w-9 shrink-0 rounded-full bg-kit-100 flex items-center justify-center text-kit-700 font-bold text-sm">
-                        {user?.name?.charAt(0).toUpperCase() || 'U'}
+                      <div className="relative h-9 w-9 shrink-0 rounded-full overflow-hidden bg-kit-100 flex items-center justify-center text-kit-700 font-bold text-sm">
+                        {user?.profile?.profilePhotoUrl ? (
+                          <img
+                            src={user.profile.profilePhotoUrl}
+                            alt={user.name || 'User'}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          user?.name?.charAt(0).toUpperCase() || 'U'
+                        )}
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-bold text-gray-900 truncate leading-tight">{user?.name}</p>

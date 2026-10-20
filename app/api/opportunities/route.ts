@@ -4,11 +4,29 @@ import prisma from '@/lib/prisma';
 import { getNormalizedDeadline } from '@/lib/utils';
 import { sendOpportunityNotification } from '@/lib/email/notification.service';
 
+const oppsCache = new Map<string, { data: any; expiresAt: number }>();
+const OPPS_CACHE_TTL_MS = 15000; // 15s TTL
+
+export function invalidateOpportunitiesCache() {
+  oppsCache.clear();
+}
+
 export async function GET(req: Request) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const type = searchParams.get('type') || 'ALL';
+    const filter = searchParams.get('filter') || 'all';
+
+    const cacheKey = `${userId}_${type}_${filter}`;
+    const now = Date.now();
+    const cached = oppsCache.get(cacheKey);
+    if (cached && cached.expiresAt > now) {
+      return NextResponse.json({ success: true, data: cached.data });
     }
 
     const user = await prisma.user.findUnique({
@@ -19,10 +37,6 @@ export async function GET(req: Request) {
     if (!user) {
       return NextResponse.json({ message: 'User not found' }, { status: 401 });
     }
-
-    const { searchParams } = new URL(req.url);
-    const type = searchParams.get('type');
-    const filter = searchParams.get('filter'); // my, published, draft, closed, all
 
     let whereClause: any = {};
 
@@ -160,6 +174,7 @@ export async function GET(req: Request) {
       };
     });
 
+    oppsCache.set(cacheKey, { data: formatted, expiresAt: Date.now() + OPPS_CACHE_TTL_MS });
     return NextResponse.json({ success: true, data: formatted });
   } catch (error) {
     console.error('Error fetching opportunities:', error);

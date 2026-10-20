@@ -11,10 +11,24 @@ async function getHOD(req: Request) {
   return user;
 }
 
+const hodCache = new Map<string, { data: any; expiresAt: number }>();
+const HOD_CACHE_TTL_MS = 30000; // 30s TTL
+
+export function invalidateHODCache() {
+  hodCache.clear();
+}
+
 export async function GET(req: Request) {
   try {
     const hod = await getHOD(req);
     if (!hod) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+
+    const cacheKey = hod.id;
+    const now = Date.now();
+    const cached = hodCache.get(cacheKey);
+    if (cached && cached.expiresAt > now) {
+      return NextResponse.json(cached.data);
+    }
 
     const hodUser = await prisma.user.findUnique({
       where: { id: hod.id },
@@ -133,7 +147,7 @@ export async function GET(req: Request) {
       else if (sg.section === 'B') sectionB = sg._count._all;
     }
 
-    return NextResponse.json({
+    const payload = {
       data: {
         totalStudents,
         totalMentors,
@@ -155,7 +169,10 @@ export async function GET(req: Request) {
           { section: 'Section B', total: sectionB },
         ],
       },
-    });
+    };
+
+    hodCache.set(cacheKey, { data: payload, expiresAt: Date.now() + HOD_CACHE_TTL_MS });
+    return NextResponse.json(payload);
   } catch (error) {
     console.error('HOD dashboard error:', error);
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });

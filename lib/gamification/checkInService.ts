@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import { XP_CONFIG } from './xpConfig';
 import { verificationLedger } from '../leaderboard/verificationLedger';
 import { badgeEngine } from './badgeEngine';
+import { invalidateLeaderboardCache } from '../leaderboard/scoringEngine';
 
 /**
  * Returns the current date in YYYY-MM-DD formatted according to the configured timezone.
@@ -65,11 +66,19 @@ export function getNextEligibleCheckIn(timeZone: string = XP_CONFIG.TIMEZONE): {
   };
 }
 
+const studentStatusCache = new Map<string, { status: any; expiresAt: number }>();
+
 export class CheckInService {
   /**
    * Retrieves the comprehensive daily check-in, streak, and XP status for an authenticated student.
    */
   async getStudentCheckInStatus(studentId: string) {
+    const now = Date.now();
+    const cached = studentStatusCache.get(studentId);
+    if (cached && cached.expiresAt > now) {
+      return cached.status;
+    }
+
     const todayStr = getFormattedDateInTz();
 
     // 1. Check if student has already checked in today via the dedicated DailyCheckIn table
@@ -157,7 +166,7 @@ export class CheckInService {
     const nextMilestone = Math.ceil((streakInfo.currentStreak + 1) / 7) * 7;
     const progressToNextMilestone = streakInfo.currentStreak % 7;
 
-    return {
+    const result = {
       success: true,
       studentId,
       checkedInToday: Boolean(todayCheckIn),
@@ -181,6 +190,9 @@ export class CheckInService {
         score: s.qualifyingScore,
       })),
     };
+
+    studentStatusCache.set(studentId, { status: result, expiresAt: Date.now() + 30000 });
+    return result;
   }
 
   /**
@@ -355,6 +367,7 @@ export class CheckInService {
 
     // 8. Trigger badge evaluation (e.g. 3-day starter, 7-day streak, etc.)
     await badgeEngine.evaluateAndAwardBadges(studentId);
+    invalidateLeaderboardCache();
 
     // 9. Fetch updated status
     const status = await this.getStudentCheckInStatus(studentId);
@@ -448,6 +461,7 @@ export class CheckInService {
 
     // Recalculate badges
     await badgeEngine.evaluateAndAwardBadges(studentId);
+    invalidateLeaderboardCache();
 
     return {
       success: true,
@@ -529,6 +543,8 @@ export class CheckInService {
         periodKey: 'ALL_TIME',
       },
     });
+
+    invalidateLeaderboardCache();
 
     return {
       success: true,

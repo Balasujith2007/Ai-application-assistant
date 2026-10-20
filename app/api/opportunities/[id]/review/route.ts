@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { sendRegistrationStatusWhatsApp } from '@/lib/whatsapp/whatsapp.service';
 import { verificationLedger } from '@/lib/leaderboard/verificationLedger';
 import { createNotification } from '@/lib/notifications/notificationService';
+import { XP_CONFIG } from '@/lib/gamification/xpConfig';
 
 export async function POST(
   req: Request,
@@ -179,7 +180,7 @@ export async function POST(
       const isIntern = oppType === 'INTERNSHIP' || oppType === 'JOB' || oppType === 'FULL_TIME';
 
       if (isHack || isIntern) {
-        await verificationLedger.recordActivity({
+        const activity = await verificationLedger.recordActivity({
           studentId: registration.studentId,
           sourceType: isHack ? 'HACKATHON' : 'INTERNSHIP',
           sourcePlatform: 'CAREERAI',
@@ -193,6 +194,16 @@ export async function POST(
           occurredAt: now,
           reviewerId: reviewer.id,
           rawMetadata: { title: opportunity?.title, reviewedBy: reviewer.name },
+        });
+
+        const pts = isHack ? 5 : XP_CONFIG.INTERNSHIP_APPLICATION_VERIFIED;
+        await verificationLedger.awardPoints({
+          studentId: registration.studentId,
+          verifiedActivityId: activity.id,
+          category: isHack ? 'HACKATHON' : 'INTERNSHIP',
+          pointsAwarded: pts,
+          reason: `Verified ${isHack ? 'Hackathon' : 'Internship'} by ${reviewer.name} (+${pts} XP)`,
+          periodKey: 'ALL_TIME',
         });
       }
 

@@ -19,10 +19,24 @@ async function getMentor(req: Request) {
   return user;
 }
 
+const mentorDashboardCache = new Map<string, { data: any; expiresAt: number }>();
+const MENTOR_DASHBOARD_CACHE_TTL_MS = 20000; // 20s TTL
+
+export function invalidateMentorDashboardCache(mentorId?: string) {
+  if (mentorId) mentorDashboardCache.delete(mentorId);
+  else mentorDashboardCache.clear();
+}
+
 export async function GET(req: Request) {
   try {
     const mentor = await getMentor(req);
     if (!mentor) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+
+    const nowTime = Date.now();
+    const cached = mentorDashboardCache.get(mentor.id);
+    if (cached && cached.expiresAt > nowTime) {
+      return NextResponse.json(cached.data);
+    }
 
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -51,10 +65,16 @@ export async function GET(req: Request) {
     let mentorNormYear = normalizeYear(rawYear);
     let mentorNormSec = normalizeSection(rawSec);
 
-    const allStudentsForStats = await prisma.user.findMany({
-      where: { role: 'STUDENT' },
-      select: { profile: { select: { department: true, year: true, section: true } } },
-    });
+    // High performance in-memory cache for all students stats
+    let allStudentsForStats = (globalThis as any)._mentorStatsCache;
+    if (!allStudentsForStats || (globalThis as any)._mentorStatsCacheExpires < nowTime) {
+      allStudentsForStats = await prisma.user.findMany({
+        where: { role: 'STUDENT' },
+        select: { profile: { select: { department: true, year: true, section: true } } },
+      });
+      (globalThis as any)._mentorStatsCache = allStudentsForStats;
+      (globalThis as any)._mentorStatsCacheExpires = nowTime + 60000;
+    }
 
     const normalizedStatsStudents = allStudentsForStats.map((s: any) => ({
       normDept: normalizeDepartment(s.profile?.department),
@@ -189,7 +209,7 @@ export async function GET(req: Request) {
       priority: !s.resumes.length ? 'High' : 'Medium',
     }));
 
-    return NextResponse.json({
+    const payload = {
       data: {
         stats: {
           assignedStudents: students.length,
@@ -221,7 +241,10 @@ export async function GET(req: Request) {
           createdAt: a.createdAt,
         })),
       },
-    });
+    };
+
+    mentorDashboardCache.set(mentor.id, { data: payload, expiresAt: Date.now() + MENTOR_DASHBOARD_CACHE_TTL_MS });
+    return NextResponse.json(payload);
   } catch (error) {
     console.error('Mentor dashboard error:', error);
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });

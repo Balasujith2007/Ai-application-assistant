@@ -68,11 +68,42 @@ export function getUserIdFromRequest(req: Request): string | null {
   return null;
 }
 
+// In-memory cache for fast RBAC resolution under high concurrency
+interface CacheEntry<T> {
+  value: T;
+  expiresAt: number;
+}
+
+const userCache = new Map<string, CacheEntry<any>>();
+const rolePermCache = new Map<string, CacheEntry<boolean>>();
+const featureCache = new Map<string, CacheEntry<any>>();
+
+export function invalidateAuthCache(userId?: string) {
+  if (userId) {
+    userCache.delete(userId);
+  } else {
+    userCache.clear();
+    rolePermCache.clear();
+    featureCache.clear();
+  }
+}
+
 export async function checkAuthAndPermission(req: Request, resource: string, action: string) {
   const userId = getUserIdFromRequest(req);
   if (!userId) return { allowed: false, status: 401, message: 'Unauthorized' };
 
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const now = Date.now();
+  let user: any = null;
+  const cachedUser = userCache.get(userId);
+  if (cachedUser && cachedUser.expiresAt > now) {
+    user = cachedUser.value;
+  } else {
+    user = await prisma.user.findUnique({ where: { id: userId } });
+    if (user) {
+      userCache.set(userId, { value: user, expiresAt: now + 30000 }); // 30s TTL
+    }
+  }
+
   if (!user) return { allowed: false, status: 401, message: 'Unauthorized' };
 
   // Deactivated users cannot perform any actions
@@ -86,17 +117,26 @@ export async function checkAuthAndPermission(req: Request, resource: string, act
   }
 
   // 1. Role validation - check if role is globally mapped to this feature / permission
-  const permission = await prisma.rolePermission.findUnique({
-    where: {
-      role_resource_action: {
-        role: user.role,
-        resource,
-        action,
+  const permKey = `${user.role}_${resource}_${action}`;
+  let isPermAllowed = false;
+  const cachedPerm = rolePermCache.get(permKey);
+  if (cachedPerm && cachedPerm.expiresAt > now) {
+    isPermAllowed = cachedPerm.value;
+  } else {
+    const permission = await prisma.rolePermission.findUnique({
+      where: {
+        role_resource_action: {
+          role: user.role,
+          resource,
+          action,
+        }
       }
-    }
-  });
+    });
+    isPermAllowed = Boolean(permission && permission.allowed);
+    rolePermCache.set(permKey, { value: isPermAllowed, expiresAt: now + 60000 }); // 60s TTL
+  }
 
-  if (!permission || !permission.allowed) {
+  if (!isPermAllowed) {
     return { allowed: false, status: 403, message: 'Forbidden' };
   }
 
@@ -119,7 +159,15 @@ export async function checkAuthAndPermission(req: Request, resource: string, act
 
   const featureName = featureMapping[resource];
   if (featureName) {
-    const feature = await prisma.appFeature.findUnique({ where: { name: featureName } });
+    let feature: any = null;
+    const cachedFeature = featureCache.get(featureName);
+    if (cachedFeature && cachedFeature.expiresAt > now) {
+      feature = cachedFeature.value;
+    } else {
+      feature = await prisma.appFeature.findUnique({ where: { name: featureName } });
+      featureCache.set(featureName, { value: feature, expiresAt: now + 60000 }); // 60s TTL
+    }
+
     if (feature) {
       if (!feature.enabled) {
         return { allowed: false, status: 403, message: `Feature ${featureName} is globally disabled` };

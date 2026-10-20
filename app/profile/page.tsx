@@ -46,6 +46,8 @@ import { useAuth } from '@/context/AuthContext';
 import type { Profile, Education, Project, Experience, Skill } from '@/types';
 import MentorProfilePage from '@/app/dashboard/mentor/profile/page';
 import HODProfilePage from '@/app/dashboard/hod/profile/page';
+import { StudentProfilePhotoManager } from '@/components/profile/StudentProfilePhotoManager';
+import { PersonalInfoPhotoSection } from '@/components/profile/PersonalInfoPhotoSection';
 
 function GithubIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -259,14 +261,16 @@ export default function ProfilePage() {
               {/* Avatar + Info Block */}
               <div className="flex flex-col sm:flex-row sm:items-start gap-5">
                 {/* Avatar protruding cleanly over the cover */}
-                <div className="relative -mt-14 sm:-mt-16 shrink-0 z-10 self-start">
-                  <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl bg-gradient-to-br from-kit-600 via-kit-700 to-kit-900 text-white font-black text-3xl sm:text-4xl shadow-lg flex items-center justify-center border-4 border-white ring-1 ring-slate-200/80">
-                    {user?.name?.charAt(0).toUpperCase() || 'S'}
-                  </div>
-                  <span className="absolute bottom-1 right-1 h-5 w-5 rounded-full border-2 border-white bg-emerald-500 ring-2 ring-emerald-400/30 flex items-center justify-center shadow-xs" title="Active Account">
-                    <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-                  </span>
-                </div>
+                <StudentProfilePhotoManager
+                  currentPhotoUrl={profile?.profilePhotoUrl || (user as any)?.profile?.profilePhotoUrl}
+                  studentName={user?.name}
+                  fallbackInitial={user?.name?.charAt(0).toUpperCase() || 'B'}
+                  onPhotoUpdated={(newUrl) => {
+                    setProfile((prev) => (prev ? { ...prev, profilePhotoUrl: newUrl } : null));
+                    if (refreshUser) refreshUser();
+                  }}
+                  className="-mt-14 sm:-mt-16 z-10 self-start"
+                />
 
                 {/* Name, Badges & Bio */}
                 <div className="space-y-2 pt-1 sm:pt-2">
@@ -457,7 +461,15 @@ export default function ProfilePage() {
           {/* Active Section Content Card */}
           <div className="flex-1 min-w-0">
             {activeSection === 'personal' && (
-              <PersonalSection profile={profile} onUpdate={fetchProfile} user={user} onRefreshUser={refreshUser} />
+              <PersonalSection
+                profile={profile}
+                onUpdate={fetchProfile}
+                user={user}
+                onRefreshUser={refreshUser}
+                onPhotoUpdated={(newUrl) => {
+                  setProfile((prev) => (prev ? { ...prev, profilePhotoUrl: newUrl } : null));
+                }}
+              />
             )}
             {activeSection === 'education' && (
               <EducationSection education={profile?.education ?? []} profile={profile} onUpdate={fetchProfile} />
@@ -504,11 +516,13 @@ function PersonalSection({
   onUpdate,
   user,
   onRefreshUser,
+  onPhotoUpdated,
 }: {
   profile: Profile | null;
   onUpdate: () => void;
   user: { name?: string; email?: string } | null;
   onRefreshUser?: () => Promise<void>;
+  onPhotoUpdated?: (newUrl: string | null) => void;
 }) {
   const initialNames = splitFullName(user?.name);
   const [form, setForm] = useState({
@@ -628,6 +642,20 @@ function PersonalSection({
           </span>
         )}
       </div>
+
+      {/* Profile Photo Management */}
+      <PersonalInfoPhotoSection
+        currentPhotoUrl={profile?.profilePhotoUrl || (user as any)?.profile?.profilePhotoUrl}
+        studentName={user?.name}
+        onPhotoUpdated={(newUrl) => {
+          if (onPhotoUpdated) onPhotoUpdated(newUrl);
+          if (onUpdate) onUpdate();
+          if (onRefreshUser) onRefreshUser();
+        }}
+      />
+
+      {/* Divider */}
+      <div className="border-t border-slate-200/80 my-2" />
 
       {/* Group 1: Contact & Core Identity */}
       <div className="space-y-4">

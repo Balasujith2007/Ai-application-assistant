@@ -207,6 +207,8 @@ model Profile {
   careerPreferences Json?
   employeeId       String?
   registerNo       String?  @unique
+  profilePhotoUrl  String?
+  photoPublicId    String?
 
   // Personal Information Extensions
   dob              String?
@@ -246,6 +248,8 @@ model Profile {
   experiences Experience[]
   skills      ProfileSkill[]
 
+  @@index([department, year, section])
+  @@index([department])
   @@map("profiles")
 }
 
@@ -1173,6 +1177,7 @@ model PointsLedger {
 
   @@unique([studentId, verifiedActivityId, periodKey], name: "studentId_verifiedActivityId_periodKey")
   @@index([studentId, category, periodKey])
+  @@index([studentId, createdAt])
   @@map("points_ledger")
 }
 

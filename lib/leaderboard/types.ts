@@ -50,7 +50,12 @@ export interface CategoryBreakdown {
     maxScore: number;
     percentage: number;
     activeWeeksCount: number;
+    activeDaysCount?: number;
     ratingDelta: number;
+  };
+  dailyCheckIn?: {
+    score: number;
+    checkInCount: number;
   };
 }
 
@@ -76,10 +81,11 @@ export interface LeaderboardStudentEntry {
   section: string;
   totalScore: number;
   categoryScores: {
-    coding: number;
+    coding?: number;
     hackathon: number;
     internship: number;
     consistency: number;
+    dailyCheckIn?: number;
   };
   badges: AchievementBadge[];
   isProvisional: boolean;
@@ -89,6 +95,7 @@ export interface LeaderboardStudentEntry {
   streak?: number;
   earnedXp?: number;
   registerNo?: string;
+  profilePhotoUrl?: string | null;
 }
 
 export interface ClassLeaderboardSummary {

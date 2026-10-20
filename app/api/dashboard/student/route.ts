@@ -3,15 +3,44 @@ import prisma from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
 import { getStudentOpportunityStatus } from '@/lib/opportunityUtils';
 
+interface CachedDashboard {
+  data: any;
+  expiresAt: number;
+}
+
+const dashboardCache = new Map<string, CachedDashboard>();
+const inFlightDashboardPromises = new Map<string, Promise<any>>();
+const DASHBOARD_CACHE_TTL_MS = 20000; // 20s TTL
+
+export function invalidateStudentDashboardCache(userId?: string) {
+  if (userId) {
+    dashboardCache.delete(userId);
+  } else {
+    dashboardCache.clear();
+  }
+}
+
 export async function GET(req: Request) {
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
-    const userPromise = prisma.user.findUnique({
-      where: { id: userId },
-      select: { name: true, email: true }
-    });
+    const now = Date.now();
+    const cached = dashboardCache.get(userId);
+    if (cached && cached.expiresAt > now) {
+      const response = NextResponse.json(cached.data);
+      response.headers.set('Cache-Control', 'private, s-maxage=10, stale-while-revalidate=60');
+      response.headers.set('X-Cache', 'HIT');
+      return response;
+    }
+
+    let computationPromise = inFlightDashboardPromises.get(userId);
+    if (!computationPromise) {
+      computationPromise = (async () => {
+        const userPromise = prisma.user.findUnique({
+          where: { id: userId },
+          select: { name: true, email: true }
+        });
 
     // Aggregate stats efficiently using groupBy to minimize round trips to DB
     const [
@@ -110,7 +139,7 @@ export async function GET(req: Request) {
       total: registrations.length
     };
 
-    const response = NextResponse.json({
+    const payload = {
       user: {
         name: user?.name || 'Student',
         email: user?.email || '',
@@ -122,9 +151,25 @@ export async function GET(req: Request) {
       profileCompletion: 85,
       resumeScore: 78,
       activities,
-    });
-    // Allow client to cache for 10s and revalidate in background for 60s
+    };
+
+    return payload;
+  })();
+
+  inFlightDashboardPromises.set(userId, computationPromise);
+}
+
+    let resultPayload: any;
+    try {
+      resultPayload = await computationPromise;
+      dashboardCache.set(userId, { data: resultPayload, expiresAt: Date.now() + DASHBOARD_CACHE_TTL_MS });
+    } finally {
+      inFlightDashboardPromises.delete(userId);
+    }
+
+    const response = NextResponse.json(resultPayload);
     response.headers.set('Cache-Control', 'private, s-maxage=10, stale-while-revalidate=60');
+    response.headers.set('X-Cache', 'MISS');
     return response;
   } catch (error) {
     console.error('Dashboard Error:', error);

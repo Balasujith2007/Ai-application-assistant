@@ -33,6 +33,8 @@ export interface AuthResponse {
 export interface Profile {
   id: string;
   userId: string;
+  profilePhotoUrl?: string | null;
+  photoPublicId?: string | null;
   phone?: string | null;
   department?: string | null;
   year?: number | null;
