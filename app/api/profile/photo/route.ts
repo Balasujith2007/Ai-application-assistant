@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import * as fs from 'fs';
+import * as path from 'path';
 import prisma from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
 import {
@@ -142,22 +144,39 @@ export async function POST(req: Request) {
       );
     }
 
-    // 9. Upload to Cloudinary with facial-detection cropping & optimization
+    // 9. Upload to Cloudinary with facial-detection cropping & optimization,
+    // with automatic local disk storage fallback if Cloudinary credentials lack write permissions
     let uploadResult: { secure_url: string; public_id: string };
     try {
       uploadResult = await uploadProfilePhotoToCloudinary(buffer, userId);
     } catch (uploadErr: any) {
-      console.error('Cloudinary upload failure:', uploadErr);
-      return NextResponse.json(
-        {
-          success: false,
-          error: uploadErr.message || 'Image upload failed. Please try again.',
-        },
-        { status: 502 }
-      );
+      console.warn('Cloudinary upload encountered an issue, falling back to local storage:', uploadErr?.message || uploadErr);
+      try {
+        const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'profile-photos');
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        const ext = magicValidation.format === 'jpeg' ? 'jpg' : (magicValidation.format || 'png');
+        const fileName = `student_${userId}_${Date.now()}.${ext}`;
+        const filePath = path.join(uploadDir, fileName);
+        fs.writeFileSync(filePath, buffer);
+        uploadResult = {
+          secure_url: `/uploads/profile-photos/${fileName}`,
+          public_id: `local_${fileName}`,
+        };
+      } catch (localErr: any) {
+        console.error('Local storage fallback also failed:', localErr);
+        return NextResponse.json(
+          {
+            success: false,
+            error: uploadErr.message || 'Image upload failed. Please try again.',
+          },
+          { status: 502 }
+        );
+      }
     }
 
-    // 9. Persist photo metadata to Database
+    // 10. Persist photo metadata to Database
     let updatedProfile;
     try {
       updatedProfile = await prisma.profile.update({
@@ -175,20 +194,38 @@ export async function POST(req: Request) {
         },
       });
     } catch (dbErr: any) {
-      console.error('Database update failed after Cloudinary upload. Cleaning up orphaned image:', dbErr);
-      // Clean up orphaned Cloudinary asset to avoid dangling files
-      await deleteProfilePhotoFromCloudinary(uploadResult.public_id);
+      console.error('Database update failed after upload. Cleaning up orphaned image:', dbErr);
+      // Clean up orphaned asset to avoid dangling files
+      if (uploadResult.public_id.startsWith('local_')) {
+        try {
+          const fileName = uploadResult.public_id.replace('local_', '');
+          const filePath = path.join(process.cwd(), 'public', 'uploads', 'profile-photos', fileName);
+          if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        } catch (_) {}
+      } else {
+        await deleteProfilePhotoFromCloudinary(uploadResult.public_id);
+      }
       return NextResponse.json(
         { success: false, error: 'Database error saving photo metadata. Please try again.' },
         { status: 500 }
       );
     }
 
-    // 10. Clean up previous Cloudinary asset ONLY after DB update is successfully committed
+    // 11. Clean up previous asset ONLY after DB update is successfully committed
     if (oldPublicId && oldPublicId !== uploadResult.public_id) {
-      deleteProfilePhotoFromCloudinary(oldPublicId).catch((cleanupErr) =>
-        console.warn('Background cleanup of old photo warning:', cleanupErr)
-      );
+      if (oldPublicId.startsWith('local_')) {
+        try {
+          const oldFileName = oldPublicId.replace('local_', '');
+          const oldPath = path.join(process.cwd(), 'public', 'uploads', 'profile-photos', oldFileName);
+          if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+        } catch (cleanupErr) {
+          console.warn('Background cleanup of old local photo warning:', cleanupErr);
+        }
+      } else {
+        deleteProfilePhotoFromCloudinary(oldPublicId).catch((cleanupErr) =>
+          console.warn('Background cleanup of old photo warning:', cleanupErr)
+        );
+      }
     }
 
     return NextResponse.json({
@@ -259,11 +296,21 @@ export async function DELETE(req: Request) {
       );
     }
 
-    // 2. Clean up Cloudinary asset after database update succeeds
+    // 2. Clean up asset after database update succeeds
     if (oldPublicId) {
-      deleteProfilePhotoFromCloudinary(oldPublicId).catch((err) =>
-        console.warn('Background deletion of removed photo warning:', err)
-      );
+      if (oldPublicId.startsWith('local_')) {
+        try {
+          const fileName = oldPublicId.replace('local_', '');
+          const filePath = path.join(process.cwd(), 'public', 'uploads', 'profile-photos', fileName);
+          if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        } catch (err) {
+          console.warn('Background deletion of local photo warning:', err);
+        }
+      } else {
+        deleteProfilePhotoFromCloudinary(oldPublicId).catch((err) =>
+          console.warn('Background deletion of removed photo warning:', err)
+        );
+      }
     }
 
     return NextResponse.json({
