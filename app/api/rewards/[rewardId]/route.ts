@@ -8,7 +8,7 @@ import prisma from '@/lib/prisma';
  */
 export async function GET(
   req: Request,
-  { params }: { params: { rewardId: string } }
+  { params }: { params: Promise<{ rewardId: string }> }
 ) {
   try {
     const userId = getUserIdFromRequest(req);
@@ -31,7 +31,7 @@ export async function GET(
       );
     }
 
-    const { rewardId } = params;
+    const { rewardId } = await params;
 
     const reward = await prisma.studentReward.findUnique({
       where: { id: rewardId },

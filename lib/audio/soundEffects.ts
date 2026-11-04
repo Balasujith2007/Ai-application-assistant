@@ -242,7 +242,7 @@ class SoundEngine {
 
     gainNode2.gain.setValueAtTime(0, ctx.currentTime);
     gainNode2.gain.linearRampToValueAtTime(this.volume * 0.3, ctx.currentTime + 0.1);
-    gainNode2.gponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+    gainNode2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
 
     oscillator2.start(ctx.currentTime);
     oscillator2.stop(ctx.currentTime + 0.3);

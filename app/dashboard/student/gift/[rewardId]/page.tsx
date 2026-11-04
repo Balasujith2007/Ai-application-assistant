@@ -3,18 +3,25 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Gift, X, Sparkles, CheckCircle2, Zap, Trophy, Award, Shield } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { soundEngine } from '@/lib/audio/soundEffects';
 
 type AnimationStage = 'falling' | 'landed' | 'countdown' | 'opening' | 'revealed' | 'claimed';
 
-export default function GiftRevealPage({ params }: { params: { rewardId: string } }) {
+export default function GiftRevealPage() {
   const router = useRouter();
+  const routeParams = useParams<{ rewardId: string }>();
+  const rewardId = routeParams?.rewardId as string;
   const [stage, setStage] = useState<AnimationStage>('falling');
   const [countdown, setCountdown] = useState(3);
   const [rewardData, setRewardData] = useState<any>(null);
   const [claiming, setClaiming] = useState(false);
   const [claimed, setClaimed] = useState(false);
+  const [claimResult, setClaimResult] = useState<{
+    xpAwarded?: number;
+    coinsAwarded?: number;
+    coinBalance?: number;
+  } | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
   useEffect(() => {
@@ -29,12 +36,19 @@ export default function GiftRevealPage({ params }: { params: { rewardId: string 
     }, 1500);
     
     return () => clearTimeout(landingTimer);
-  }, [params.rewardId]);
+  }, [rewardId]);
+
+  // Advance from the opening explosion animation to the reward reveal.
+  useEffect(() => {
+    if (stage !== 'opening') return;
+    const timer = setTimeout(() => setStage('revealed'), 1400);
+    return () => clearTimeout(timer);
+  }, [stage]);
 
   const fetchRewardData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/rewards/${params.rewardId}`, {
+      const res = await fetch(`/api/rewards/${rewardId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       const json = await res.json();
@@ -73,12 +87,17 @@ export default function GiftRevealPage({ params }: { params: { rewardId: string 
     setClaiming(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/rewards/${params.rewardId}/claim`, {
+      const res = await fetch(`/api/rewards/${rewardId}/claim`, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       const json = await res.json();
       if (json.success) {
+        setClaimResult({
+          xpAwarded: json.xpAwarded,
+          coinsAwarded: json.coinsAwarded,
+          coinBalance: json.coinBalance,
+        });
         setClaimed(true);
         setStage('claimed');
       }
@@ -430,9 +449,33 @@ export default function GiftRevealPage({ params }: { params: { rewardId: string 
             <h2 className="text-3xl font-black text-white mb-2">
               Reward Claimed!
             </h2>
-            <p className="text-purple-200 mb-8">
+            <p className="text-purple-200 mb-4">
               Your reward has been added to your account
             </p>
+
+            {claimResult && (
+              <div className="mb-6 space-y-2 rounded-2xl border border-white/20 bg-white/10 p-4 text-left">
+                {typeof claimResult.xpAwarded === 'number' && claimResult.xpAwarded > 0 && (
+                  <div className="flex items-center justify-between text-white">
+                    <span className="text-purple-200">XP added</span>
+                    <span className="font-bold">+{claimResult.xpAwarded}</span>
+                  </div>
+                )}
+                {typeof claimResult.coinsAwarded === 'number' && claimResult.coinsAwarded > 0 && (
+                  <div className="flex items-center justify-between text-white">
+                    <span className="text-purple-200">Coins added</span>
+                    <span className="font-bold">+{claimResult.coinsAwarded}</span>
+                  </div>
+                )}
+                {typeof claimResult.coinBalance === 'number' && (
+                  <div className="flex items-center justify-between border-t border-white/10 pt-2 text-white">
+                    <span className="text-purple-200">Coin balance</span>
+                    <span className="font-bold">{claimResult.coinBalance}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}

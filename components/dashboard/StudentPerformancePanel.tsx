@@ -671,6 +671,7 @@ export function StudentPerformancePanel() {
 
   const [achieveSummary, setAchieveSummary] = useState<AchievementSummary | null>(null);
   const [recentBadges, setRecentBadges] = useState<any[]>([]);
+  const [coinBalance, setCoinBalance] = useState<number>(0);
 
   const fetchCheckIn = useCallback(async () => {
     try {
@@ -714,11 +715,36 @@ export function StudentPerformancePanel() {
     }
   }, []);
 
+  const fetchCoinBalance = useCallback(async () => {
+    try {
+      const res = await fetch('/api/coins', { headers: getAuthHeader() });
+      const json = await res.json();
+      if (json.success && typeof json.balance === 'number') {
+        setCoinBalance(json.balance);
+      }
+    } catch {
+      /* silent */
+    }
+  }, []);
+
   useEffect(() => {
     fetchCheckIn();
     fetchLeaderboard();
     fetchAchievements();
-  }, [fetchCheckIn, fetchLeaderboard, fetchAchievements]);
+    fetchCoinBalance();
+  }, [fetchCheckIn, fetchLeaderboard, fetchAchievements, fetchCoinBalance]);
+
+  // Refresh the coin balance when the student returns to the dashboard
+  // (e.g. after claiming a gift that credits coins).
+  useEffect(() => {
+    const handleFocus = () => fetchCoinBalance();
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
+    };
+  }, [fetchCoinBalance]);
 
   const handleCheckIn = async () => {
     if (checkInLoading || checkIn?.checkedInToday) return;
@@ -784,6 +810,14 @@ export function StudentPerformancePanel() {
           <span className="text-sm leading-none shrink-0">🏆</span>
           <span className="text-xs sm:text-[13px] font-extrabold text-gray-900 tabular-nums">
             #{currentRank || 2}
+          </span>
+        </div>
+
+        {/* 4. Coins */}
+        <div className="flex items-center gap-1.5" title="Coin balance">
+          <span className="text-sm leading-none shrink-0">🪙</span>
+          <span className="text-xs sm:text-[13px] font-extrabold text-gray-900 tabular-nums">
+            {coinBalance.toLocaleString()}
           </span>
         </div>
       </div>

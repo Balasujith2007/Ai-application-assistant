@@ -79,7 +79,7 @@ export function MysteryGiftCard() {
   };
 
   const rarityClass = rarityColors[availableGift.rewardRarity as keyof typeof rarityColors] || rarityColors.COMMON;
-  const glowClass = rarityGlow[availableGift.rewardRarity as keyof typeof rarityGlow] || glowClass.COMMON;
+  const glowClass = rarityGlow[availableGift.rewardRarity as keyof typeof rarityGlow] || 'shadow-slate-200/50';
 
   // Champion-specific styling
   const isChampion = availableGift.championPosition && availableGift.championPosition <= 3;

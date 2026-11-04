@@ -66,6 +66,8 @@ const ICON_MAP: Record<string, any> = {
   'Auto-Fill Agent': Zap,
   'AI Features': Sparkles,
   'System Health': Activity,
+  'Reward Configuration': Settings,
+  'Gift Distribution': Trophy,
 };
 
 // Module-level sidebar cache: keyed by role, 5 min TTL

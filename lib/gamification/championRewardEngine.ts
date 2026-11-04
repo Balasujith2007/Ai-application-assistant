@@ -1,12 +1,15 @@
 import prisma from '@/lib/prisma';
+import type { RewardTriggerType } from '@prisma/client';
 import { REWARD_CONFIG } from './rewardConfig';
+import { getRewardConfig } from './rewardConfigService';
 import { getWeekKey, getEvaluationPeriod } from './rewardEngine';
-import { RewardType, RewardRarity, RewardTriggerType, RewardStatus } from '@prisma/client';
 import { scoringEngine } from '../leaderboard/scoringEngine';
 import { getAuthoritativeStudentClass } from '../leaderboard/accessControl';
 
-// Define PeriodType locally to avoid import issues
-type PeriodType = 'WEEKLY' | 'MONTHLY' | 'SEMESTER' | 'ALL_TIME';
+// String literal types matching schema enums.
+// Run `npx prisma generate` to restore @prisma/client imports once the client
+// has been regenerated after the reward-system migration.
+type RewardRarity = 'COMMON' | 'RARE' | 'EPIC' | 'LEGENDARY' | 'COMEBACK';
 
 /**
  * Top 3 Champion Exclusive Reward Engine
@@ -33,36 +36,30 @@ export class ChampionRewardEngine {
    * Identifies the top 3 students from the leaderboard for a given week
    */
   async identifyTopThreeStudents(weekKey: string): Promise<ChampionReward[]> {
-    const { startDate, endDate } = getEvaluationPeriod(weekKey);
     const champions: ChampionReward[] = [];
+
+    const config = await getRewardConfig();
+    const championConfig = config.championRewards;
 
     // Get all active students
     const students = await prisma.user.findMany({
-      where: {
-        role: 'STUDENT',
-        active: true,
-      },
+      where: { role: 'STUDENT', active: true },
       select: { id: true, name: true },
     });
 
-    // Calculate leaderboard for each student (using existing scoring engine)
-    const leaderboardEntries = [];
+    const leaderboardEntries: { studentId: string; studentName: string; totalScore: number; rank: number }[] = [];
 
     for (const student of students) {
       try {
         const { classIdentity } = await getAuthoritativeStudentClass(student.id);
-        
-        if (!classIdentity.isComplete) {
-          continue; // Skip students without complete profile
-        }
+        if (!classIdentity.isComplete) continue;
 
         const { rankings } = await scoringEngine.computeClassLeaderboard(
           classIdentity,
-          PeriodType.WEEKLY,
+          'WEEKLY',
           student.id
         );
 
-        // Find this student's rank
         const studentEntry = rankings.find((r) => r.studentId === student.id);
         if (studentEntry) {
           leaderboardEntries.push({
@@ -74,39 +71,34 @@ export class ChampionRewardEngine {
         }
       } catch (error) {
         console.error(`Error calculating leaderboard for student ${student.id}:`, error);
-        continue;
       }
     }
 
-    // Sort by total score (descending) and take top 3
+    // Sort by total score descending, take top 3
     leaderboardEntries.sort((a, b) => b.totalScore - a.totalScore);
     const topThree = leaderboardEntries.slice(0, 3);
 
-    // Map to champion rewards
     topThree.forEach((entry, index) => {
       const position = index + 1;
-      let rewardConfig;
-
-      if (position === 1) {
-        rewardConfig = REWARD_CONFIG.CHAMPION_FIRST_PLACE;
-      } else if (position === 2) {
-        rewardConfig = REWARD_CONFIG.CHAMPION_SECOND_PLACE;
-      } else {
-        rewardConfig = REWARD_CONFIG.CHAMPION_THIRD_PLACE;
-      }
+      const placeConfig =
+        position === 1
+          ? championConfig.first
+          : position === 2
+          ? championConfig.second
+          : championConfig.third;
 
       champions.push({
         position,
         studentId: entry.studentId,
         reward: {
-          xpAmount: rewardConfig.XP_AMOUNT,
-          coinAmount: rewardConfig.COIN_AMOUNT,
-          badgeId: rewardConfig.BADGE_ID,
-          badgeName: rewardConfig.BADGE_NAME,
-          badgeIcon: rewardConfig.BADGE_ICON,
-          profileFrameUrl: rewardConfig.PROFILE_FRAME_URL,
-          title: rewardConfig.TITLE,
-          rewardRarity: rewardConfig.REWARD_RARITY as RewardRarity,
+          xpAmount: placeConfig.xpAmount,
+          coinAmount: placeConfig.coinAmount,
+          badgeId: placeConfig.badgeId,
+          badgeName: placeConfig.badgeName,
+          badgeIcon: placeConfig.badgeIcon,
+          profileFrameUrl: placeConfig.profileFrameUrl,
+          title: placeConfig.title,
+          rewardRarity: placeConfig.rewardRarity as RewardRarity,
         },
       });
     });
@@ -122,13 +114,11 @@ export class ChampionRewardEngine {
     championsAllocated: number;
     details: any[];
   }> {
-    if (!REWARD_CONFIG.CHAMPION_REWARDS_ENABLED) {
+    if (!(await getRewardConfig()).championRewards.enabled) {
       return { success: true, championsAllocated: 0, details: [] };
     }
 
-    // Identify top 3 students
     const champions = await this.identifyTopThreeStudents(weekKey);
-
     if (champions.length === 0) {
       return { success: true, championsAllocated: 0, details: [] };
     }
@@ -138,36 +128,30 @@ export class ChampionRewardEngine {
 
     for (const champion of champions) {
       try {
-        // Check if already allocated champion reward for this week
+        const triggerType = this.getTriggerTypeForPosition(champion.position);
+
         const existing = await prisma.studentReward.findUnique({
           where: {
-            studentId_weekKey_trigger: {
+            StudentReward_studentId_weekKey_trigger_unique: {
               studentId: champion.studentId,
               evaluationWeekKey: weekKey,
-              triggerType: this.getTriggerTypeForPosition(champion.position),
+              triggerType,
             },
           },
         });
 
         if (existing) {
-          details.push({
-            position: champion.position,
-            studentId: champion.studentId,
-            status: 'already_allocated',
-          });
+          details.push({ position: champion.position, studentId: champion.studentId, status: 'already_allocated' });
           continue;
         }
-
-        // Create champion reward
-        const triggerType = this.getTriggerTypeForPosition(champion.position);
 
         const studentReward = await prisma.studentReward.create({
           data: {
             studentId: champion.studentId,
-            rewardType: RewardType.BONUS_XP, // Champion rewards include XP
+            rewardType: 'BONUS_XP',
             rewardRarity: champion.reward.rewardRarity,
             triggerType,
-            status: RewardStatus.ALLOCATED,
+            status: 'ALLOCATED',
             xpAmount: champion.reward.xpAmount,
             coinAmount: champion.reward.coinAmount,
             badgeId: champion.reward.badgeId,
@@ -184,122 +168,64 @@ export class ChampionRewardEngine {
         });
 
         championsAllocated++;
-        details.push({
-          position: champion.position,
-          studentId: champion.studentId,
-          rewardId: studentReward.id,
-          status: 'allocated',
-        });
+        details.push({ position: champion.position, studentId: champion.studentId, rewardId: studentReward.id, status: 'allocated' });
       } catch (error: any) {
         console.error(`Error allocating champion reward for position ${champion.position}:`, error);
-        details.push({
-          position: champion.position,
-          studentId: champion.studentId,
-          status: 'failed',
-          error: error?.message,
-        });
+        details.push({ position: champion.position, studentId: champion.studentId, status: 'failed', error: error?.message });
       }
     }
 
-    return {
-      success: true,
-      championsAllocated,
-      details,
-    };
+    return { success: true, championsAllocated, details };
   }
 
-  /**
-   * Gets the trigger type for a champion position
-   */
   private getTriggerTypeForPosition(position: number): RewardTriggerType {
     switch (position) {
-      case 1:
-        return RewardTriggerType.CHAMPION_FIRST_PLACE;
-      case 2:
-        return RewardTriggerType.CHAMPION_SECOND_PLACE;
-      case 3:
-        return RewardTriggerType.CHAMPION_THIRD_PLACE;
-      default:
-        throw new Error(`Invalid champion position: ${position}`);
+      case 1: return 'CHAMPION_FIRST_PLACE';
+      case 2: return 'CHAMPION_SECOND_PLACE';
+      case 3: return 'CHAMPION_THIRD_PLACE';
+      default: throw new Error(`Invalid champion position: ${position}`);
     }
   }
 
-  /**
-   * Gets the position label (First Place, Second Place, etc.)
-   */
   private getPositionLabel(position: number): string {
     switch (position) {
-      case 1:
-        return 'First Place';
-      case 2:
-        return 'Second Place';
-      case 3:
-        return 'Third Place';
-      default:
-        return `${position}th Place`;
+      case 1: return 'First Place';
+      case 2: return 'Second Place';
+      case 3: return 'Third Place';
+      default: return `${position}th Place`;
     }
   }
 
-  /**
-   * Generates a personalized champion message
-   */
   private generateChampionMessage(position: number): string {
     switch (position) {
-      case 1:
-        return '🏆 INCREDIBLE! You are the CHAMPION of the week!';
-      case 2:
-        return '🥈 Outstanding! You achieved Second Place!';
-      case 3:
-        return '🥉 Excellent! You are a Rising Champion!';
-      default:
-        return 'Amazing performance!';
+      case 1: return '🏆 INCREDIBLE! You are the CHAMPION of the week!';
+      case 2: return '🥈 Outstanding! You achieved Second Place!';
+      case 3: return '🥉 Excellent! You are a Rising Champion!';
+      default: return 'Amazing performance!';
     }
   }
 
-  /**
-   * Checks if a student is a champion for a given week
-   */
-  async isStudentChampion(studentId: string, weekKey: string): Promise<{
-    isChampion: boolean;
-    position?: number;
-  }> {
+  async isStudentChampion(studentId: string, weekKey: string): Promise<{ isChampion: boolean; position?: number }> {
     const championReward = await prisma.studentReward.findFirst({
       where: {
         studentId,
         evaluationWeekKey: weekKey,
         triggerType: {
-          in: [
-            RewardTriggerType.CHAMPION_FIRST_PLACE,
-            RewardTriggerType.CHAMPION_SECOND_PLACE,
-            RewardTriggerType.CHAMPION_THIRD_PLACE,
-          ],
+          in: ['CHAMPION_FIRST_PLACE', 'CHAMPION_SECOND_PLACE', 'CHAMPION_THIRD_PLACE'],
         },
       },
     });
 
-    if (!championReward) {
-      return { isChampion: false };
-    }
-
-    return {
-      isChampion: true,
-      position: championReward.championPosition || 0,
-    };
+    if (!championReward) return { isChampion: false };
+    return { isChampion: true, position: championReward.championPosition || 0 };
   }
 
-  /**
-   * Gets champion history for a student
-   */
   async getChampionHistory(studentId: string) {
-    return await prisma.studentReward.findMany({
+    return prisma.studentReward.findMany({
       where: {
         studentId,
         triggerType: {
-          in: [
-            RewardTriggerType.CHAMPION_FIRST_PLACE,
-            RewardTriggerType.CHAMPION_SECOND_PLACE,
-            RewardTriggerType.CHAMPION_THIRD_PLACE,
-          ],
+          in: ['CHAMPION_FIRST_PLACE', 'CHAMPION_SECOND_PLACE', 'CHAMPION_THIRD_PLACE'],
         },
       },
       orderBy: { allocatedAt: 'desc' },

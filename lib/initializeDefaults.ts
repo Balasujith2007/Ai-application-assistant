@@ -46,8 +46,10 @@ export const CANONICAL_SIDEBARS: Record<Role, Array<{ title: string; path: strin
     { title: 'Registrations', path: '/dashboard/super-admin/registrations', order: 6, enabled: true },
     { title: 'Auto-Fill Agent', path: '/dashboard/super-admin/auto-fill-agent', order: 7, enabled: true },
     { title: 'AI Features', path: '/dashboard/super-admin/ai-features', order: 8, enabled: true },
-    { title: 'Audit Logs', path: '/dashboard/super-admin/audit-logs', order: 9, enabled: true },
-    { title: 'System Health', path: '/dashboard/super-admin/system-health', order: 10, enabled: true },
+    { title: 'Reward Configuration', path: '/dashboard/super-admin/gamification/reward-configuration', order: 9, enabled: true },
+    { title: 'Gift Distribution', path: '/dashboard/super-admin/gamification/distribution', order: 10, enabled: true },
+    { title: 'Audit Logs', path: '/dashboard/super-admin/audit-logs', order: 11, enabled: true },
+    { title: 'System Health', path: '/dashboard/super-admin/system-health', order: 12, enabled: true },
   ],
   FACULTY: [],
   PLACEMENT_CELL: [],
@@ -165,13 +167,29 @@ export async function ensureRoleSidebarDefaults(role: Role) {
   }
 
   const count = await prisma.roleSidebarItem.count({ where: { role } });
+  const defaults = CANONICAL_SIDEBARS[role] || [];
+
   if (count > 0) {
-    // Mark as initialized — DB already has data, no need to seed
+    // Sidebar already seeded. Additively create any canonical items that were
+    // introduced later (e.g. new admin modules) without touching existing rows,
+    // so admins keep any custom ordering/visibility they have configured.
+    if (defaults.length > 0) {
+      const existing = await prisma.roleSidebarItem.findMany({
+        where: { role },
+        select: { title: true },
+      });
+      const existingTitles = new Set(existing.map((i) => i.title));
+      for (const item of defaults) {
+        if (existingTitles.has(item.title)) continue;
+        await prisma.roleSidebarItem.create({
+          data: { role, title: item.title, path: item.path, order: item.order, enabled: item.enabled },
+        });
+      }
+    }
     initializedRoles.add(role);
     return;
   }
 
-  const defaults = CANONICAL_SIDEBARS[role] || [];
   if (defaults.length === 0) {
     initializedRoles.add(role);
     return;

@@ -154,6 +154,8 @@ model User {
   weeklyPerformanceSnapshots WeeklyPerformanceSnapshot[]
   streakRescueTokens     StreakRescueToken[]
   leaderboardBoostTokens LeaderboardBoostToken[]
+  coinBalance            StudentCoinBalance?
+  coinTransactions       CoinTransaction[]
 
   // Mentor-Student relationship
   mentorId      String?
@@ -1470,7 +1472,7 @@ model WeeklyPerformanceSnapshot {
 
 model WeeklyRewardAllocation {
   id                String           @id @default(cuid())
-  weekKey           String           // e.g. "2026-W44"
+  weekKey           String           @unique // e.g. "2026-W44"
   evaluationStart   DateTime
   evaluationEnd     DateTime
   distributionDate  DateTime
@@ -1491,7 +1493,6 @@ model WeeklyRewardAllocation {
   completedAt       DateTime?
   errorLog          Json?
   
-  @@unique([weekKey], name: "WeeklyRewardAllocation_weekKey_unique")
   @@index([distributionDate])
   @@index([status])
   @@map("weekly_reward_allocations")
@@ -1545,4 +1546,64 @@ model RewardConfiguration {
   createdAt         DateTime         @default(now())
   
   @@map("reward_configurations")
+}
+
+// ============================================================
+// COINS LEDGER
+// ============================================================
+
+enum CoinTransactionType {
+  REWARD_CREDIT
+  ADMIN_ADJUSTMENT
+  REWARD_DEBIT
+  REFUND
+  BONUS
+}
+
+model StudentCoinBalance {
+  id        String   @id @default(cuid())
+  studentId String   @unique
+  balance   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student User @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@map("student_coin_balances")
+}
+
+model CoinTransaction {
+  id              String              @id @default(cuid())
+  studentId       String
+  amount          Int
+  transactionType CoinTransactionType
+  reason          String
+  referenceId     String?
+  idempotencyKey  String              @unique
+  previousBalance Int
+  newBalance      Int
+  createdAt       DateTime            @default(now())
+
+  student User @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, createdAt])
+  @@index([studentId, transactionType])
+  @@map("coin_transactions")
+}
+
+// ============================================================
+// REWARD CONFIGURATION AUDIT HISTORY
+// ============================================================
+
+model RewardConfigurationAudit {
+  id            String   @id @default(cuid())
+  key           String
+  previousValue Json?
+  newValue      Json
+  changedById   String?
+  createdAt     DateTime @default(now())
+
+  @@index([key, createdAt])
+  @@map("reward_configuration_audits")
 }

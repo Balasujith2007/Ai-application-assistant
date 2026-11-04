@@ -9,7 +9,7 @@ import prisma from '@/lib/prisma';
  */
 export async function POST(
   req: Request,
-  { params }: { params: { rewardId: string } }
+  { params }: { params: Promise<{ rewardId: string }> }
 ) {
   try {
     const userId = getUserIdFromRequest(req);
@@ -32,7 +32,7 @@ export async function POST(
       );
     }
 
-    const { rewardId } = params;
+    const { rewardId } = await params;
 
     // Claim the reward
     const result = await rewardEngine.claimReward(userId, rewardId);
