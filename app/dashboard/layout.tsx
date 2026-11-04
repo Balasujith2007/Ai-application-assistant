@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { getCleanProfilePhotoUrl } from '@/lib/avatar';
 import {
   LayoutDashboard,
   Users,
@@ -78,9 +79,34 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mainLinks, setMainLinks] = useState<any[]>([]);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const closeProfile = useCallback(() => setProfileOpen(false), []);
+
+  const filteredLinks = useMemo(
+    () =>
+      mainLinks.filter(
+        (link) =>
+          link.title !== 'Notifications' &&
+          link.title !== 'Settings' &&
+          link.path !== '/dashboard/notifications' &&
+          link.path !== '/dashboard/settings'
+      ),
+    [mainLinks]
+  );
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   useEffect(() => {
     if (!profileOpen) return;
@@ -186,63 +212,225 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         )}
       </AnimatePresence>
 
-      {/* Sidebar */}
-      <motion.aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] flex-col border-r border-gray-200 bg-white transition-transform duration-300 lg:static lg:flex lg:h-full lg:w-72 lg:max-w-none lg:shrink-0 lg:translate-x-0 ${
-          sidebarOpen ? 'translate-x-0 flex' : '-translate-x-full hidden'
-        }`}
+      {/* Desktop rail placeholder: 76px reserved so main content never sits under the fixed sidebar */}
+      <div
+        className="hidden lg:block shrink-0 pointer-events-none"
+        style={{ width: '76px', minWidth: '76px', maxWidth: '76px', flexBasis: '76px' }}
+        aria-hidden="true"
+      />
+
+      {/* Desktop Hover-Expandable Sidebar Overlay (Expands over content without pushing layout) */}
+      <aside
+        onMouseEnter={() => setIsSidebarHovered(true)}
+        onMouseLeave={() => setIsSidebarHovered(false)}
+        onFocusCapture={() => setIsSidebarHovered(true)}
+        onBlurCapture={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget)) {
+            setIsSidebarHovered(false);
+          }
+        }}
+        style={{
+          width: isSidebarHovered ? '260px' : '76px',
+          boxShadow: isSidebarHovered
+            ? '4px 0 32px -4px rgba(0,0,0,0.13), 2px 0 8px -2px rgba(0,0,0,0.07)'
+            : 'none',
+          transition: 'width 220ms cubic-bezier(0.4,0,0.2,1), box-shadow 220ms cubic-bezier(0.4,0,0.2,1)',
+          willChange: 'width',
+        }}
+        className="hidden lg:flex fixed inset-y-0 left-0 z-40 flex-col bg-white border-r border-gray-200/90 overflow-hidden select-none"
+        aria-label="Main sidebar navigation"
       >
-        <div className="flex h-16 shrink-0 items-center justify-between px-6 border-b border-gray-100">
-          <Link href="/" className="flex items-center gap-2">
-            <img src="/kit-logo.png" alt="KIT Logo" className="h-8 w-8 object-contain" />
-            <span className="text-xl font-bold text-gray-900 tracking-tight">CareerAI</span>
+        {/* Logo Header — 40px icon centered in 76px rail (18px + 20px = 38px) */}
+        <div className="flex h-16 shrink-0 items-center border-b border-gray-100 overflow-hidden" style={{ paddingLeft: '18px', paddingRight: '18px' }}>
+          <Link href="/" className="flex items-center min-w-0" aria-label="CareerAI Home">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center">
+              <img
+                src="/kit-logo.png"
+                alt="KIT CareerAI Logo"
+                className="h-8 w-8 object-contain shrink-0"
+              />
+            </div>
+            <span
+              className={`text-xl font-bold text-gray-900 tracking-tight whitespace-nowrap transition-all duration-200 ${
+                isSidebarHovered
+                  ? 'opacity-100 max-w-[160px] ml-2.5 font-bold'
+                  : 'opacity-0 max-w-0 ml-0 overflow-hidden pointer-events-none'
+              }`}
+              aria-hidden={!isSidebarHovered}
+            >
+              CareerAI
+            </span>
           </Link>
-          <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-gray-500 hover:text-gray-900">
-            <X className="h-6 w-6" />
-          </button>
         </div>
 
-        <div className="flex flex-1 flex-col overflow-y-auto px-4 py-6">
-          <div className="space-y-1 mb-8">
-            <p className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Main Menu</p>
-            {mainLinks
-              .filter((link) => link.title !== 'Notifications' && link.title !== 'Settings' && link.path !== '/dashboard/notifications' && link.path !== '/dashboard/settings')
-              .map((link) => {
-              const isActive = pathname === link.path;
+        {/* Links List — icons share the same 38px center line as the logo */}
+        <div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden py-3" style={{ paddingLeft: '18px', paddingRight: '18px' }}>
+          <div className="space-y-1.5 mb-4">
+            <p
+              className={`px-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap transition-all duration-200 ${
+                isSidebarHovered
+                  ? 'opacity-100 mb-2 h-auto'
+                  : 'opacity-0 mb-0 h-0 overflow-hidden pointer-events-none'
+              }`}
+            >
+              Main Menu
+            </p>
+            {filteredLinks.map((link) => {
+              const linkBase = String(link.path || '').split('?')[0];
+              const isOverviewRoot = linkBase === '/dashboard/student' || linkBase === '/dashboard';
+              const isActive = isOverviewRoot
+                ? pathname === linkBase
+                : pathname === linkBase || pathname.startsWith(`${linkBase}/`);
               const LinkIcon = ICON_MAP[link.title] || FileText;
               return (
-                <Link
-                  key={link.title}
-                  href={link.path}
-                  className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                    isActive
-                      ? 'bg-kit-100 text-kit-700'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                >
-                  <LinkIcon className={`h-5 w-5 shrink-0 ${isActive ? 'text-kit-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
-                  {link.title}
-                </Link>
+                <div key={link.title} className="relative group/navitem">
+                  {isActive && (
+                    <span
+                      className="absolute -left-[10px] top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-full bg-[#990024]"
+                      aria-hidden="true"
+                    />
+                  )}
+                  <Link
+                    href={link.path}
+                    className={`flex items-center rounded-xl text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-[#990024]/10 text-[#990024] font-semibold'
+                        : 'text-gray-600 hover:bg-gray-100/80 hover:text-gray-900'
+                    }`}
+                    aria-current={isActive ? 'page' : undefined}
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center">
+                      <LinkIcon
+                        className={`h-5 w-5 shrink-0 transition-colors ${
+                          isActive ? 'text-[#990024]' : 'text-gray-500 group-hover/navitem:text-gray-800'
+                        }`}
+                      />
+                    </div>
+                    <span
+                      className={`whitespace-nowrap transition-all duration-200 ${
+                        isSidebarHovered
+                          ? 'opacity-100 max-w-[180px] ml-2 font-semibold'
+                          : 'opacity-0 max-w-0 ml-0 overflow-hidden pointer-events-none'
+                      }`}
+                    >
+                      {link.title}
+                    </span>
+                  </Link>
+
+                  {/* Tooltip on individual item hover when collapsed */}
+                  {!isSidebarHovered && (
+                    <div className="pointer-events-none absolute left-[70px] top-1/2 -translate-y-1/2 z-50 hidden rounded-md bg-slate-900 px-2.5 py-1 text-xs font-semibold text-white shadow-lg group-hover/navitem:block whitespace-nowrap">
+                      {link.title}
+                      <div className="absolute -left-1 top-1/2 -translate-y-1/2 border-y-4 border-y-transparent border-r-4 border-r-slate-900" />
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
 
-          <div className="mt-auto pt-4 border-t border-gray-100 shrink-0">
-            <button
-              onClick={logout}
-              className="w-full group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 transition-all duration-200 hover:bg-red-50"
-            >
-              <LogOut className="h-5 w-5 shrink-0 text-red-500" />
-              Logout
-            </button>
+          {/* Logout Action */}
+          <div className="mt-auto pt-3 border-t border-gray-100 shrink-0">
+            <div className="relative group/logout">
+              <button
+                onClick={logout}
+                className="w-full flex items-center rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center">
+                  <LogOut className="h-5 w-5 shrink-0 text-red-500" />
+                </div>
+                <span
+                  className={`whitespace-nowrap transition-all duration-200 ${
+                    isSidebarHovered
+                      ? 'opacity-100 max-w-[180px] ml-2 font-semibold'
+                      : 'opacity-0 max-w-0 ml-0 overflow-hidden pointer-events-none'
+                  }`}
+                >
+                  Logout
+                </span>
+              </button>
+
+              {/* Tooltip on hover when collapsed */}
+              {!isSidebarHovered && (
+                <div className="pointer-events-none absolute left-[70px] top-1/2 -translate-y-1/2 z-50 hidden rounded-md bg-slate-900 px-2.5 py-1 text-xs font-semibold text-white shadow-lg group-hover/logout:block whitespace-nowrap">
+                  Logout
+                  <div className="absolute -left-1 top-1/2 -translate-y-1/2 border-y-4 border-y-transparent border-r-4 border-r-slate-900" />
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </motion.aside>
+      </aside>
+
+      {/* Mobile Drawer (Visible when burger menu tapped on mobile/touch) */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.aside
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+            className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] flex flex-col border-r border-gray-200 bg-white shadow-2xl lg:hidden"
+          >
+            <div className="flex h-16 shrink-0 items-center justify-between px-6 border-b border-gray-100">
+              <Link href="/" onClick={() => setSidebarOpen(false)} className="flex items-center gap-2">
+                <img src="/kit-logo.png" alt="KIT Logo" className="h-8 w-8 object-contain" />
+                <span className="text-xl font-bold text-gray-900 tracking-tight">CareerAI</span>
+              </Link>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                aria-label="Close menu"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="flex flex-1 flex-col overflow-y-auto px-4 py-6">
+              <div className="space-y-1 mb-8">
+                <p className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Main Menu</p>
+                {filteredLinks.map((link) => {
+                  const isActive = pathname === link.path;
+                  const LinkIcon = ICON_MAP[link.title] || FileText;
+                  return (
+                    <Link
+                      key={link.title}
+                      href={link.path}
+                      onClick={() => setSidebarOpen(false)}
+                      className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                        isActive
+                          ? 'bg-[#990024]/10 text-[#990024] font-semibold'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      }`}
+                    >
+                      <LinkIcon className={`h-5 w-5 shrink-0 ${isActive ? 'text-[#990024]' : 'text-gray-400 group-hover:text-gray-600'}`} />
+                      {link.title}
+                    </Link>
+                  );
+                })}
+              </div>
+
+              <div className="mt-auto pt-4 border-t border-gray-100 shrink-0">
+                <button
+                  onClick={() => {
+                    setSidebarOpen(false);
+                    logout();
+                  }}
+                  className="w-full group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 transition-all duration-200 hover:bg-red-50"
+                >
+                  <LogOut className="h-5 w-5 shrink-0 text-red-500" />
+                  Logout
+                </button>
+              </div>
+            </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
 
       {/* Main Content Area */}
       <div className="flex flex-1 flex-col min-w-0 h-full overflow-hidden">
         {/* Top Navbar */}
-        <header className="z-30 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white/95 backdrop-blur-md px-4 sm:gap-x-6 sm:px-6 lg:px-8">
+        <header className="z-30 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white/95 backdrop-blur-md px-4 sm:gap-x-6 sm:px-6 lg:px-7">
           <button
             onClick={() => setSidebarOpen(true)}
             className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
@@ -252,22 +440,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
 
           <div className="flex flex-1 items-center gap-x-4 self-stretch lg:gap-x-6 min-w-0">
-            <form className="flex flex-1 min-w-0" action="#" method="GET">
+            <form className="flex flex-1 items-center min-w-0" action="#" method="GET">
               <label htmlFor="search-field" className="sr-only">
                 Search
               </label>
-              <div className="relative w-full max-w-md">
+              <div className="relative flex items-center w-full max-w-md">
                 <Search
-                  className="absolute inset-y-0 left-0 h-full w-5 text-gray-400 pointer-events-none"
+                  className="absolute left-3.5 h-4 w-4 text-gray-400 pointer-events-none"
                   aria-hidden="true"
                 />
                 <input
+                  ref={searchInputRef}
                   id="search-field"
-                  className="block h-full w-full border-0 bg-transparent py-0 pl-8 pr-0 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm truncate"
-                  placeholder="Search students, companies, tasks..."
+                  className="h-10 w-full rounded-xl border border-gray-200/90 bg-gray-50/80 pl-10 pr-12 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#990024]/40 focus:bg-white focus:ring-2 focus:ring-[#990024]/10 focus:outline-none transition-all shadow-2xs"
+                  placeholder="Search opportunities, skills, tasks..."
                   type="search"
                   name="search"
                 />
+                <div className="absolute right-3 hidden sm:flex items-center pointer-events-none">
+                  <kbd className="rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-gray-400 shadow-2xs">
+                    ⌘K
+                  </kbd>
+                </div>
               </div>
             </form>
             
@@ -290,9 +484,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <div className={`relative h-8 w-8 rounded-full overflow-hidden bg-rose-100 flex items-center justify-center text-[#990024] font-bold text-sm ring-2 transition-all ${profileOpen ? 'ring-kit-500' : 'ring-transparent group-hover:ring-kit-300'}`}>
                     {user?.profile?.profilePhotoUrl ? (
                       <img
-                        src={user.profile.profilePhotoUrl}
+                        src={getCleanProfilePhotoUrl(user.profile.profilePhotoUrl, 160)!}
                         alt={user.name || 'User'}
                         className="h-full w-full object-cover"
+                        style={{ objectFit: 'cover', objectPosition: 'center 20%' }}
                       />
                     ) : (
                       user?.name?.charAt(0).toUpperCase() || 'B'
@@ -328,9 +523,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       <div className="relative h-9 w-9 shrink-0 rounded-full overflow-hidden bg-kit-100 flex items-center justify-center text-kit-700 font-bold text-sm">
                         {user?.profile?.profilePhotoUrl ? (
                           <img
-                            src={user.profile.profilePhotoUrl}
+                            src={getCleanProfilePhotoUrl(user.profile.profilePhotoUrl, 160)!}
                             alt={user.name || 'User'}
                             className="h-full w-full object-cover"
+                            style={{ objectFit: 'cover', objectPosition: 'center 20%' }}
                           />
                         ) : (
                           user?.name?.charAt(0).toUpperCase() || 'U'
@@ -402,8 +598,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden py-8 focus:outline-none">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden py-5 focus:outline-none">
+          <div className="mx-auto max-w-[1600px] px-4 sm:px-5 lg:px-6">
             {children}
           </div>
         </main>

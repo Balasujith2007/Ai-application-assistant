@@ -200,6 +200,22 @@ export default function ProfilePage() {
     { id: 'social', label: 'Social Links', icon: LinkIcon, count: verifiedList.length || [profile?.githubUrl, profile?.linkedinUrl, (profile as any)?.codolioUrl, (profile as any)?.codechefUrl, (profile as any)?.leetcodeUrl, profile?.portfolioUrl].filter(Boolean).length || null, isDone: Boolean(verifiedList.length > 0 || profile?.githubUrl || profile?.linkedinUrl || (profile as any)?.codolioUrl || (profile as any)?.codechefUrl || (profile as any)?.leetcodeUrl || profile?.portfolioUrl) },
   ];
 
+  const isProfileVerified = Boolean(
+    (profile as any)?.isVerified ||
+    (verifiedList && verifiedList.some((v: any) => v.verificationStatus === 'VERIFIED'))
+  );
+
+  const isPlacementVerified = Boolean(
+    (profile as any)?.placementVerified ||
+    (completionStats.score >= 80 && profile?.phone && profile?.department && profile?.college)
+  );
+
+  const isResumeSynced = Boolean(
+    (profile as any)?.resumeSynced ||
+    (profile as any)?.resumes?.length > 0 ||
+    Boolean(profile?.githubUrl || profile?.linkedinUrl || verifiedList.length > 0)
+  );
+
   return (
     <div className="min-h-screen bg-slate-50/60 pb-16 pt-6 font-sans text-slate-800">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
@@ -225,42 +241,63 @@ export default function ProfilePage() {
         </div>
 
         {/* Executive Hero Banner Card */}
-        <div className="overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-xs">
-          {/* Top Decorative CareerAI Signature Cover */}
-          <div className="h-36 sm:h-40 w-full bg-gradient-to-r from-kit-900 via-kit-700 to-rose-900 relative overflow-hidden">
-            {/* Multi-layered Warm Ambient Glows */}
-            <div className="absolute -left-10 -top-10 h-64 w-96 rounded-full bg-kit-500/30 blur-3xl" />
-            <div className="absolute right-0 top-0 h-64 w-96 rounded-full bg-rose-500/25 blur-3xl" />
-            <div className="absolute left-1/2 bottom-0 h-40 w-80 rounded-full bg-amber-400/15 blur-2xl" />
+        <div className="overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-sm">
+          {/* Premium Burgundy/Crimson Cover — Deep gradient with restrained grain texture */}
+          <div className="h-36 sm:h-48 w-full relative overflow-hidden"
+            style={{
+              background: 'linear-gradient(135deg, #1a0208 0%, #4a0815 35%, #7f0b24 70%, #990024 100%)',
+            }}
+          >
+            {/* Layered radial depth lights */}
+            <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-rose-400/8 blur-3xl pointer-events-none" />
+            <div className="absolute left-1/4 bottom-0 h-48 w-80 rounded-full bg-amber-500/5 blur-3xl pointer-events-none" />
+            <div className="absolute right-1/3 top-1/2 h-32 w-32 rounded-full bg-white/3 blur-2xl pointer-events-none" />
 
-            {/* Geometric Network Grid Pattern */}
-            <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:18px_18px]" />
-            <svg className="absolute inset-0 h-full w-full opacity-10 stroke-white" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+            {/* Subtle Architectural Grid */}
+            <svg className="absolute inset-0 h-full w-full opacity-[0.05] stroke-white" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
               <defs>
-                <pattern id="careerai-grid" width="36" height="36" patternUnits="userSpaceOnUse">
-                  <path d="M 36 0 L 0 0 0 36" fill="none" strokeWidth="0.75" />
+                <pattern id="careerai-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+                  <path d="M 32 0 L 0 0 0 32" fill="none" strokeWidth="0.75" />
                 </pattern>
               </defs>
               <rect width="100%" height="100%" fill="url(#careerai-grid)" />
             </svg>
 
-            {/* Top Right Frosted Glass Badges */}
-            <div className="absolute right-6 top-4 hidden sm:flex items-center gap-2.5 z-10">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur-md px-3.5 py-1 text-xs font-semibold text-white border border-white/20 shadow-xs">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Placement Verified
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur-md px-3.5 py-1 text-xs font-semibold text-white border border-white/20 shadow-xs">
-                <Sparkles className="h-3.5 w-3.5 text-amber-200" /> AI Resume Synced
-              </span>
+            {/* Diagonal accent stripe */}
+            <div className="absolute inset-0 opacity-[0.04]"
+              style={{
+                backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(255,255,255,0.15) 20px, rgba(255,255,255,0.15) 21px)',
+              }}
+            />
+
+            {/* Top Right Frosted Glass Status Badges */}
+            <div className="absolute right-5 top-4 hidden sm:flex items-center gap-2 z-10">
+              {isPlacementVerified && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/12 backdrop-blur-sm px-3.5 py-1 text-[11px] font-semibold text-white/95 border border-white/20 shadow-xs">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/60" />
+                  Placement Verified
+                </span>
+              )}
+              {isResumeSynced && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/12 backdrop-blur-sm px-3.5 py-1 text-[11px] font-semibold text-white/95 border border-white/20 shadow-xs">
+                  <Sparkles className="h-3 w-3 text-amber-300" />
+                  AI Resume Synced
+                </span>
+              )}
+            </div>
+
+            {/* CareerAI brand watermark bottom-right */}
+            <div className="absolute bottom-3 right-5 text-white/15 text-[10px] font-bold tracking-widest uppercase select-none hidden sm:block">
+              CareerAI Platform
             </div>
           </div>
 
-          <div className="px-6 pb-6 sm:px-8">
-            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+          <div className="px-5 pb-6 sm:px-8 sm:pb-7">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
               
-              {/* Avatar + Info Block */}
+              {/* Avatar + Identity Block */}
               <div className="flex flex-col sm:flex-row sm:items-start gap-5">
-                {/* Avatar protruding cleanly over the cover */}
+                {/* Avatar — protrudes cleanly over the cover with premium border treatment */}
                 <StudentProfilePhotoManager
                   currentPhotoUrl={profile?.profilePhotoUrl || (user as any)?.profile?.profilePhotoUrl}
                   studentName={user?.name}
@@ -269,60 +306,85 @@ export default function ProfilePage() {
                     setProfile((prev) => (prev ? { ...prev, profilePhotoUrl: newUrl } : null));
                     if (refreshUser) refreshUser();
                   }}
-                  className="-mt-14 sm:-mt-16 z-10 self-start"
+                  className="-mt-12 sm:-mt-16 z-10 self-start"
                 />
 
-                {/* Name, Badges & Bio */}
-                <div className="space-y-2 pt-1 sm:pt-2">
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+                {/* Name, Badges & Contact — carefully layered hierarchy */}
+                <div className="space-y-2.5 pt-0 sm:pt-3">
+                  {/* Primary Identity Row */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 leading-tight">
                       {user?.name || 'Student Name'}
                     </h1>
-                    <span className="inline-flex items-center rounded-lg bg-kit-50 px-2.5 py-0.5 text-xs font-bold text-kit-800 border border-kit-200 uppercase tracking-wide">
+                    <span className="inline-flex items-center rounded-lg bg-rose-50 px-2.5 py-0.5 text-[11px] font-bold text-[#990024] border border-rose-200/80 uppercase tracking-wider">
                       {user?.role ? user.role.replace(/_/g, ' ') : 'STUDENT'}
                     </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">
-                      <ShieldCheck className="h-3.5 w-3.5" /> Verified Profile
-                    </span>
+                    {isProfileVerified && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200/80">
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        Verified Profile
+                      </span>
+                    )}
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+                  {/* Mobile-only status badges */}
+                  <div className="flex flex-wrap items-center gap-1.5 sm:hidden">
+                    {isPlacementVerified && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200/80">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Placement Verified
+                      </span>
+                    )}
+                    {isResumeSynced && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-semibold text-amber-700 border border-amber-200/80">
+                        <Sparkles className="h-3 w-3 text-amber-600" /> AI Resume Synced
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Contact Row */}
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
                     <button
                       onClick={handleCopyEmail}
-                      className="inline-flex items-center gap-1.5 font-medium text-slate-700 hover:text-kit-700 bg-slate-100/90 hover:bg-slate-200/80 px-2.5 py-1 rounded-lg transition-all border border-slate-200/60"
+                      className="inline-flex items-center gap-1.5 font-medium text-slate-700 hover:text-[#990024] bg-slate-100/80 hover:bg-rose-50 px-2.5 py-1 rounded-lg transition-all border border-slate-200/70 group"
                       title="Click to copy email"
                     >
-                      <Mail className="h-3.5 w-3.5 text-slate-400" />
-                      <span>{user?.email}</span>
-                      {copiedEmail ? <Check className="h-3.5 w-3.5 text-emerald-600 ml-0.5" /> : <Copy className="h-3 w-3 text-slate-400 ml-0.5" />}
+                      <Mail className="h-3 w-3 text-slate-400 group-hover:text-rose-400 transition-colors" />
+                      <span className="break-all">{user?.email}</span>
+                      {copiedEmail
+                        ? <Check className="h-3 w-3 text-emerald-600 ml-0.5" />
+                        : <Copy className="h-2.5 w-2.5 text-slate-400 ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      }
                     </button>
 
                     {profile?.phone && (
-                      <span className="inline-flex items-center gap-1.5 font-medium text-slate-600 bg-slate-100/60 px-2.5 py-1 rounded-lg border border-slate-200/40">
-                        <Phone className="h-3.5 w-3.5 text-slate-400" />
+                      <span className="inline-flex items-center gap-1.5 font-medium text-slate-600 bg-slate-100/80 px-2.5 py-1 rounded-lg border border-slate-200/60">
+                        <Phone className="h-3 w-3 text-slate-400" />
                         <span>{profile.phone}</span>
                       </span>
                     )}
                   </div>
 
-                  <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5 font-medium">
+                  {/* Academic Identity Row */}
+                  <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 pt-0.5 font-medium">
                     {profile?.department && (
-                      <span className="flex items-center gap-1 text-slate-800 font-semibold">
-                        <GraduationCap className="h-3.5 w-3.5 text-kit-600" /> {profile.department}
+                      <span className="flex items-center gap-1.5 text-slate-800 font-semibold">
+                        <GraduationCap className="h-3.5 w-3.5 text-[#990024] shrink-0" />
+                        {profile.department}
                       </span>
                     )}
                     {profile?.college && (
                       <>
-                        <span className="text-slate-300">•</span>
-                        <span className="flex items-center gap-1 text-slate-600">
-                          <Building2 className="h-3.5 w-3.5 text-slate-400" /> {profile.college}
+                        <span className="text-slate-200 hidden sm:inline">•</span>
+                        <span className="flex items-center gap-1.5 text-slate-600">
+                          <Building2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                          <span className="max-w-sm break-words">{profile.college}</span>
                         </span>
                       </>
                     )}
                     {(profile as any)?.registerNo && (
                       <>
-                        <span className="text-slate-300">•</span>
-                        <span className="font-mono text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md text-[11px] font-semibold border border-slate-200/60">
+                        <span className="text-slate-200 hidden sm:inline">•</span>
+                        <span className="font-mono text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md text-[11px] font-semibold border border-slate-200/70">
                           Reg: {(profile as any).registerNo}
                         </span>
                       </>
@@ -331,34 +393,78 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Profile Completion / Readiness Executive Card */}
-              <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-slate-50/90 to-white p-4 shrink-0 lg:w-80 w-full shadow-2xs space-y-3 mt-2 lg:mt-0">
+              {/* Profile Readiness Card — compact, premium, self-contained */}
+              <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shrink-0 lg:w-[296px] w-full shadow-xs space-y-4 mt-1 lg:mt-3">
+                {/* Score + Status Row */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-kit-50 text-kit-700 font-black text-sm border border-kit-200/60 shadow-2xs">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="flex h-12 w-12 items-center justify-center rounded-xl font-black text-sm border shadow-xs shrink-0"
+                      style={{
+                        background: completionStats.score >= 80
+                          ? 'linear-gradient(135deg, #990024 0%, #c71f47 100%)'
+                          : 'linear-gradient(135deg, #7f0b24 0%, #990024 100%)',
+                        color: 'white',
+                        borderColor: 'rgba(153, 0, 36, 0.25)',
+                      }}
+                    >
                       {completionStats.score}%
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-slate-900">Profile Readiness</h4>
-                      <p className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        {completionStats.score >= 80 ? 'Ready for Placements' : 'In Progress'}
+                      <h4 className="text-sm font-bold text-slate-900 leading-tight">Profile Readiness</h4>
+                      <p className={`text-[11px] font-semibold flex items-center gap-1 mt-0.5 ${
+                        completionStats.score >= 80 ? 'text-emerald-600' : 'text-amber-600'
+                      }`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${completionStats.score >= 80 ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                        {completionStats.score >= 80 ? 'Ready for Placements' : 'Profile Incomplete'}
                       </p>
                     </div>
                   </div>
-                  <span className="text-xs font-black text-slate-800">{completionStats.score}/100</span>
+                  <span className="text-xs font-bold text-slate-400">{completionStats.score}/100</span>
                 </div>
 
-                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200/80 p-0.5">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-kit-600 to-kit-500 transition-all duration-500"
-                    style={{ width: `${completionStats.score}%` }}
-                  />
+                {/* Progress Bar */}
+                <div className="space-y-1.5">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{
+                        width: `${completionStats.score}%`,
+                        background: 'linear-gradient(90deg, #990024 0%, #c71f47 100%)',
+                      }}
+                    />
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100">
-                  <span>{completionStats.checks.filter((c) => c.done).length} of {completionStats.checks.length} sections complete</span>
-                  <Link href="/resume" className="font-bold text-kit-700 hover:text-kit-800 flex items-center gap-0.5 hover:underline">
+                {/* Section Completion Chips */}
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  {completionStats.checks.map((c) => (
+                    <span
+                      key={c.label}
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border transition-colors ${
+                        c.done
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
+                          : 'bg-slate-50 text-slate-500 border-slate-200/70'
+                      }`}
+                    >
+                      {c.done
+                        ? <CheckCircle2 className="h-2.5 w-2.5 text-emerald-500 shrink-0" />
+                        : <span className="h-2.5 w-2.5 rounded-full border border-slate-300 shrink-0" />
+                      }
+                      {c.label}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Footer Action Row */}
+                <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-100">
+                  <span className="text-slate-500 font-medium">
+                    {completionStats.checks.filter((c) => c.done).length}/{completionStats.checks.length} sections
+                  </span>
+                  <Link
+                    href="/resume"
+                    className="font-bold text-[#990024] hover:text-[#80001e] flex items-center gap-0.5 hover:underline transition-colors"
+                  >
                     Resume Studio <ChevronRight className="h-3 w-3" />
                   </Link>
                 </div>
@@ -659,7 +765,7 @@ function PersonalSection({
 
       {/* Group 1: Contact & Core Identity */}
       <div className="space-y-4">
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+        <div id="contact-identity-section-header" className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
           <Mail className="h-3.5 w-3.5 text-kit-600" />
           <span>1. Contact & Identity</span>
         </div>

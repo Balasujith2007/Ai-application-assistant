@@ -18,6 +18,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { getCleanProfilePhotoUrl } from '@/lib/avatar';
 
 interface StudentProfilePhotoManagerProps {
   currentPhotoUrl?: string | null;
@@ -252,12 +253,15 @@ export function StudentProfilePhotoManager({
 
       {/* Main Avatar Container matching exact dimensions and rounded-square shape */}
       <div className="relative group">
-        <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl overflow-hidden bg-slate-100 shadow-lg border-4 border-white ring-1 ring-slate-200/80 transition-all flex items-center justify-center">
+        <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl overflow-hidden bg-slate-100 shadow-md border-4 border-white ring-1 ring-slate-200/90 transition-all flex items-center justify-center">
           {hasPhoto ? (
             <img
-              src={photoUrl!}
+              src={getCleanProfilePhotoUrl(photoUrl, 400)!}
               alt={studentName ? `${studentName}'s profile photo` : 'Student profile photo'}
               className="h-full w-full object-cover rounded-xl"
+              style={{ objectFit: 'cover', objectPosition: 'center 20%' }}
+              loading="eager"
+              decoding="async"
               onError={() => setImgError(true)}
             />
           ) : fallbackInitial ? (
@@ -385,6 +389,7 @@ export function StudentProfilePhotoManager({
                     src={previewUrl}
                     alt="Upload preview"
                     className="h-full w-full object-cover"
+                    style={{ objectFit: 'cover', objectPosition: 'center 20%' }}
                   />
                 </div>
                 <div className="absolute bottom-2 right-2 rounded-full bg-slate-900/80 backdrop-blur-xs px-2 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">

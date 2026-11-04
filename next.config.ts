@@ -42,6 +42,15 @@ const nextConfig: NextConfig = {
           ]
         : []),
       {
+        // Prevent caching of all dynamic API routes across all browsers
+        source: '/api/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate, proxy-revalidate' },
+          { key: 'Pragma', value: 'no-cache' },
+          { key: 'Expires', value: '0' },
+        ],
+      },
+      {
         // Security headers for all pages
         source: '/(.*)',
         headers: [

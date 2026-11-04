@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { getCleanProfilePhotoUrl } from '@/lib/avatar';
 
 interface ClassLeaderboardProps {
   initialPeriod?: 'WEEKLY' | 'MONTHLY' | 'SEMESTER' | 'ALL_TIME';
@@ -36,12 +37,9 @@ interface ClassLeaderboardProps {
  * Produces an optimized CDN thumbnail URL for fast leaderboard rendering.
  * Automatically requests appropriately sized, auto-quality, auto-format image from Cloudinary CDN edge.
  */
-function getOptimizedAvatarUrl(url: string | null | undefined, size: number = 64): string | null {
+function getOptimizedAvatarUrl(url: string | null | undefined, size: number = 160): string | null {
   if (!url) return null;
-  if (url.includes('res.cloudinary.com') && url.includes('/upload/')) {
-    return url.replace('/upload/', `/upload/c_fill,w_${size},h_${size},g_face,q_auto,f_auto/`);
-  }
-  return url;
+  return getCleanProfilePhotoUrl(url, Math.max(size, 160)) || url;
 }
 
 /**
@@ -423,7 +421,7 @@ export function ClassLeaderboard({
   // 1. Total score / Earned XP descending
   // 2. Tie-breaker: who completed first (earlier completedAt timestamp ordered first in lineup)
   // 3. Alphabetical tie-breaker
-  // 4. Distinct sequential ranks 1 to 67 across all classmates
+  // 4. Distinct sequential ranks 1 to N across all classmates (row-number, not dense-rank)
   uniqueRankings.sort((a, b) => {
     const scoreA = Number(a.totalScore ?? 0);
     const scoreB = Number(b.totalScore ?? 0);
@@ -445,11 +443,10 @@ export function ClassLeaderboard({
     return (a.name || '').localeCompare(b.name || '');
   });
 
-  // Preserve authoritative server ranks (fallback to sequential if missing)
+  // Always assign unique sequential display ranks 1..N (row-number pattern)
+  // This ensures no two students share the same displayed rank number regardless of tie-breaks
   for (let i = 0; i < uniqueRankings.length; i++) {
-    if (!uniqueRankings[i].rank || uniqueRankings[i].rank <= 0) {
-      uniqueRankings[i].rank = i + 1;
-    }
+    uniqueRankings[i].rank = i + 1;
   }
 
   const currentLearnerEntry = uniqueRankings.find((r: any) => r.isCurrentUser);

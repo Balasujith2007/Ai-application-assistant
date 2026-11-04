@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import axios from 'axios';
+import api from '@/lib/api';
 import {
   LayoutDashboard,
   User,
@@ -28,6 +28,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar } from '@/components/ui/index';
+import { getCleanProfilePhotoUrl } from '@/lib/avatar';
 
 const ICON_MAP: Record<string, any> = {
   'Dashboard': LayoutDashboard,
@@ -80,11 +81,8 @@ export function Sidebar({ className }: SidebarProps) {
     if (!user) return;
     const fetchSidebar = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get('/api/sidebar', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setMenuItems(res.data.data);
+        const res = await api.get('/sidebar');
+        setMenuItems(res.data?.data || []);
       } catch (err) {
         console.error('Failed to load dynamic sidebar', err);
       }
@@ -168,7 +166,11 @@ export function Sidebar({ className }: SidebarProps) {
         <div className="border-t border-gray-200 p-3">
           {!collapsed ? (
             <div className="flex items-center gap-3 rounded-lg p-2">
-              <Avatar name={user.name} size="sm" />
+              <Avatar
+                name={user.name}
+                src={getCleanProfilePhotoUrl((user as any)?.profile?.profilePhotoUrl || (user as any)?.profilePhotoUrl, 160) || undefined}
+                size="sm"
+              />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-gray-900">
                   {user.name}

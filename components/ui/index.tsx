@@ -4,6 +4,7 @@ import { getInitials } from '@/lib/utils';
 
 interface AvatarProps {
   name: string;
+  src?: string | null;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
 }
@@ -33,17 +34,47 @@ function getColor(name: string) {
   return COLORS[index];
 }
 
-export function Avatar({ name, size = 'md', className }: AvatarProps) {
+export function Avatar({ name, src, size = 'md', className }: AvatarProps) {
+  const [imgError, setImgError] = React.useState(false);
+
+  React.useEffect(() => {
+    setImgError(false);
+  }, [src]);
+
+  const showImg = Boolean(src && !imgError);
+
+  if (showImg) {
+    return (
+      <div
+        className={cn(
+          'relative overflow-hidden rounded-full shrink-0 border border-slate-200/80 bg-slate-100 flex items-center justify-center',
+          SIZES[size],
+          className
+        )}
+      >
+        <img
+          src={src!}
+          alt={name ? `${name}'s avatar` : 'User avatar'}
+          className="h-full w-full object-cover"
+          style={{ objectFit: 'cover', objectPosition: 'center 20%' }}
+          loading="eager"
+          decoding="async"
+          onError={() => setImgError(true)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
-        'flex items-center justify-center rounded-full font-semibold text-white',
+        'flex items-center justify-center rounded-full font-semibold text-white shrink-0',
         SIZES[size],
-        getColor(name),
+        getColor(name || 'User'),
         className,
       )}
     >
-      {getInitials(name)}
+      {getInitials(name || 'U')}
     </div>
   );
 }

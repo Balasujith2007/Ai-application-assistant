@@ -150,6 +150,10 @@ model User {
   dailyStreaks           StudentDailyStreak[]
   achievementHistories   AchievementHistory[]
   dailyCheckIns          DailyCheckIn[]
+  studentRewards         StudentReward[]
+  weeklyPerformanceSnapshots WeeklyPerformanceSnapshot[]
+  streakRescueTokens     StreakRescueToken[]
+  leaderboardBoostTokens LeaderboardBoostToken[]
 
   // Mentor-Student relationship
   mentorId      String?
@@ -1298,4 +1302,247 @@ model DailyCheckIn {
   @@unique([studentId, checkInDate], name: "studentId_checkInDate")
   @@index([studentId, checkInDate])
   @@map("daily_check_ins")
+}
+
+// ============================================================
+// MYSTERY GIFT & REWARD SYSTEM
+// ============================================================
+
+enum RewardType {
+  BONUS_XP
+  BONUS_COINS
+  STREAK_RESCUE_TOKEN
+  LEADERBOARD_BOOST_TOKEN
+  EXCLUSIVE_BADGE
+  PROFILE_FRAME
+  ACHIEVEMENT_REWARD
+}
+
+enum RewardRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+  COMEBACK
+}
+
+enum RewardTriggerType {
+  WEEKLY_SATURDAY
+  CHAMPION_FIRST_PLACE
+  CHAMPION_SECOND_PLACE
+  CHAMPION_THIRD_PLACE
+  ACHIEVEMENT_LESSONS
+  ACHIEVEMENT_COURSE_COMPLETION
+  ACHIEVEMENT_ASSESSMENT_IMPROVEMENT
+  ACHIEVEMENT_CONSISTENCY
+  ACHIEVEMENT_RETURNING_INACTIVE
+  ACHIEVEMENT_STREAK_MILESTONE
+  ACHIEVEMENT_PROJECT_COMPLETION
+  ACHIEVEMENT_LEARNING_MILESTONE
+}
+
+enum RewardStatus {
+  ALLOCATED
+  CLAIMED
+  EXPIRED
+}
+
+model RewardDefinition {
+  id                String           @id @default(cuid())
+  rewardType        RewardType
+  rewardRarity      RewardRarity
+  name              String
+  description       String
+  xpAmount          Int?             // For BONUS_XP
+  coinAmount        Int?             // For BONUS_COINS
+  badgeId           String?          // For EXCLUSIVE_BADGE
+  profileFrameUrl   String?          // For PROFILE_FRAME
+  probabilityWeight Float            @default(1.0) // Higher = more likely
+  enabled           Boolean          @default(true)
+  config            Json?            // Additional configuration
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  studentRewards    StudentReward[]
+
+  @@index([rewardType, rewardRarity])
+  @@index([enabled])
+  @@map("reward_definitions")
+}
+
+model StudentReward {
+  id                String           @id @default(cuid())
+  studentId         String
+  rewardDefinitionId String?
+  rewardType        RewardType
+  rewardRarity      RewardRarity
+  triggerType       RewardTriggerType
+  status            RewardStatus     @default(ALLOCATED)
+  
+  // Reward details (copied from definition at allocation time)
+  xpAmount          Int?
+  coinAmount        Int?
+  badgeId           String?
+  badgeName         String?
+  badgeIcon         String?
+  profileFrameUrl   String?
+  
+  // Performance context
+  weeklyScore       Float?
+  weeklyRank        String?          // LEGENDARY, EPIC, RARE, COMMON, COMEBACK
+  championPosition  Int?             // 1, 2, or 3 for champion rewards
+  performanceMetrics Json?            // Detailed performance breakdown
+  
+  // Personalization
+  personalizedMessage String?
+  reasonEarned      String?
+  
+  // Allocation tracking
+  evaluationWeekKey String?          // e.g. "2026-W44" for weekly gifts
+  allocatedAt       DateTime         @default(now())
+  claimedAt         DateTime?
+  expiresAt         DateTime?
+  
+  // Idempotency
+  idempotencyKey    String?          @unique
+  
+  student           User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  rewardDefinition  RewardDefinition? @relation(fields: [rewardDefinitionId], references: [id], onDelete: SetNull)
+  claim             RewardClaim?
+  
+  @@unique([studentId, evaluationWeekKey, triggerType], name: "StudentReward_studentId_weekKey_trigger_unique")
+  @@index([studentId, status])
+  @@index([evaluationWeekKey, triggerType])
+  @@index([allocatedAt])
+  @@map("student_rewards")
+}
+
+model RewardClaim {
+  id                String           @id @default(cuid())
+  studentRewardId   String           @unique
+  studentId         String
+  claimedAt         DateTime         @default(now())
+  ipAddress         String?
+  userAgent         String?
+  
+  // Transaction verification
+  previousXpBalance Float?
+  previousCoinBalance Float?
+  newXpBalance      Float?
+  newCoinBalance    Float?
+  
+  studentReward     StudentReward    @relation(fields: [studentRewardId], references: [id], onDelete: Cascade)
+  
+  @@index([studentId, claimedAt])
+  @@map("reward_claims")
+}
+
+model WeeklyPerformanceSnapshot {
+  id                String           @id @default(cuid())
+  studentId         String
+  weekKey           String           // e.g. "2026-W44"
+  startDate         DateTime
+  endDate           DateTime
+  
+  // Performance metrics
+  lessonsCompleted  Int              @default(0)
+  activeDays        Int              @default(0)
+  assessmentScore   Float?           @default(0.0)
+  courseProgress    Float?           @default(0.0)
+  projectCompleted  Boolean          @default(false)
+  streakMaintenance Float?           @default(0.0)
+  achievementsCount Int              @default(0)
+  
+  // Calculated weighted score
+  weightedScore     Float            @default(0.0)
+  rankTier          String?          // LEGENDARY, EPIC, RARE, COMMON, COMEBACK
+  
+  // Metadata
+  createdAt         DateTime         @default(now())
+  
+  student           User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  @@unique([studentId, weekKey], name: "WeeklyPerformanceSnapshot_studentId_weekKey_unique")
+  @@index([weekKey])
+  @@index([weightedScore])
+  @@map("weekly_performance_snapshots")
+}
+
+model WeeklyRewardAllocation {
+  id                String           @id @default(cuid())
+  weekKey           String           // e.g. "2026-W44"
+  evaluationStart   DateTime
+  evaluationEnd     DateTime
+  distributionDate  DateTime
+  
+  // Execution stats
+  totalStudents     Int              @default(0)
+  allocatedRewards  Int              @default(0)
+  failedAllocations Int              @default(0)
+  legendaryCount    Int              @default(0)
+  epicCount         Int              @default(0)
+  rareCount         Int              @default(0)
+  commonCount       Int              @default(0)
+  comebackCount     Int              @default(0)
+  
+  // Execution tracking
+  status            String           @default("PENDING") // PENDING, RUNNING, COMPLETED, FAILED
+  startedAt         DateTime?
+  completedAt       DateTime?
+  errorLog          Json?
+  
+  @@unique([weekKey], name: "WeeklyRewardAllocation_weekKey_unique")
+  @@index([distributionDate])
+  @@index([status])
+  @@map("weekly_reward_allocations")
+}
+
+model StreakRescueToken {
+  id                String           @id @default(cuid())
+  studentId         String
+  awardedRewardId   String?         // Link to the reward that granted this token
+  missedDate        String          // YYYY-MM-DD of the missed day
+  eligibleDate      String?         // The date this token can recover (previous day in streak)
+  isUsed            Boolean          @default(false)
+  usedAt            DateTime?
+  usedForDate       String?         // YYYY-MM-DD that was recovered
+  
+  awardedAt         DateTime         @default(now())
+  expiresAt         DateTime?
+  
+  student           User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  @@index([studentId, isUsed])
+  @@index([expiresAt])
+  @@map("streak_rescue_tokens")
+}
+
+model LeaderboardBoostToken {
+  id                String           @id @default(cuid())
+  studentId         String
+  awardedRewardId   String?         // Link to the reward that granted this token
+  boostPercentage   Float            @default(0.0) // e.g., 0.10 for 10% boost
+  isUsed            Boolean          @default(false)
+  usedAt            DateTime?
+  usedForPeriodKey  String?          // e.g., "2026-W44"
+  
+  awardedAt         DateTime         @default(now())
+  expiresAt         DateTime?
+  
+  student           User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  @@index([studentId, isUsed])
+  @@index([expiresAt])
+  @@map("leaderboard_boost_tokens")
+}
+
+model RewardConfiguration {
+  id                String           @id @default(cuid())
+  key               String           @unique
+  value             Json
+  description       String?
+  updatedAt         DateTime         @updatedAt
+  createdAt         DateTime         @default(now())
+  
+  @@map("reward_configurations")
 }

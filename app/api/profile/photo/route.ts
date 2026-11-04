@@ -27,6 +27,19 @@ function isRateLimited(userId: string): boolean {
   return false;
 }
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+interface ProfilePhotoRecord {
+  id: string;
+  userId: string;
+  profilePhotoUrl: string | null;
+  photoPublicId: string | null;
+  updatedAt?: Date;
+}
+
+const profileDb = (prisma as any).profile;
+
 /**
  * GET /api/profile/photo
  * Retrieves the authenticated student's profile photo metadata.
@@ -38,16 +51,25 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const profile = await prisma.profile.findUnique({
+    const profile = (await profileDb.findUnique({
       where: { userId },
       select: { profilePhotoUrl: true, photoPublicId: true },
-    });
+    })) as ProfilePhotoRecord | null;
 
-    return NextResponse.json({
-      success: true,
-      profilePhotoUrl: profile?.profilePhotoUrl || null,
-      photoPublicId: profile?.photoPublicId || null,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        profilePhotoUrl: profile?.profilePhotoUrl || null,
+        photoPublicId: profile?.photoPublicId || null,
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          Pragma: 'no-cache',
+          Expires: '0',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('Error fetching profile photo:', error);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
@@ -119,19 +141,19 @@ export async function POST(req: Request) {
     }
 
     // 7. Retrieve existing student profile to prepare for replacement/cleanup
-    let existingProfile = await prisma.profile.findUnique({
+    let existingProfile = (await profileDb.findUnique({
       where: { userId },
       select: { id: true, profilePhotoUrl: true, photoPublicId: true },
-    });
+    })) as ProfilePhotoRecord | null;
 
     if (!existingProfile) {
-      existingProfile = await prisma.profile.create({
+      existingProfile = (await profileDb.create({
         data: { userId },
         select: { id: true, profilePhotoUrl: true, photoPublicId: true },
-      });
+      })) as ProfilePhotoRecord;
     }
 
-    const oldPublicId = existingProfile.photoPublicId;
+    const oldPublicId = existingProfile?.photoPublicId;
 
     // 8. Ensure Cloudinary is configured before attempting upload
     if (!isCloudinaryConfigured()) {
@@ -177,9 +199,9 @@ export async function POST(req: Request) {
     }
 
     // 10. Persist photo metadata to Database
-    let updatedProfile;
+    let updatedProfile: ProfilePhotoRecord;
     try {
-      updatedProfile = await prisma.profile.update({
+      updatedProfile = (await profileDb.update({
         where: { userId },
         data: {
           profilePhotoUrl: uploadResult.secure_url,
@@ -192,7 +214,7 @@ export async function POST(req: Request) {
           photoPublicId: true,
           updatedAt: true,
         },
-      });
+      })) as ProfilePhotoRecord;
     } catch (dbErr: any) {
       console.error('Database update failed after upload. Cleaning up orphaned image:', dbErr);
       // Clean up orphaned asset to avoid dangling files
@@ -264,10 +286,10 @@ export async function DELETE(req: Request) {
       );
     }
 
-    const existingProfile = await prisma.profile.findUnique({
+    const existingProfile = (await profileDb.findUnique({
       where: { userId },
       select: { profilePhotoUrl: true, photoPublicId: true },
-    });
+    })) as ProfilePhotoRecord | null;
 
     if (!existingProfile?.profilePhotoUrl && !existingProfile?.photoPublicId) {
       return NextResponse.json({
@@ -281,7 +303,7 @@ export async function DELETE(req: Request) {
 
     // 1. Clear database fields first
     try {
-      await prisma.profile.update({
+      await profileDb.update({
         where: { userId },
         data: {
           profilePhotoUrl: null,

@@ -14,6 +14,7 @@ import {
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import api from '@/lib/api';
+import { getCleanProfilePhotoUrl } from '@/lib/avatar';
 
 interface PersonalInfoPhotoSectionProps {
   currentPhotoUrl?: string | null;
@@ -213,7 +214,7 @@ export function PersonalInfoPhotoSection({
       />
 
       {/* Section Subheader matching Personal Info group styling */}
-      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+      <div id="personal-info-photo-section-header" className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
         <Camera className="h-3.5 w-3.5 text-kit-600" />
         <span>Profile Photo</span>
       </div>
@@ -227,9 +228,12 @@ export function PersonalInfoPhotoSection({
             <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-2xl overflow-hidden bg-slate-100 shadow-xs border-2 border-slate-200/90 shrink-0 flex items-center justify-center">
               {hasPhoto ? (
                 <img
-                  src={photoUrl!}
+                  src={getCleanProfilePhotoUrl(photoUrl, 320)!}
                   alt={studentName ? `${studentName}'s profile photo` : 'Student profile photo'}
                   className="h-full w-full object-cover"
+                  style={{ objectFit: 'cover', objectPosition: 'center 20%' }}
+                  loading="eager"
+                  decoding="async"
                   onError={() => setImgError(true)}
                 />
               ) : (
@@ -341,6 +345,7 @@ export function PersonalInfoPhotoSection({
                     src={previewUrl}
                     alt="Upload preview"
                     className="h-full w-full object-cover"
+                    style={{ objectFit: 'cover', objectPosition: 'center 20%' }}
                   />
                 </div>
                 <span className="absolute bottom-2 right-2 rounded-full bg-slate-900/80 backdrop-blur-xs px-2.5 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">

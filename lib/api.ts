@@ -12,7 +12,7 @@ const api = axios.create({
   timeout: 15000,
 });
 
-// Request interceptor — attach JWT
+// Request interceptor — attach JWT and cache-control headers
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== 'undefined') {
@@ -20,6 +20,9 @@ api.interceptors.request.use(
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+      // Ensure cross-browser cache freshness (especially Microsoft Edge)
+      config.headers['Cache-Control'] = 'no-cache';
+      config.headers['Pragma'] = 'no-cache';
     }
     return config;
   },

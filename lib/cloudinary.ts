@@ -137,7 +137,7 @@ export async function uploadProfilePhotoToCloudinary(
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
-        folder: 'careerai/student-profiles',
+        folder: process.env.CLOUDINARY_FOLDER || 'careerai/profile-photos',
         public_id: publicId,
         overwrite: false,
         resource_type: 'image',

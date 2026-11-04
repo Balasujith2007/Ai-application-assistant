@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
 import prisma from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(req: Request) {
   try {
     const userId = getUserIdFromRequest(req);
@@ -42,6 +45,7 @@ export async function GET(req: Request) {
       userId: user.id,
       name: user.name,
       email: user.email,
+      profilePhotoUrl: (user.profile as any)?.profilePhotoUrl || null,
       phone: user.profile?.phone || '',
       college: user.profile?.college || '',
       department: user.profile?.department || '',
@@ -65,10 +69,19 @@ export async function GET(req: Request) {
       experiences: user.profile?.experiences || []
     };
 
-    return NextResponse.json({
-      success: true,
-      profile: profileData
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        profile: profileData,
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          Pragma: 'no-cache',
+          Expires: '0',
+        },
+      }
+    );
   } catch (error) {
     console.error('Error fetching student profile:', error);
     return NextResponse.json({ success: false, message: 'Failed to fetch student profile.' }, { status: 500 });

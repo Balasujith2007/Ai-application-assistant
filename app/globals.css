@@ -16,6 +16,8 @@
 @layer base {
   :root {
     --font-inter: 'Inter', system-ui, sans-serif;
+    /* Dashboard right-sidebar width — single source of truth */
+    --dash-right-w: 300px;
   }
 
   html {
@@ -50,6 +52,7 @@
 }
 
 @layer utilities {
+  /* ── Animation helpers ────────────────────────────────── */
   .animate-in {
     animation-duration: 0.2s;
     animation-fill-mode: both;
@@ -62,14 +65,360 @@
   }
   @keyframes fadeIn {
     from { opacity: 0; }
-    to { opacity: 1; }
+    to   { opacity: 1; }
   }
   @keyframes zoomIn95 {
     from { transform: scale(0.95); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
+    to   { transform: scale(1);    opacity: 1; }
   }
   @keyframes profileDropdownIn {
     from { opacity: 0; transform: translateY(-6px) scale(0.96); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
+    to   { opacity: 1; transform: translateY(0)    scale(1);    }
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     STUDENT DASHBOARD — LAYOUT SYSTEM
+     Architecture:
+       .dash-page-root    → page wrapper (padding, overflow)
+       .dash-grid         → 2-col CSS grid: left | right(300px)
+       .dash-main         → left column (flex col, space-y-4)
+       .dash-right-sidebar → right column locked at 300px
+       .dash-right-sticky  → sticky inner container
+     All columns use min-width: 0 to prevent flex/grid blowout.
+  ══════════════════════════════════════════════════════════════ */
+
+  /* Page root */
+  .dash-page-root {
+    padding-bottom: 2rem;
+    position: relative;
+    min-width: 0;
+  }
+
+  /* ── Two-Column Grid ──────────────────────────────────── */
+  .dash-grid {
+    display: grid;
+    grid-template-columns: 100%;       /* mobile: full-width stack */
+    gap: 18px;
+    width: 100%;
+    min-width: 0;
+    align-items: start;
+  }
+
+  @media (min-width: 1024px) {
+    .dash-grid {
+      grid-template-columns: minmax(0, 1fr) var(--dash-right-w);
+    }
+  }
+
+  /* ── Left main column ─────────────────────────────────── */
+  .dash-main {
+    min-width: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* ── Right sidebar ────────────────────────────────────── */
+  .dash-right-sidebar {
+    min-width: 0;
+    width: 100%;
+  }
+
+  @media (min-width: 1024px) {
+    .dash-right-sidebar {
+      width: var(--dash-right-w);
+      min-width: var(--dash-right-w);
+      max-width: var(--dash-right-w);
+      flex-shrink: 0;
+    }
+  }
+
+  /* Sticky inner container for right sidebar */
+  .dash-right-sticky {
+    position: sticky;
+    top: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* ── Welcome Card ─────────────────────────────────────── */
+  .dash-welcome-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border-radius: 1rem;
+    border: 1px solid rgba(229,231,235,0.8);
+    background: #fff;
+    padding: 1rem 1.25rem;
+    box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+    min-width: 0;
+  }
+
+  @media (min-width: 640px) {
+    .dash-welcome-card {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+  }
+
+  .dash-welcome-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .dash-greeting-icon {
+    display: none;
+    height: 2.75rem;
+    width: 2.75rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    background-color: #fffbeb;
+    color: #d97706;
+    border: 1px solid #fde68a;
+  }
+
+  @media (min-width: 640px) {
+    .dash-greeting-icon {
+      display: flex;
+    }
+  }
+
+  .dash-welcome-heading {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #111827;
+    letter-spacing: -0.015em;
+    line-height: 1.3;
+  }
+
+  @media (min-width: 640px) {
+    .dash-welcome-heading {
+      font-size: 1.375rem;
+    }
+  }
+
+  .dash-welcome-sub {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 2px;
+  }
+
+  .dash-welcome-right {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  @media (min-width: 640px) {
+    .dash-welcome-right {
+      flex-direction: row;
+    }
+  }
+
+  .dash-readiness-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: #990024;
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+    border-radius: 9999px;
+    padding: 3px 10px;
+  }
+
+  .dash-rank-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: #b45309;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 9999px;
+    padding: 3px 10px;
+  }
+
+  .dash-explore-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: #fff;
+    background: #990024;
+    border-radius: 9999px;
+    padding: 5px 14px;
+    text-decoration: none;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+
+  .dash-explore-btn:hover {
+    background: #7a001c;
+  }
+
+  /* ── Summary Cards Grid ───────────────────────────────── */
+  /* Mobile: 2-col   |  sm+: 4-col equal width */
+  .dash-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  @media (min-width: 640px) {
+    .dash-summary-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  /* ── Reusable section card ────────────────────────────── */
+  .dash-section-card {
+    border-radius: 1rem;
+    border: 1px solid rgba(229,231,235,0.8);
+    background: #fff;
+    padding: 1rem 1.25rem;
+    box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .dash-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    gap: 8px;
+  }
+
+  .dash-section-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .dash-section-sub {
+    font-size: 0.6875rem;
+    color: #9ca3af;
+    margin-top: 1px;
+  }
+
+  /* ── Deadlines + Notifications bottom row ─────────────── */
+  .dash-bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  @media (min-width: 768px) {
+    .dash-bottom-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  /* ── Right sidebar widget cards ───────────────────────── */
+  .dash-widget-card {
+    border-radius: 1rem;
+    border: 1px solid rgba(229,231,235,0.8);
+    background: #fff;
+    padding: 1rem;
+    box-shadow: 0 1px 2px 0 rgba(0,0,0,0.04);
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+    transition: box-shadow 0.15s;
+  }
+
+  .dash-widget-card:hover {
+    box-shadow: 0 2px 8px 0 rgba(0,0,0,0.08);
+  }
+
+  .dash-refer-card {
+    background: linear-gradient(135deg, rgba(239,246,255,0.9) 0%, rgba(224,242,254,0.6) 60%, rgba(219,234,254,0.5) 100%);
+    border-color: rgba(147,197,253,0.5);
+    overflow: hidden;
+  }
+
+  /* ── Right panel tab content viewport ─────────────────── */
+  /* The outer card is h-[330px] flex flex-col; the tab content
+     div uses flex-1 min-h-0 to fill remaining height naturally.
+     No explicit height needed here — the card itself is the cap. */
+
+  /* ── Legacy class aliases (used by StudentPerformancePanel) */
+  .overview-layout,
+  .overview-dashboard,
+  .dashboard-layout-grid {
+    display: grid;
+    grid-template-columns: 100%;
+    gap: 20px;
+    width: 100%;
+    min-width: 0;
+    align-items: start;
+  }
+
+  @media (min-width: 1024px) {
+    .overview-layout,
+    .overview-dashboard,
+    .dashboard-layout-grid {
+      grid-template-columns: minmax(0, 1fr) var(--dash-right-w);
+    }
+  }
+
+  .overview-main,
+  .dashboard-main-col {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .overview-right-sidebar,
+  .dashboard-right-panel-col {
+    min-width: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  @media (min-width: 1024px) {
+    .overview-right-sidebar,
+    .dashboard-right-panel-col {
+      width: var(--dash-right-w);
+      min-width: var(--dash-right-w);
+      max-width: var(--dash-right-w);
+      flex-shrink: 0;
+      box-sizing: border-box;
+    }
+  }
+
+  .dashboard-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  @media (min-width: 640px) {
+    .dashboard-summary-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
   }
 }

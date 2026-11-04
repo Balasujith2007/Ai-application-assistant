@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Search, Menu, X, User, Settings, LogOut, ChevronDown } from 'lucide-react';
 import { Avatar } from '@/components/ui/index';
 import { useAuth } from '@/context/AuthContext';
+import { getCleanProfilePhotoUrl } from '@/lib/avatar';
 import { Sidebar } from './Sidebar';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 
@@ -119,6 +120,7 @@ export function DashboardHeader({ title, subtitle }: DashboardHeaderProps) {
               >
                 <Avatar
                   name={user.name}
+                  src={getCleanProfilePhotoUrl(user?.profile?.profilePhotoUrl || (user as any)?.profilePhotoUrl, 160) || undefined}
                   size="sm"
                   className={`ring-2 transition-all ${profileOpen ? 'ring-kit-500' : 'ring-transparent hover:ring-kit-300'}`}
                 />
@@ -146,7 +148,11 @@ export function DashboardHeader({ title, subtitle }: DashboardHeaderProps) {
                 >
                   {/* ── User info banner ── */}
                   <div className="flex items-center gap-3 px-4 py-3.5 bg-gradient-to-br from-kit-50 via-white to-white border-b border-gray-100">
-                    <Avatar name={user.name} size="sm" />
+                    <Avatar
+                      name={user.name}
+                      src={getCleanProfilePhotoUrl(user?.profile?.profilePhotoUrl || (user as any)?.profilePhotoUrl, 160) || undefined}
+                      size="sm"
+                    />
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-gray-900 truncate leading-tight">
                         {user.name}

@@ -690,7 +690,11 @@ export class ScoringEngine {
    * 2. Earliest completedAtTimestamp (who achieved the score earlier)
    * 3. Student name alphabetically
    * 4. Deterministic studentId
-   * Assigns dense rank for ties where identical scores share rank, and subsequent ranks increment accordingly.
+   *
+   * Assigns unique sequential row-number ranks: every student in the cohort
+   * receives a distinct position from 1 through N. Equal scores are distinguished
+   * by the deterministic tie-breakers above, so no two students share the same
+   * displayed rank number.
    */
   async computeClassLeaderboard(
     classIdentifierOrOptions: any,
@@ -926,19 +930,16 @@ export class ScoringEngine {
             return a.student.id.localeCompare(b.student.id);
           });
 
-          // 4. Assign Dense Ranks:
-          // Equal scores share the exact same rank, next distinct score increments rank
+          // 4. Assign Unique Sequential Ranks (Row Number):
+          // Every distinct student in the same ranking scope receives a unique sequential position 1..N.
+          // Ties are broken deterministically by: earlier completedAtTimestamp → alphabetical name → studentId.
+          // This guarantees no two students share the same displayed rank.
           const calculatedRankings: LeaderboardStudentEntry[] = [];
-          let currentRank = 1;
 
           for (let i = 0; i < scoredList.length; i++) {
-            if (i > 0) {
-              if (scoredList[i].scores.totalScore < scoredList[i - 1].scores.totalScore) {
-                currentRank++;
-              }
-            }
             const item = scoredList[i];
-            const entryRank = currentRank;
+            // Row-number rank: position is always i + 1 regardless of score equality
+            const entryRank = i + 1;
 
             const prevRank = item.previousRank;
             const rankMovement = prevRank !== null ? prevRank - entryRank : 0;

@@ -374,6 +374,57 @@ async function runProfilePhotoTestSuite() {
     if (origCloudName) process.env.CLOUDINARY_CLOUD_NAME = origCloudName;
     if (origNextCloudName) process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME = origNextCloudName;
 
+    // -------------------------------------------------------------------------
+    // TEST 12: Cross-Student Photo Deletion Protection
+    // -------------------------------------------------------------------------
+    console.log('\n--- Test 12: Cross-Student Photo Deletion Protection ---');
+
+    // Restore Student 1's photo in DB
+    await (prisma as any).profile.update({
+      where: { userId: testStudentId },
+      data: {
+        profilePhotoUrl: simulatedPhotoUrl,
+        photoPublicId: simulatedPublicId,
+      },
+    });
+
+    // Student 2 tries to DELETE photo (even if passing studentId in query or headers)
+    const crossDeleteReq = new Request(`http://localhost:3000/api/profile/photo?userId=${testStudentId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${student2Token}` },
+    });
+    const crossDeleteRes = await photoDelete(crossDeleteReq);
+    const crossDeleteData = await crossDeleteRes.json();
+
+    // Verify Student 1's photo was NOT deleted or affected
+    const student1ProfileAfterCrossAttempt: any = await (prisma as any).profile.findUnique({
+      where: { userId: testStudentId },
+      select: { profilePhotoUrl: true, photoPublicId: true },
+    });
+
+    assert(
+      student1ProfileAfterCrossAttempt?.profilePhotoUrl === simulatedPhotoUrl,
+      'Student 2 cannot delete Student 1 photo via untrusted client parameter',
+      `Student 1 photo remains: ${student1ProfileAfterCrossAttempt?.profilePhotoUrl}`
+    );
+    assert(
+      crossDeleteRes.status === 200 && crossDeleteData.message?.includes('No profile photo found'),
+      'Student 2 DELETE operation only targets Student 2 profile'
+    );
+
+    // -------------------------------------------------------------------------
+    // TEST 13: Unsupported Image Formats Rejection (GIF, BMP, PDF, SVG)
+    // -------------------------------------------------------------------------
+    console.log('\n--- Test 13: Unsupported Formats Rejection ---');
+
+    const gifBuffer = Buffer.from('GIF89a\x01\x00\x01\x00\x80\x00\x00');
+    const gifValidation = validateImageMagicBytes(gifBuffer);
+    assert(!gifValidation.valid, 'Rejects GIF format (only JPEG, PNG, WebP allowed)');
+
+    const pdfBuffer = Buffer.from('%PDF-1.4 ...');
+    const pdfValidation = validateImageMagicBytes(pdfBuffer);
+    assert(!pdfValidation.valid, 'Rejects PDF document disguised as image');
+
   } catch (error) {
     console.error('Test Suite encountered an unexpected error:', error);
     failedCount++;
@@ -387,6 +438,9 @@ async function runProfilePhotoTestSuite() {
       console.warn('Cleanup warning:', cleanErr);
     }
 
+    try {
+      await (prisma as any).$disconnect();
+    } catch (_) {}
     await pool.end();
   }
 
@@ -397,6 +451,7 @@ async function runProfilePhotoTestSuite() {
   if (failedCount > 0) {
     process.exit(1);
   }
+  process.exit(0);
 }
 
 runProfilePhotoTestSuite();

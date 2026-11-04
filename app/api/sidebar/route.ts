@@ -22,6 +22,9 @@ const FEATURE_MAP: Record<string, string> = {
   'AI Features': 'ai-resume-analysis',
 };
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(req: Request) {
   try {
     const userId = getUserIdFromRequest(req);
@@ -117,9 +120,27 @@ export async function GET(req: Request) {
       filteredItems.push(item);
     }
 
-    return NextResponse.json({ data: filteredItems });
+    return NextResponse.json(
+      { data: filteredItems },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          Pragma: 'no-cache',
+          Expires: '0',
+        },
+      }
+    );
   } catch (error) {
     console.error('Error fetching sidebar:', error);
-    return NextResponse.json({ data: [] });
+    return NextResponse.json(
+      { data: [] },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          Pragma: 'no-cache',
+          Expires: '0',
+        },
+      }
+    );
   }
 }
