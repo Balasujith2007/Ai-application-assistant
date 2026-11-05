@@ -1,0 +1,119 @@
+{
+  "results": [
+    {
+      "id": "1",
+      "desc": "Login as authorized super-admin",
+      "pass": true,
+      "evidence": "url=http://localhost:3100/dashboard/super-admin"
+    },
+    {
+      "id": "2",
+      "desc": "Open Gamification -> Reward Configuration",
+      "pass": true,
+      "evidence": "h1=\"Reward Configuration\""
+    },
+    {
+      "id": "3",
+      "desc": "Existing reward configuration values load correctly",
+      "pass": true,
+      "evidence": "batchSize=100, timezone=Asia/Kolkata, distributionDay=6, distributionHour=18, maxRetries=3, weights=[Total: 100%]"
+    },
+    {
+      "id": "4",
+      "desc": "Change safe value, save, refresh, verify persistence",
+      "pass": true,
+      "evidence": "set=77, afterReload=77, msg=\"Reward configuration saved. The reward engine will use these values on its next allocation.\""
+    },
+    {
+      "id": "4b",
+      "desc": "Restore original value (cleanup)",
+      "pass": true,
+      "evidence": "restored=100, original=100"
+    },
+    {
+      "id": "5a",
+      "desc": "Unauthenticated user blocked from admin config",
+      "pass": true,
+      "evidence": "apiStatus=401, pageConfigHeadingVisible=false, url=http://localhost:3100/login"
+    },
+    {
+      "id": "6m",
+      "desc": "Login isolated test student (mobile)",
+      "pass": true,
+      "evidence": "url=http://localhost:3100/dashboard/student"
+    },
+    {
+      "id": "8m",
+      "desc": "Mystery Gift card in correct position (mobile, before claim)",
+      "pass": true,
+      "evidence": "order={\"ok\":true,\"idx\":1,\"sumIdx\":0,\"tabIdx\":2,\"count\":3}; horizontalOverflow=0px"
+    },
+    {
+      "id": "6",
+      "desc": "Login isolated test student",
+      "pass": true,
+      "evidence": "url=http://localhost:3100/dashboard/student"
+    },
+    {
+      "id": "7",
+      "desc": "Open Student Dashboard",
+      "pass": true,
+      "evidence": "summary={\"xp\":\"0\",\"streak\":\"0\",\"rank\":\"#2\",\"coins\":\"0\"}"
+    },
+    {
+      "id": "8",
+      "desc": "Mystery Gift card in correct position (desktop)",
+      "pass": true,
+      "evidence": "order={\"ok\":true,\"idx\":1,\"sumIdx\":0,\"tabIdx\":2,\"count\":3}; rect={\"top\":159,\"sidebarTop\":84}"
+    },
+    {
+      "id": "9a",
+      "desc": "Open test reward (cinematic gift page)",
+      "pass": true,
+      "evidence": "url=http://localhost:3100/dashboard/student/gift/cmw2byxbt0002u4bc63gznt9o"
+    },
+    {
+      "id": "9b",
+      "desc": "Reward revealed with expected amounts",
+      "pass": true,
+      "evidence": "panel=\"Reward Unlocked! | XP Earned | +40 | Coins Earned | +25 | Rarity | COMMON |  | Phase 1 browser verification gift |  | Isolated browser verification reward |  | Claim Reward\""
+    },
+    {
+      "id": "10",
+      "desc": "Claim reward; XP and coin balances update",
+      "pass": true,
+      "evidence": "panel=\"Reward Claimed! |  | Your reward has been added to your account |  | XP added | +40 | Coins added | +25 | Coin balance | 25 | Back to Dashboard\"; coinsBefore=0, coinsAfter=25, delta=25 (expect 25); xpExpected=40"
+    },
+    {
+      "id": "11",
+      "desc": "Refresh dashboard; balances remain correct",
+      "pass": true,
+      "evidence": "coinsBack=25, coinsAfterRefresh=25, apiBalance=25, xp=0, giftCardGone=true"
+    },
+    {
+      "id": "12",
+      "desc": "Reward history and claim status verified",
+      "pass": true,
+      "evidence": "availableRewards=0; historyCount=1; claimedStatus=CLAIMED; claimRecord={\"id\":\"cmw2byxbt0002u4bc63gznt9o\",\"studentId\":\"cmw2bywv80001u4bchx10jjb5\",\"rewardDefinitionId\":null,\"rewardType\":\"BONUS_COINS\",\"rewardRarity\":\"COMMON\",\"triggerType\":\"WEEKLY_SATURDAY\",\"status\":\"CLAIMED\",\"xpAmount\":40,\"coinAmount\":25,\"badgeId\":null,\"badgeName\":null,\"badgeIcon\":null,\"profileFrameUrl\":n"
+    },
+    {
+      "id": "5b",
+      "desc": "Student (wrong role) blocked from admin config",
+      "pass": true,
+      "evidence": "apiStatus=403, headingVisible=false, urlAfter=http://localhost:3100/dashboard/student"
+    },
+    {
+      "id": "11m",
+      "desc": "Mobile dashboard reflects claimed state",
+      "pass": true,
+      "evidence": "coins=25, giftCardGone=true, horizontalOverflow=0px"
+    },
+    {
+      "id": "2m",
+      "desc": "Admin Reward Configuration renders on mobile viewport",
+      "pass": true,
+      "evidence": "horizontalOverflow=0px, batchSize=100"
+    }
+  ],
+  "shotN": 15
+}

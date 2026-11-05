@@ -1,7 +1,9 @@
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { REWARD_CONFIG, RewardTier } from './rewardConfig';
 import { getFormattedDateInTz } from './checkInService';
-import { getRewardConfig, type RewardEngineConfig, type RewardValuesConfig } from './rewardConfigService';
+import { getRewardConfig, type RewardValuesConfig } from './rewardConfigService';
+import { careerGrowthEngine, type CareerGrowthResult } from './careerGrowthEngine';
 import { applyCoinMutationInTx } from './coinLedger';
 
 // These enums exist in schema.prisma but the Prisma client has not been regenerated yet.
@@ -37,24 +39,13 @@ type RewardStatus = 'ALLOCATED' | 'CLAIMED' | 'EXPIRED';
 
 /**
  * Mystery Gift & Weekly Reward Engine
- * Handles performance calculation, reward allocation, and eligibility logic
+ * Handles weekly career-growth scoring, reward allocation, and eligibility logic.
+ *
+ * Weekly performance is derived exclusively from the Career Growth Engine
+ * (internship/job applications, hackathons & competitions, resume strength).
+ * This platform is NOT an LMS, so lessons completed, course progress, learning
+ * consistency, assessment scores and learning streaks are never used.
  */
-
-interface PerformanceMetrics {
-  lessonsCompleted: number;
-  activeDays: number;
-  assessmentScore: number;
-  courseProgress: number;
-  projectCompleted: boolean;
-  streakMaintenance: number;
-  achievementsCount: number;
-}
-
-interface WeeklyScoreResult {
-  weightedScore: number;
-  tier: RewardTier;
-  metrics: PerformanceMetrics;
-}
 
 /**
  * Calculates the week key for a given date (e.g., "2026-W44")
@@ -89,126 +80,6 @@ export function getEvaluationPeriod(weekKey: string): { startDate: Date; endDate
   friday.setHours(23, 59, 59, 999);
 
   return { startDate: monday, endDate: friday };
-}
-
-/**
- * Calculates performance metrics for a student during the evaluation period
- */
-async function calculatePerformanceMetrics(
-  studentId: string,
-  startDate: Date,
-  endDate: Date
-): Promise<PerformanceMetrics> {
-  // 1. Lessons completed (from verified activities or check-ins)
-  const dailyStreaks = await prisma.studentDailyStreak.findMany({
-    where: {
-      studentId,
-      activityDate: {
-        gte: getFormattedDateInTz(startDate),
-        lte: getFormattedDateInTz(endDate),
-      },
-    },
-  });
-
-  const lessonsCompleted = dailyStreaks.length;
-
-  // 2. Active days (unique dates with activity)
-  const activeDays = new Set(dailyStreaks.map((s: { activityDate: string }) => s.activityDate)).size;
-
-  // 3. Assessment score (from points ledger - average score)
-  const pointsResult = await prisma.pointsLedger.aggregate({
-    where: {
-      studentId,
-      createdAt: { gte: startDate, lte: endDate },
-    },
-    _sum: { pointsAwarded: true },
-  });
-
-  const assessmentScore = pointsResult._sum.pointsAwarded || 0;
-
-  // 4. Course progress (estimated from total XP earned)
-  const totalXpResult = await prisma.pointsLedger.aggregate({
-    where: { studentId },
-    _sum: { pointsAwarded: true },
-  });
-
-  const totalXp = totalXpResult._sum.pointsAwarded || 0;
-  const courseProgress = Math.min(100, (totalXp / 1000) * 100); // Normalize to 100
-
-  // 5. Project completed (from verified activities)
-  const projectActivities = await prisma.verifiedActivity.findMany({
-    where: {
-      studentId,
-      activityType: 'PROJECT_COMPLETION',
-      occurredAt: { gte: startDate, lte: endDate },
-    },
-  });
-
-  const projectCompleted = projectActivities.length > 0;
-
-  // 6. Streak maintenance (current streak during evaluation period)
-  const streakInfo = await prisma.studentDailyStreak.findMany({
-    where: { studentId },
-    orderBy: { activityDate: 'desc' },
-    take: 30,
-  });
-
-  const currentStreak = streakInfo.length;
-
-  // 7. Achievements count (badges earned during period)
-  const badgesEarned = await prisma.studentBadge.count({
-    where: {
-      studentId,
-      awardedAt: { gte: startDate, lte: endDate },
-    },
-  });
-
-  return {
-    lessonsCompleted,
-    activeDays,
-    assessmentScore,
-    courseProgress,
-    projectCompleted,
-    streakMaintenance: currentStreak,
-    achievementsCount: badgesEarned,
-  };
-}
-
-/**
- * Calculates weighted score and determines reward tier.
- * Weights and tier thresholds are read from the persisted reward configuration.
- */
-function calculateWeightedScore(
-  metrics: PerformanceMetrics,
-  config: RewardEngineConfig
-): WeeklyScoreResult {
-  const { scoringWeights: SCORING_WEIGHTS, tierThresholds: TIER_THRESHOLDS } = config;
-
-  // Normalize metrics to 0-100 scale
-  const normalizedLessons = Math.min(100, (metrics.lessonsCompleted / 5) * 100);
-  const normalizedActiveDays = Math.min(100, (metrics.activeDays / 5) * 100);
-  const normalizedAssessment = Math.min(100, (metrics.assessmentScore / 100) * 100);
-  const normalizedCourse = metrics.courseProgress;
-  const normalizedStreak = Math.min(100, (metrics.streakMaintenance / 7) * 100);
-  const normalizedAchievements = Math.min(100, (metrics.achievementsCount / 3) * 100);
-
-  // Calculate weighted score
-  const weightedScore =
-    (normalizedLessons * SCORING_WEIGHTS.lessonsCompleted) / 100 +
-    (normalizedActiveDays * SCORING_WEIGHTS.learningConsistency) / 100 +
-    (normalizedAssessment * SCORING_WEIGHTS.assessmentPerformance) / 100 +
-    (normalizedCourse * SCORING_WEIGHTS.courseProjectProgress) / 100 +
-    (normalizedStreak * SCORING_WEIGHTS.streakMaintenance) / 100 +
-    (normalizedAchievements * SCORING_WEIGHTS.achievementsMilestones) / 100;
-
-  // Determine tier
-  let tier: RewardTier = 'COMEBACK';
-  if (weightedScore >= TIER_THRESHOLDS.legendary.min) tier = 'LEGENDARY';
-  else if (weightedScore >= TIER_THRESHOLDS.epic.min) tier = 'EPIC';
-  else if (weightedScore >= TIER_THRESHOLDS.rare.min) tier = 'RARE';
-  else if (weightedScore >= TIER_THRESHOLDS.common.min) tier = 'COMMON';
-
-  return { weightedScore, tier, metrics };
 }
 
 /**
@@ -337,31 +208,39 @@ export class RewardEngine {
     // Get evaluation period
     const { startDate, endDate } = getEvaluationPeriod(weekKey);
 
-    // Calculate performance metrics
-    const metrics = await calculatePerformanceMetrics(studentId, startDate, endDate);
-
-    // Calculate weighted score and tier
-    const { weightedScore, tier } = calculateWeightedScore(metrics, config);
+    // Compute the weekly Career Growth Score from real platform records only
+    // (internship/job applications, hackathons & competitions, resume strength).
+    const result = await careerGrowthEngine.computeCareerGrowthScore(
+      studentId,
+      weekKey,
+      startDate,
+      endDate,
+      config
+    );
+    const { finalScore, tier } = result;
 
     // Allocate reward
     const reward = allocateRewardByTier(tier, config.rewardValues);
 
-    // Create performance snapshot
-    await prisma.weeklyPerformanceSnapshot.create({
-      data: {
+    // Compact, JSON-safe career growth breakdown (no Date values), persisted both
+    // as the immutable weekly snapshot and on the reward for an audit trail.
+    const careerSnapshot = careerGrowthEngine.toSnapshot(result);
+
+    // Persist the immutable weekly career-growth snapshot. `update: {}` keeps an
+    // existing snapshot untouched, so re-runs never overwrite a finalized week.
+    await prisma.weeklyPerformanceSnapshot.upsert({
+      where: {
+        WeeklyPerformanceSnapshot_studentId_weekKey_unique: { studentId, weekKey },
+      },
+      update: {},
+      create: {
         studentId,
         weekKey,
         startDate,
         endDate,
-        lessonsCompleted: metrics.lessonsCompleted,
-        activeDays: metrics.activeDays,
-        assessmentScore: metrics.assessmentScore,
-        courseProgress: metrics.courseProgress,
-        projectCompleted: metrics.projectCompleted,
-        streakMaintenance: metrics.streakMaintenance,
-        achievementsCount: metrics.achievementsCount,
-        weightedScore,
+        weightedScore: finalScore,
         rankTier: tier,
+        careerBreakdown: careerSnapshot as unknown as Prisma.InputJsonValue,
       },
     });
 
@@ -379,12 +258,12 @@ export class RewardEngine {
         badgeName: reward.badgeName,
         badgeIcon: reward.badgeIcon,
         profileFrameUrl: reward.profileFrameUrl,
-        weeklyScore: weightedScore,
+        weeklyScore: finalScore,
         weeklyRank: tier,
-        performanceMetrics: metrics as unknown as object,
+        performanceMetrics: careerSnapshot as unknown as Prisma.InputJsonValue,
         evaluationWeekKey: weekKey,
-        personalizedMessage: this.generatePersonalizedMessage(tier, metrics),
-        reasonEarned: this.generateReasonEarned(tier, metrics),
+        personalizedMessage: this.generatePersonalizedMessage(tier, result),
+        reasonEarned: this.generateReasonEarned(result),
         idempotencyKey: `${studentId}_${weekKey}_WEEKLY`,
         expiresAt: new Date(Date.now() + REWARD_CONFIG.REWARD_EXPIRY_DAYS * 86400000),
       },
@@ -402,7 +281,7 @@ export class RewardEngine {
       alreadyAllocated: false,
       rewardId: studentReward.id,
       tier,
-      score: weightedScore,
+      score: finalScore,
     };
   }
 
@@ -596,36 +475,43 @@ export class RewardEngine {
   }
 
   /**
-   * Generates a personalized message based on tier and performance
+   * Generates a personalized message based on the weekly career-growth tier.
    */
-  private generatePersonalizedMessage(tier: RewardTier, metrics: PerformanceMetrics): string {
+  private generatePersonalizedMessage(tier: RewardTier, result: CareerGrowthResult): string {
+    const score = Math.round(result.finalScore);
     const messages = {
-      LEGENDARY: "Incredible performance! You've shown exceptional dedication.",
-      EPIC: "Outstanding effort! Your consistency is truly impressive.",
-      RARE: "Great work! You're making solid progress.",
-      COMMON: "Good job! Keep up the momentum.",
-      COMEBACK: "Welcome back! We're glad to see you continue your journey.",
+      LEGENDARY: `Incredible career momentum! A ${score}/100 career growth week.`,
+      EPIC: `Outstanding week of career progress — ${score}/100 career growth.`,
+      RARE: `Great work! Your career growth reached ${score}/100 this week.`,
+      COMMON: `Good job! You logged ${score}/100 career growth this week.`,
+      COMEBACK: `Welcome back! Here is your weekly gift — keep building your career profile.`,
     };
     return messages[tier];
   }
 
   /**
-   * Generates a reason earned message
+   * Generates a reason earned message from the actual career-growth breakdown.
    */
-  private generateReasonEarned(tier: RewardTier, metrics: PerformanceMetrics): string {
-    if (tier === 'LEGENDARY') {
-      return `Achieved ${metrics.activeDays} active days with ${metrics.achievementsCount} achievements`;
+  private generateReasonEarned(result: CareerGrowthResult): string {
+    const parts: string[] = [];
+    const internshipMilestones = result.categories.internshipApplications.milestones.length;
+    const hackathonMilestones = result.categories.hackathonsCompetitions.milestones.length;
+    const resumeScore = result.categories.resumeStrength.rawScore;
+
+    if (internshipMilestones > 0) {
+      parts.push(`${internshipMilestones} internship/job milestone${internshipMilestones > 1 ? 's' : ''}`);
     }
-    if (tier === 'EPIC') {
-      return `Strong consistency with ${metrics.streakMaintenance} day streak`;
+    if (hackathonMilestones > 0) {
+      parts.push(`${hackathonMilestones} hackathon/competition milestone${hackathonMilestones > 1 ? 's' : ''}`);
     }
-    if (tier === 'RARE') {
-      return `Completed ${metrics.lessonsCompleted} lessons with good assessment scores`;
+    if (resumeScore > 0) {
+      parts.push(`resume strength ${Math.round(resumeScore)}/100`);
     }
-    if (tier === 'COMMON') {
-      return `Active participation with ${metrics.activeDays} days of learning`;
+
+    if (parts.length === 0) {
+      return 'Weekly career growth gift — every active student receives a gift.';
     }
-    return 'Returning to continue your learning journey';
+    return `Career growth this week: ${parts.join(', ')}.`;
   }
 
   /**

@@ -304,27 +304,12 @@ export async function runWeeklyDistribution(
     }
 
     // ── Champion (top 3) rewards ──
+    // Champion gifts are always ADDITIONAL: the top 3 keep their regular weekly
+    // Mystery Gift and also receive a position-specific Champion Gift. Regular
+    // weekly gifts are never deleted or replaced.
     try {
       const championResult = await championRewardEngine.allocateChampionRewards(weekKey);
       stats.championAllocated = championResult.championsAllocated;
-
-      if (!config.championRewards.additionalToWeekly) {
-        // Champion gift replaces the regular weekly gift for the top 3.
-        for (const detail of championResult.details) {
-          if (detail.status !== 'allocated') continue;
-          const weeklyReward = await prisma.studentReward.findFirst({
-            where: {
-              studentId: detail.studentId,
-              evaluationWeekKey: weekKey,
-              triggerType: 'WEEKLY_SATURDAY',
-            },
-          });
-          if (weeklyReward) {
-            await prisma.studentReward.delete({ where: { id: weeklyReward.id } });
-            stats.allocatedRewards = Math.max(0, stats.allocatedRewards - 1);
-          }
-        }
-      }
     } catch (error) {
       errors.push({
         type: 'CHAMPION_ALLOCATION',

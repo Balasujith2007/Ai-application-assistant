@@ -35,13 +35,50 @@ const HOUR_OPTIONS = Array.from({ length: 24 }, (_, h) => ({
   label: `${String(h).padStart(2, '0')}:00`,
 }));
 
-const WEIGHT_FIELDS: { key: keyof RewardEngineConfig['scoringWeights']; label: string }[] = [
-  { key: 'lessonsCompleted', label: 'Lessons completed' },
-  { key: 'learningConsistency', label: 'Learning consistency' },
-  { key: 'assessmentPerformance', label: 'Assessment performance' },
-  { key: 'courseProjectProgress', label: 'Course / project progress' },
-  { key: 'streakMaintenance', label: 'Streak maintenance' },
-  { key: 'achievementsMilestones', label: 'Achievements / milestones' },
+const WEIGHT_FIELDS: { key: keyof RewardEngineConfig['careerGrowth']['weights']; label: string }[] = [
+  { key: 'internshipApplications', label: 'Internship & job applications' },
+  { key: 'hackathonsCompetitions', label: 'Hackathons & competitions' },
+  { key: 'resumeStrength', label: 'Resume strength' },
+];
+
+const INTERNSHIP_MILESTONE_FIELDS: {
+  key: keyof RewardEngineConfig['careerGrowth']['internshipMilestones'];
+  label: string;
+}[] = [
+  { key: 'applicationSubmitted', label: 'Application submitted' },
+  { key: 'shortlisted', label: 'Application shortlisted' },
+  { key: 'interviewAttended', label: 'Interview attended' },
+  { key: 'selected', label: 'Selected' },
+  { key: 'internshipCompleted', label: 'Internship completed' },
+];
+
+const HACKATHON_MILESTONE_FIELDS: {
+  key: keyof RewardEngineConfig['careerGrowth']['hackathonMilestones'];
+  label: string;
+}[] = [
+  { key: 'applicationSubmitted', label: 'Application submitted' },
+  { key: 'registrationConfirmed', label: 'Registration confirmed' },
+  { key: 'participationCompleted', label: 'Participation completed' },
+  { key: 'projectSubmitted', label: 'Project submitted' },
+  { key: 'shortlisted', label: 'Shortlisted' },
+  { key: 'finalist', label: 'Finalist' },
+  { key: 'winner', label: 'Winner / prize recipient' },
+];
+
+const RESUME_CRITERIA_FIELDS: {
+  key: keyof RewardEngineConfig['careerGrowth']['resumeCriteria'];
+  label: string;
+  unavailable?: boolean;
+}[] = [
+  { key: 'technicalSkills', label: 'Technical skills' },
+  { key: 'projects', label: 'Projects' },
+  { key: 'internshipExperience', label: 'Internship experience' },
+  { key: 'certifications', label: 'Certifications', unavailable: true },
+  { key: 'achievements', label: 'Achievements' },
+  { key: 'professionalExperience', label: 'Professional experience' },
+  { key: 'resumeCompleteness', label: 'Resume completeness' },
+  { key: 'measurableAccomplishments', label: 'Measurable accomplishments' },
+  { key: 'improvement', label: 'Improvement since last resume version' },
 ];
 
 const TIER_KEYS: { key: keyof RewardEngineConfig['tierThresholds']; label: string }[] = [
@@ -73,7 +110,7 @@ type TabKey = 'schedule' | 'weights' | 'thresholds' | 'values' | 'champion' | 'h
 
 const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: 'schedule', label: 'Weekly Schedule', icon: <CalendarClock className="h-4 w-4" /> },
-  { key: 'weights', label: 'Scoring Weights', icon: <Scale className="h-4 w-4" /> },
+  { key: 'weights', label: 'Career Growth Scoring', icon: <Scale className="h-4 w-4" /> },
   { key: 'thresholds', label: 'Tier Thresholds', icon: <Layers className="h-4 w-4" /> },
   { key: 'values', label: 'Reward Values', icon: <Gift className="h-4 w-4" /> },
   { key: 'champion', label: 'Champion Rewards', icon: <Trophy className="h-4 w-4" /> },
@@ -169,7 +206,10 @@ export default function RewardConfigurationPage() {
   };
 
   const weightSum = config
-    ? Object.values(config.scoringWeights).reduce((a, v) => a + (Number.isFinite(v) ? v : 0), 0)
+    ? Object.values(config.careerGrowth.weights).reduce((a, v) => a + (Number.isFinite(v) ? v : 0), 0)
+    : 0;
+  const resumeSum = config
+    ? Object.values(config.careerGrowth.resumeCriteria).reduce((a, v) => a + (Number.isFinite(v) ? v : 0), 0)
     : 0;
 
   if (loading) {
@@ -339,31 +379,173 @@ export default function RewardConfigurationPage() {
       )}
 
       {tab === 'weights' && (
-        <Card className="space-y-5">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">Performance scoring weights must total exactly 100%.</p>
-            <span
-              className={`rounded-full px-3 py-1 text-sm font-semibold ${
-                Math.abs(weightSum - 100) < 0.001
-                  ? 'bg-emerald-50 text-emerald-700'
-                  : 'bg-red-50 text-red-700'
-              }`}
-            >
-              Total: {weightSum}%
-            </span>
-          </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {WEIGHT_FIELDS.map((f) => (
+        <div className="space-y-6">
+          <Card className="space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold uppercase tracking-wide text-gray-800">
+                  Career growth category weights
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Weekly evaluation covers internship/job applications, hackathons/competitions and resume strength only.
+                </p>
+              </div>
+              <span
+                className={`rounded-full px-3 py-1 text-sm font-semibold ${
+                  Math.abs(weightSum - 100) < 0.001
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'bg-red-50 text-red-700'
+                }`}
+              >
+                Total: {weightSum}%
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {WEIGHT_FIELDS.map((f) => (
+                <Input
+                  key={f.key}
+                  label={`${f.label} (%)`}
+                  type="number"
+                  value={config.careerGrowth.weights[f.key]}
+                  onChange={(e) => patch((d) => { d.careerGrowth.weights[f.key] = Number(e.target.value); })}
+                />
+              ))}
+            </div>
+          </Card>
+
+          <Card className="space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-wide text-gray-800">
+              Internship &amp; job milestones
+            </h3>
+            <p className="text-sm text-gray-500">
+              Points (0–100) awarded for each verified milestone. Submission never scores as high as selection or completion.
+            </p>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {INTERNSHIP_MILESTONE_FIELDS.map((f) => (
+                <Input
+                  key={f.key}
+                  label={f.label}
+                  type="number"
+                  value={config.careerGrowth.internshipMilestones[f.key]}
+                  onChange={(e) => patch((d) => { d.careerGrowth.internshipMilestones[f.key] = Number(e.target.value); })}
+                />
+              ))}
+            </div>
+          </Card>
+
+          <Card className="space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-wide text-gray-800">
+              Hackathon &amp; competition milestones
+            </h3>
+            <p className="text-sm text-gray-500">
+              Points (0–100) awarded for each verified milestone. Applying never scores as high as finalist or winner.
+            </p>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {HACKATHON_MILESTONE_FIELDS.map((f) => (
+                <Input
+                  key={f.key}
+                  label={f.label}
+                  type="number"
+                  value={config.careerGrowth.hackathonMilestones[f.key]}
+                  onChange={(e) => patch((d) => { d.careerGrowth.hackathonMilestones[f.key] = Number(e.target.value); })}
+                />
+              ))}
+            </div>
+          </Card>
+
+          <Card className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold uppercase tracking-wide text-gray-800">
+                  Resume strength criteria
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Maximum weighting per criterion; backend rules compute the score (AI is advisory only).
+                </p>
+              </div>
+              <span
+                className={`rounded-full px-3 py-1 text-sm font-semibold ${
+                  Math.abs(resumeSum - 100) < 0.001
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'bg-red-50 text-red-700'
+                }`}
+              >
+                Total: {resumeSum}%
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {RESUME_CRITERIA_FIELDS.map((f) => (
+                <div key={f.key}>
+                  <Input
+                    label={f.label}
+                    type="number"
+                    value={config.careerGrowth.resumeCriteria[f.key]}
+                    onChange={(e) => patch((d) => { d.careerGrowth.resumeCriteria[f.key] = Number(e.target.value); })}
+                  />
+                  {f.unavailable && (
+                    <p className="mt-1 text-xs text-amber-600">No certification data source yet — scored 0.</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card className="space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-wide text-gray-800">Verification requirements</h3>
+            <div className="space-y-2">
+              <label className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-gray-300 text-kit-600 focus:ring-kit-500"
+                  checked={config.careerGrowth.verification.requireInternshipVerification}
+                  onChange={(e) => patch((d) => { d.careerGrowth.verification.requireInternshipVerification = e.target.checked; })}
+                />
+                <span className="text-sm font-medium text-gray-800">Require internship application verification</span>
+              </label>
+              <label className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-gray-300 text-kit-600 focus:ring-kit-500"
+                  checked={config.careerGrowth.verification.requireHackathonVerification}
+                  onChange={(e) => patch((d) => { d.careerGrowth.verification.requireHackathonVerification = e.target.checked; })}
+                />
+                <span className="text-sm font-medium text-gray-800">Require hackathon registration verification</span>
+              </label>
+              <label className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-gray-300 text-kit-600 focus:ring-kit-500"
+                  checked={config.careerGrowth.verification.requireResumeReview}
+                  onChange={(e) => patch((d) => { d.careerGrowth.verification.requireResumeReview = e.target.checked; })}
+                />
+                <span className="text-sm font-medium text-gray-800">Require resume review before improvement points</span>
+              </label>
+            </div>
+          </Card>
+
+          <Card className="space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-wide text-gray-800">Scoring caps</h3>
+            <p className="text-sm text-gray-500">
+              Maximum distinct milestones counted per category in a single week (anti-gaming).
+            </p>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input
-                key={f.key}
-                label={`${f.label} (%)`}
+                label="Max internship milestones per week"
                 type="number"
-                value={config.scoringWeights[f.key]}
-                onChange={(e) => patch((d) => { d.scoringWeights[f.key] = Number(e.target.value); })}
+                value={config.careerGrowth.caps.maxInternshipMilestonesPerWeek}
+                onChange={(e) => patch((d) => { d.careerGrowth.caps.maxInternshipMilestonesPerWeek = Number(e.target.value); })}
+                hint="1–50"
               />
-            ))}
-          </div>
-        </Card>
+              <Input
+                label="Max hackathon milestones per week"
+                type="number"
+                value={config.careerGrowth.caps.maxHackathonMilestonesPerWeek}
+                onChange={(e) => patch((d) => { d.careerGrowth.caps.maxHackathonMilestonesPerWeek = Number(e.target.value); })}
+                hint="1–50"
+              />
+            </div>
+          </Card>
+        </div>
       )}
 
       {tab === 'thresholds' && (
@@ -481,17 +663,10 @@ export default function RewardConfigurationPage() {
               />
               <span className="text-sm font-medium text-gray-800">Top 3 champion rewards enabled</span>
             </label>
-            <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-gray-300 text-kit-600 focus:ring-kit-500"
-                checked={config.championRewards.additionalToWeekly}
-                onChange={(e) => patch((d) => { d.championRewards.additionalToWeekly = e.target.checked; })}
-              />
-              <span className="text-sm font-medium text-gray-800">
-                Champion rewards are additional to the regular weekly gift (unchecked = replace)
-              </span>
-            </label>
+            <p className="text-xs text-gray-500">
+              Champion gifts are always additional to the regular weekly gift. The top 3 keep their weekly Mystery
+              Gift and also receive a position-specific Champion Gift.
+            </p>
           </div>
 
           {CHAMPION_PLACES.map((p) => {

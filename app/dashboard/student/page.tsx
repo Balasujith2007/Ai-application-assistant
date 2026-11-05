@@ -25,6 +25,7 @@ import {
 } from '@/components/opportunities/ApplicationAssistantModal';
 import { MotivationBanner } from '@/components/dashboard/MotivationBanner';
 import { StudentPerformancePanel } from '@/components/dashboard/StudentPerformancePanel';
+import { CareerGrowthSummaryCard } from '@/components/dashboard/CareerGrowthSummaryCard';
 import Link from 'next/link';
 
 // ─────────────────────────────────────────────
@@ -514,6 +515,9 @@ export default function StudentDashboard() {
 
             {/* A. XP / Streak / Rank + Tracker/Leaderboard/Badges tabs */}
             <StudentPerformancePanel />
+
+            {/* A2. Weekly Career Growth Summary (transparency for the gift tier) */}
+            <CareerGrowthSummaryCard />
 
             {/* B. IRP Card */}
             <div className="dash-widget-card">

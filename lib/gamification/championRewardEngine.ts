@@ -2,9 +2,6 @@ import prisma from '@/lib/prisma';
 import type { RewardTriggerType } from '@prisma/client';
 import { REWARD_CONFIG } from './rewardConfig';
 import { getRewardConfig } from './rewardConfigService';
-import { getWeekKey, getEvaluationPeriod } from './rewardEngine';
-import { scoringEngine } from '../leaderboard/scoringEngine';
-import { getAuthoritativeStudentClass } from '../leaderboard/accessControl';
 
 // String literal types matching schema enums.
 // Run `npx prisma generate` to restore @prisma/client imports once the client
@@ -31,9 +28,23 @@ interface ChampionReward {
   };
 }
 
+/** Category contributions read from `WeeklyPerformanceSnapshot.careerBreakdown`. */
+interface CareerBreakdown {
+  internship: number;
+  hackathon: number;
+  resume: number;
+}
+
 export class ChampionRewardEngine {
   /**
-   * Identifies the top 3 students from the leaderboard for a given week
+   * Identifies the top 3 students for a given week by their finalized weekly
+   * Career Growth Score.
+   *
+   * Ranking reads the immutable `WeeklyPerformanceSnapshot` rows written by the
+   * reward engine for the week (internship/job applications, hackathons &
+   * competitions, resume strength). Tie-breaking is deterministic — category
+   * contributions in weight order, then student id — so repeated runs always
+   * produce the same champions.
    */
   async identifyTopThreeStudents(weekKey: string): Promise<ChampionReward[]> {
     const champions: ChampionReward[] = [];
@@ -41,44 +52,33 @@ export class ChampionRewardEngine {
     const config = await getRewardConfig();
     const championConfig = config.championRewards;
 
-    // Get all active students
-    const students = await prisma.user.findMany({
-      where: { role: 'STUDENT', active: true },
-      select: { id: true, name: true },
+    const snapshots = await prisma.weeklyPerformanceSnapshot.findMany({
+      where: { weekKey, student: { role: 'STUDENT', active: true } },
+      select: {
+        studentId: true,
+        weightedScore: true,
+        careerBreakdown: true,
+        student: { select: { name: true } },
+      },
     });
 
-    const leaderboardEntries: { studentId: string; studentName: string; totalScore: number; rank: number }[] = [];
+    const ranked = snapshots
+      .map((snapshot) => ({
+        studentId: snapshot.studentId,
+        finalScore: snapshot.weightedScore ?? 0,
+        breakdown: this.readBreakdown(snapshot.careerBreakdown),
+      }))
+      .sort(
+        (a, b) =>
+          b.finalScore - a.finalScore ||
+          b.breakdown.internship - a.breakdown.internship ||
+          b.breakdown.hackathon - a.breakdown.hackathon ||
+          b.breakdown.resume - a.breakdown.resume ||
+          a.studentId.localeCompare(b.studentId)
+      )
+      .slice(0, 3);
 
-    for (const student of students) {
-      try {
-        const { classIdentity } = await getAuthoritativeStudentClass(student.id);
-        if (!classIdentity.isComplete) continue;
-
-        const { rankings } = await scoringEngine.computeClassLeaderboard(
-          classIdentity,
-          'WEEKLY',
-          student.id
-        );
-
-        const studentEntry = rankings.find((r) => r.studentId === student.id);
-        if (studentEntry) {
-          leaderboardEntries.push({
-            studentId: student.id,
-            studentName: student.name,
-            totalScore: studentEntry.totalScore,
-            rank: studentEntry.rank,
-          });
-        }
-      } catch (error) {
-        console.error(`Error calculating leaderboard for student ${student.id}:`, error);
-      }
-    }
-
-    // Sort by total score descending, take top 3
-    leaderboardEntries.sort((a, b) => b.totalScore - a.totalScore);
-    const topThree = leaderboardEntries.slice(0, 3);
-
-    topThree.forEach((entry, index) => {
+    ranked.forEach((entry, index) => {
       const position = index + 1;
       const placeConfig =
         position === 1
@@ -104,6 +104,27 @@ export class ChampionRewardEngine {
     });
 
     return champions;
+  }
+
+  /** Reads the category contributions persisted in `careerBreakdown`. */
+  private readBreakdown(raw: unknown): CareerBreakdown {
+    const fallback: CareerBreakdown = { internship: 0, hackathon: 0, resume: 0 };
+    if (!raw || typeof raw !== 'object') return fallback;
+    const categories = (
+      raw as {
+        categories?: {
+          internshipApplications?: { weightedPoints?: number };
+          hackathonsCompetitions?: { weightedPoints?: number };
+          resumeStrength?: { weightedPoints?: number };
+        };
+      }
+    ).categories;
+    if (!categories) return fallback;
+    return {
+      internship: categories.internshipApplications?.weightedPoints ?? 0,
+      hackathon: categories.hackathonsCompetitions?.weightedPoints ?? 0,
+      resume: categories.resumeStrength?.weightedPoints ?? 0,
+    };
   }
 
   /**

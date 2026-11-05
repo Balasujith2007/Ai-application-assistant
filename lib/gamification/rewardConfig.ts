@@ -13,14 +13,63 @@ export const REWARD_CONFIG = {
   EVALUATION_START_DAY: 1, // Monday
   EVALUATION_END_DAY: 5, // Friday
 
-  // Performance Scoring Weights (must sum to 100)
-  SCORING_WEIGHTS: {
-    LESSONS_COMPLETED: 25,
-    LEARNING_CONSISTENCY: 20,
-    ASSESSMENT_PERFORMANCE: 20,
-    COURSE_PROJECT_PROGRESS: 15,
-    STREAK_MAINTENANCE: 10,
-    ACHIEVEMENTS_MILESTONES: 10,
+  // Career Growth Scoring Weights (must sum to 100).
+  // This platform is a Student Career Growth & Opportunity Platform, not an LMS,
+  // so weekly evaluation measures internship/job applications, hackathon and
+  // competition activity, and resume strength only.
+  CAREER_GROWTH_WEIGHTS: {
+    INTERNSHIP_APPLICATIONS: 35,
+    HACKATHONS_COMPETITIONS: 35,
+    RESUME_STRENGTH: 30,
+  },
+
+  // Internship / Job application milestone scores (0-100 scale).
+  // Only the highest milestone reached per distinct application is counted.
+  INTERNSHIP_MILESTONE_SCORES: {
+    APPLICATION_SUBMITTED: 10,
+    SHORTLISTED: 30,
+    INTERVIEW_ATTENDED: 55,
+    SELECTED: 80,
+    INTERNSHIP_COMPLETED: 100,
+  },
+
+  // Hackathon / Competition milestone scores (0-100 scale).
+  // Applying alone never earns winner-level points.
+  HACKATHON_MILESTONE_SCORES: {
+    APPLICATION_SUBMITTED: 5,
+    REGISTRATION_CONFIRMED: 10,
+    PARTICIPATION_COMPLETED: 30,
+    PROJECT_SUBMITTED: 50,
+    SHORTLISTED: 65,
+    FINALIST: 80,
+    WINNER: 100,
+  },
+
+  // Resume strength criteria (must sum to 100). Certifications has no backing
+  // data model on this platform, so it is scored 0 and reported as unavailable.
+  RESUME_CRITERIA_SCORES: {
+    TECHNICAL_SKILLS: 20,
+    PROJECTS: 20,
+    INTERNSHIP_EXPERIENCE: 15,
+    CERTIFICATIONS: 0,
+    ACHIEVEMENTS: 10,
+    PROFESSIONAL_EXPERIENCE: 10,
+    RESUME_COMPLETENESS: 15,
+    MEASURABLE_ACCOMPLISHMENTS: 5,
+    IMPROVEMENT: 5,
+  },
+
+  // Configurable verification requirements.
+  VERIFICATION_REQUIREMENTS: {
+    REQUIRE_INTERNSHIP_VERIFICATION: false, // Application records carry status (MANUAL/COMPANY_EMAIL/EXTENSION/SYSTEM)
+    REQUIRE_HACKATHON_VERIFICATION: true, // Registration must be verified/registered or backed by approved evidence
+    REQUIRE_RESUME_REVIEW: false, // Mentor review adds resume completeness credit but is not mandatory
+  },
+
+  // Configurable milestone scoring caps (anti-gaming).
+  SCORING_CAPS: {
+    MAX_INTERNSHIP_MILESTONES_PER_WEEK: 3,
+    MAX_HACKATHON_MILESTONES_PER_WEEK: 3,
   },
 
   // Weekly Score Tier Thresholds
@@ -92,8 +141,10 @@ export const REWARD_CONFIG = {
   RETRY_DELAY_MS: 5000,
 
   // Top 3 Champion Rewards Configuration
+  // Champion gifts are ALWAYS additional: the top 3 keep their regular weekly
+  // Mystery Gift and also receive a position-specific Champion Gift. Regular
+  // weekly gifts are never deleted or replaced.
   CHAMPION_REWARDS_ENABLED: true,
-  CHAMPION_REWARDS_ADDITIONAL_TO_WEEKLY: false, // If true, champions get both weekly and champion gifts; if false, champion gift replaces weekly
 
   // 1st Place Champion Rewards
   CHAMPION_FIRST_PLACE: {

@@ -25,13 +25,74 @@ export interface WeeklyScheduleConfig {
   retryDelayMs: number;
 }
 
-export interface ScoringWeightsConfig {
-  lessonsCompleted: number;
-  learningConsistency: number;
-  assessmentPerformance: number;
-  courseProjectProgress: number;
-  streakMaintenance: number;
-  achievementsMilestones: number;
+/**
+ * Career Growth scoring configuration.
+ *
+ * This platform is a Student Career Growth & Opportunity Platform (internship
+ * and job applications, hackathons and competitions, resume strength), not an
+ * LMS. Weekly evaluation therefore uses only these three categories. The legacy
+ * LMS `scoringWeights` section is no longer read; the historical row (if any)
+ * remains in the database and is simply ignored.
+ */
+export interface CareerGrowthWeightsConfig {
+  internshipApplications: number;
+  hackathonsCompetitions: number;
+  resumeStrength: number;
+}
+
+/** Milestone scores (0-100) for internship/job applications. */
+export interface InternshipMilestoneScoresConfig {
+  applicationSubmitted: number;
+  shortlisted: number;
+  interviewAttended: number;
+  selected: number;
+  internshipCompleted: number;
+}
+
+/** Milestone scores (0-100) for hackathons and competitions. */
+export interface HackathonMilestoneScoresConfig {
+  applicationSubmitted: number;
+  registrationConfirmed: number;
+  participationCompleted: number;
+  projectSubmitted: number;
+  shortlisted: number;
+  finalist: number;
+  winner: number;
+}
+
+/** Resume strength criteria maxima (must total exactly 100). */
+export interface ResumeCriteriaScoresConfig {
+  technicalSkills: number;
+  projects: number;
+  internshipExperience: number;
+  certifications: number;
+  achievements: number;
+  professionalExperience: number;
+  resumeCompleteness: number;
+  measurableAccomplishments: number;
+  improvement: number;
+}
+
+/** Configurable verification requirements per category. */
+export interface VerificationRequirementsConfig {
+  requireInternshipVerification: boolean;
+  requireHackathonVerification: boolean;
+  requireResumeReview: boolean;
+}
+
+/** Configurable anti-gaming caps. */
+export interface ScoringCapsConfig {
+  maxInternshipMilestonesPerWeek: number;
+  maxHackathonMilestonesPerWeek: number;
+}
+
+export interface CareerGrowthConfig {
+  weights: CareerGrowthWeightsConfig;
+  internshipMilestones: InternshipMilestoneScoresConfig;
+  hackathonMilestones: HackathonMilestoneScoresConfig;
+  resumeCriteria: ResumeCriteriaScoresConfig;
+  verification: VerificationRequirementsConfig;
+  caps: ScoringCapsConfig;
 }
 
 export interface TierRange {
@@ -80,7 +141,6 @@ export interface ChampionPlaceConfig {
 
 export interface ChampionRewardsConfig {
   enabled: boolean;
-  additionalToWeekly: boolean;
   first: ChampionPlaceConfig;
   second: ChampionPlaceConfig;
   third: ChampionPlaceConfig;
@@ -88,7 +148,7 @@ export interface ChampionRewardsConfig {
 
 export interface RewardEngineConfig {
   weeklySchedule: WeeklyScheduleConfig;
-  scoringWeights: ScoringWeightsConfig;
+  careerGrowth: CareerGrowthConfig;
   tierThresholds: TierThresholdsConfig;
   rewardValues: RewardValuesConfig;
   championRewards: ChampionRewardsConfig;
@@ -113,13 +173,48 @@ export const DEFAULT_REWARD_CONFIG: RewardEngineConfig = {
     maxRetries: REWARD_CONFIG.MAX_RETRIES,
     retryDelayMs: REWARD_CONFIG.RETRY_DELAY_MS,
   },
-  scoringWeights: {
-    lessonsCompleted: REWARD_CONFIG.SCORING_WEIGHTS.LESSONS_COMPLETED,
-    learningConsistency: REWARD_CONFIG.SCORING_WEIGHTS.LEARNING_CONSISTENCY,
-    assessmentPerformance: REWARD_CONFIG.SCORING_WEIGHTS.ASSESSMENT_PERFORMANCE,
-    courseProjectProgress: REWARD_CONFIG.SCORING_WEIGHTS.COURSE_PROJECT_PROGRESS,
-    streakMaintenance: REWARD_CONFIG.SCORING_WEIGHTS.STREAK_MAINTENANCE,
-    achievementsMilestones: REWARD_CONFIG.SCORING_WEIGHTS.ACHIEVEMENTS_MILESTONES,
+  careerGrowth: {
+    weights: {
+      internshipApplications: REWARD_CONFIG.CAREER_GROWTH_WEIGHTS.INTERNSHIP_APPLICATIONS,
+      hackathonsCompetitions: REWARD_CONFIG.CAREER_GROWTH_WEIGHTS.HACKATHONS_COMPETITIONS,
+      resumeStrength: REWARD_CONFIG.CAREER_GROWTH_WEIGHTS.RESUME_STRENGTH,
+    },
+    internshipMilestones: {
+      applicationSubmitted: REWARD_CONFIG.INTERNSHIP_MILESTONE_SCORES.APPLICATION_SUBMITTED,
+      shortlisted: REWARD_CONFIG.INTERNSHIP_MILESTONE_SCORES.SHORTLISTED,
+      interviewAttended: REWARD_CONFIG.INTERNSHIP_MILESTONE_SCORES.INTERVIEW_ATTENDED,
+      selected: REWARD_CONFIG.INTERNSHIP_MILESTONE_SCORES.SELECTED,
+      internshipCompleted: REWARD_CONFIG.INTERNSHIP_MILESTONE_SCORES.INTERNSHIP_COMPLETED,
+    },
+    hackathonMilestones: {
+      applicationSubmitted: REWARD_CONFIG.HACKATHON_MILESTONE_SCORES.APPLICATION_SUBMITTED,
+      registrationConfirmed: REWARD_CONFIG.HACKATHON_MILESTONE_SCORES.REGISTRATION_CONFIRMED,
+      participationCompleted: REWARD_CONFIG.HACKATHON_MILESTONE_SCORES.PARTICIPATION_COMPLETED,
+      projectSubmitted: REWARD_CONFIG.HACKATHON_MILESTONE_SCORES.PROJECT_SUBMITTED,
+      shortlisted: REWARD_CONFIG.HACKATHON_MILESTONE_SCORES.SHORTLISTED,
+      finalist: REWARD_CONFIG.HACKATHON_MILESTONE_SCORES.FINALIST,
+      winner: REWARD_CONFIG.HACKATHON_MILESTONE_SCORES.WINNER,
+    },
+    resumeCriteria: {
+      technicalSkills: REWARD_CONFIG.RESUME_CRITERIA_SCORES.TECHNICAL_SKILLS,
+      projects: REWARD_CONFIG.RESUME_CRITERIA_SCORES.PROJECTS,
+      internshipExperience: REWARD_CONFIG.RESUME_CRITERIA_SCORES.INTERNSHIP_EXPERIENCE,
+      certifications: REWARD_CONFIG.RESUME_CRITERIA_SCORES.CERTIFICATIONS,
+      achievements: REWARD_CONFIG.RESUME_CRITERIA_SCORES.ACHIEVEMENTS,
+      professionalExperience: REWARD_CONFIG.RESUME_CRITERIA_SCORES.PROFESSIONAL_EXPERIENCE,
+      resumeCompleteness: REWARD_CONFIG.RESUME_CRITERIA_SCORES.RESUME_COMPLETENESS,
+      measurableAccomplishments: REWARD_CONFIG.RESUME_CRITERIA_SCORES.MEASURABLE_ACCOMPLISHMENTS,
+      improvement: REWARD_CONFIG.RESUME_CRITERIA_SCORES.IMPROVEMENT,
+    },
+    verification: {
+      requireInternshipVerification: REWARD_CONFIG.VERIFICATION_REQUIREMENTS.REQUIRE_INTERNSHIP_VERIFICATION,
+      requireHackathonVerification: REWARD_CONFIG.VERIFICATION_REQUIREMENTS.REQUIRE_HACKATHON_VERIFICATION,
+      requireResumeReview: REWARD_CONFIG.VERIFICATION_REQUIREMENTS.REQUIRE_RESUME_REVIEW,
+    },
+    caps: {
+      maxInternshipMilestonesPerWeek: REWARD_CONFIG.SCORING_CAPS.MAX_INTERNSHIP_MILESTONES_PER_WEEK,
+      maxHackathonMilestonesPerWeek: REWARD_CONFIG.SCORING_CAPS.MAX_HACKATHON_MILESTONES_PER_WEEK,
+    },
   },
   tierThresholds: {
     legendary: { ...REWARD_CONFIG.TIER_THRESHOLDS.LEGENDARY },
@@ -168,7 +263,6 @@ export const DEFAULT_REWARD_CONFIG: RewardEngineConfig = {
   },
   championRewards: {
     enabled: REWARD_CONFIG.CHAMPION_REWARDS_ENABLED,
-    additionalToWeekly: REWARD_CONFIG.CHAMPION_REWARDS_ADDITIONAL_TO_WEEKLY,
     first: {
       xpAmount: REWARD_CONFIG.CHAMPION_FIRST_PLACE.XP_AMOUNT,
       coinAmount: REWARD_CONFIG.CHAMPION_FIRST_PLACE.COIN_AMOUNT,
@@ -204,7 +298,7 @@ export const DEFAULT_REWARD_CONFIG: RewardEngineConfig = {
 
 const CONFIG_KEYS = [
   'weeklySchedule',
-  'scoringWeights',
+  'careerGrowth',
   'tierThresholds',
   'rewardValues',
   'championRewards',
@@ -259,15 +353,67 @@ export function validateRewardConfig(config: RewardEngineConfig): void {
   if (ws.maxRetries < 0 || ws.maxRetries > 10) errors.push('Max retries must be between 0 and 10.');
   if (ws.retryDelayMs < 0) errors.push('Retry delay must not be negative.');
 
-  // B. Scoring weights
-  const w = config.scoringWeights;
-  const weightValues = Object.values(w);
-  if (weightValues.some((v) => typeof v !== 'number' || !Number.isFinite(v) || v < 0)) {
-    errors.push('All scoring weights must be non-negative numbers.');
-  }
-  const weightSum = weightValues.reduce((acc, v) => acc + (Number.isFinite(v) ? v : 0), 0);
+  // B. Career growth scoring (weights, milestones, resume criteria, caps)
+  const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+  const cg = config.careerGrowth;
+
+  const asFieldBag = (obj: unknown): Record<string, number | undefined> =>
+    (obj ?? {}) as Record<string, number | undefined>;
+
+  const ensureNumericFields = (obj: unknown, label: string, max = Number.POSITIVE_INFINITY) => {
+    for (const [k, v] of Object.entries(asFieldBag(obj))) {
+      if (!isNum(v) || v < 0) {
+        errors.push(`${label} "${k}" must be a non-negative number.`);
+      } else if (v > max) {
+        errors.push(`${label} "${k}" must not exceed ${max}.`);
+      }
+    }
+  };
+
+  const ensureMonotonic = (obj: unknown, order: string[], label: string) => {
+    if (!obj) return;
+    const bag = asFieldBag(obj);
+    for (let i = 0; i < order.length - 1; i++) {
+      const a = bag[order[i]];
+      const b = bag[order[i + 1]];
+      if (isNum(a) && isNum(b) && b < a) {
+        errors.push(`${label} must be non-decreasing: "${order[i + 1]}" (${b}) cannot be lower than "${order[i]}" (${a}).`);
+      }
+    }
+  };
+
+  const weightSum = Object.values(cg?.weights ?? {}).reduce((acc, v) => acc + (isNum(v) ? v : 0), 0);
+  ensureNumericFields(cg?.weights, 'Career growth weight', 100);
   if (Math.abs(weightSum - 100) > 0.001) {
-    errors.push(`Scoring weights must total exactly 100% (currently ${weightSum}%).`);
+    errors.push(`Career growth weights must total exactly 100% (currently ${weightSum}%).`);
+  }
+
+  ensureNumericFields(cg?.internshipMilestones, 'Internship milestone score', 100);
+  ensureNumericFields(cg?.hackathonMilestones, 'Hackathon milestone score', 100);
+  ensureNumericFields(cg?.resumeCriteria, 'Resume criterion', 100);
+
+  ensureMonotonic(
+    cg?.internshipMilestones,
+    ['applicationSubmitted', 'shortlisted', 'interviewAttended', 'selected', 'internshipCompleted'],
+    'Internship milestones'
+  );
+  ensureMonotonic(
+    cg?.hackathonMilestones,
+    ['applicationSubmitted', 'registrationConfirmed', 'participationCompleted', 'projectSubmitted', 'shortlisted', 'finalist', 'winner'],
+    'Hackathon milestones'
+  );
+
+  const resumeSum = Object.values(cg?.resumeCriteria ?? {}).reduce((acc, v) => acc + (isNum(v) ? v : 0), 0);
+  if (Math.abs(resumeSum - 100) > 0.001) {
+    errors.push(`Resume criteria must total exactly 100% (currently ${resumeSum}%).`);
+  }
+
+  const caps = cg?.caps;
+  if (!isNum(caps?.maxInternshipMilestonesPerWeek) || caps.maxInternshipMilestonesPerWeek < 1 || caps.maxInternshipMilestonesPerWeek > 50) {
+    errors.push('Max internship milestones per week must be between 1 and 50.');
+  }
+  if (!isNum(caps?.maxHackathonMilestonesPerWeek) || caps.maxHackathonMilestonesPerWeek < 1 || caps.maxHackathonMilestonesPerWeek > 50) {
+    errors.push('Max hackathon milestones per week must be between 1 and 50.');
   }
 
   // C. Tier thresholds

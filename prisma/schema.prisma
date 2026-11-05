@@ -1458,7 +1458,13 @@ model WeeklyPerformanceSnapshot {
   // Calculated weighted score
   weightedScore     Float            @default(0.0)
   rankTier          String?          // LEGENDARY, EPIC, RARE, COMMON, COMEBACK
-  
+
+  // Career growth breakdown (internship applications, hackathons/competitions,
+  // resume strength) captured for this week. Purely additive: existing rows keep
+  // this column null. Also serves as the immutable weekly snapshot used for
+  // deterministic champion ranking and resume-improvement comparison.
+  careerBreakdown   Json?
+
   // Metadata
   createdAt         DateTime         @default(now())
   
