@@ -6,6 +6,7 @@ import { ensureRoleSidebarDefaults, CANONICAL_SIDEBARS } from '@/lib/initializeD
 // Map sidebar titles to app features
 const FEATURE_MAP: Record<string, string> = {
   'Opportunities': 'opportunities',
+  'Explore Opportunities': 'opportunities',
   'Internship / Hackathon': 'opportunities',
   'My Applications': 'opportunities',
   'My Tasks': 'opportunities',
@@ -13,6 +14,7 @@ const FEATURE_MAP: Record<string, string> = {
   'My Resume': 'resume-management',
   'Resumes': 'resume-management',
   'My Progress': 'career-readiness',
+  'Career Progress': 'career-readiness',
   'Student Progress': 'career-readiness',
   'Reports': 'reports',
   'Forms': 'form-builder',
@@ -57,10 +59,20 @@ export async function GET(req: Request) {
       }));
     }
 
-    // Filter out Preferences items (Notifications and Settings) so they are not duplicated in Main Menu
-    dbItems = dbItems.filter(
-      item => item.title !== 'Notifications' && item.title !== 'Settings' && item.path !== '/dashboard/notifications' && item.path !== '/dashboard/settings'
-    );
+    // Filter out Preferences items (Notifications and Settings) so they are not
+    // duplicated in Main Menu. Students surface "Settings" (and "My Profile")
+    // inside the Account sidebar group, so those are kept for STUDENT only.
+    dbItems = dbItems.filter((item) => {
+      if (user.role === 'STUDENT') {
+        return item.title !== 'Notifications' && item.path !== '/dashboard/notifications';
+      }
+      return (
+        item.title !== 'Notifications' &&
+        item.title !== 'Settings' &&
+        item.path !== '/dashboard/notifications' &&
+        item.path !== '/dashboard/settings'
+      );
+    });
 
     // Remove Announcements and Tasks for Student role
     if (user.role === 'STUDENT') {

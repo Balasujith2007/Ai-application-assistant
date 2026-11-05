@@ -2,17 +2,20 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Gift, X, Sparkles, CheckCircle2, Zap, Trophy, Award, Shield } from 'lucide-react';
+import { X, CheckCircle2 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import { soundEngine } from '@/lib/audio/soundEffects';
+import { PremiumGiftBox } from '@/components/dashboard/PremiumGiftBox';
+import { FourCornerConfetti } from '@/components/dashboard/FourCornerConfetti';
+import { PremiumRewardCard } from '@/components/dashboard/PremiumRewardCard';
 
-type AnimationStage = 'falling' | 'landed' | 'countdown' | 'opening' | 'revealed' | 'claimed';
+type AnimationStage = 'appearing' | 'landed' | 'countdown' | 'opening' | 'revealed' | 'claimed';
 
 export default function GiftRevealPage() {
   const router = useRouter();
   const routeParams = useParams<{ rewardId: string }>();
   const rewardId = routeParams?.rewardId as string;
-  const [stage, setStage] = useState<AnimationStage>('falling');
+  const [stage, setStage] = useState<AnimationStage>('appearing');
   const [countdown, setCountdown] = useState(3);
   const [rewardData, setRewardData] = useState<any>(null);
   const [claiming, setClaiming] = useState(false);
@@ -23,27 +26,52 @@ export default function GiftRevealPage() {
     coinBalance?: number;
   } | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [confettiActive, setConfettiActive] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    // Check for reduced motion preference
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
+    
+    const handleChange = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
 
   useEffect(() => {
     fetchRewardData();
-    // Play falling sound when component mounts
+    // Play appearance sound
     soundEngine.play('gift_fall');
     
-    // Play landing sound after animation
+    // Transition to landed after animation
     const landingTimer = setTimeout(() => {
       soundEngine.play('gift_land');
       setStage('landed');
-    }, 1500);
+    }, prefersReducedMotion ? 500 : 1500);
     
     return () => clearTimeout(landingTimer);
-  }, [rewardId]);
+  }, [rewardId, prefersReducedMotion]);
 
-  // Advance from the opening explosion animation to the reward reveal.
+  // Trigger confetti when opening starts
+  useEffect(() => {
+    if (stage === 'opening' && !prefersReducedMotion) {
+      setConfettiActive(true);
+      soundEngine.play('gift_open');
+      
+      // Play confetti burst sound for celebration
+      setTimeout(() => {
+        soundEngine.play('confetti_burst');
+      }, 200);
+    }
+  }, [stage, prefersReducedMotion]);
+
+  // Advance from opening to revealed
   useEffect(() => {
     if (stage !== 'opening') return;
-    const timer = setTimeout(() => setStage('revealed'), 1400);
+    const timer = setTimeout(() => setStage('revealed'), prefersReducedMotion ? 800 : 1400);
     return () => clearTimeout(timer);
-  }, [stage]);
+  }, [stage, prefersReducedMotion]);
 
   const fetchRewardData = async () => {
     try {
@@ -78,9 +106,9 @@ export default function GiftRevealPage() {
       setCountdown(count);
       if (count === 0) {
         clearInterval(interval);
-        setTimeout(() => setStage('opening'), 500);
+        setTimeout(() => setStage('opening'), prefersReducedMotion ? 200 : 500);
       }
-    }, 1000);
+    }, prefersReducedMotion ? 600 : 1000);
   };
 
   const handleClaim = async () => {
@@ -100,6 +128,7 @@ export default function GiftRevealPage() {
         });
         setClaimed(true);
         setStage('claimed');
+        soundEngine.play('claim_success');
       }
     } catch (error) {
       console.error('Error claiming reward:', error);
@@ -110,54 +139,6 @@ export default function GiftRevealPage() {
 
   const handleClose = () => {
     router.push('/dashboard/student');
-  };
-
-  const getRewardIcon = () => {
-    if (!rewardData) return Gift;
-    switch (rewardData.rewardType) {
-      case 'BONUS_XP':
-        return Zap;
-      case 'BONUS_COINS':
-        return Sparkles;
-      case 'STREAK_RESCUE_TOKEN':
-        return Shield;
-      case 'LEADERBOARD_BOOST_TOKEN':
-        return Trophy;
-      case 'EXCLUSIVE_BADGE':
-        return Award;
-      default:
-        return Gift;
-    }
-  };
-
-  const getRarityColor = () => {
-    if (!rewardData) return 'from-amber-400 to-amber-500';
-    
-    // Champion-specific colors
-    if (rewardData.championPosition === 1) {
-      return 'from-yellow-300 to-amber-500'; // Gold
-    }
-    if (rewardData.championPosition === 2) {
-      return 'from-slate-300 to-slate-400'; // Silver
-    }
-    if (rewardData.championPosition === 3) {
-      return 'from-orange-300 to-orange-500'; // Bronze
-    }
-    
-    switch (rewardData.rewardRarity) {
-      case 'LEGENDARY':
-        return 'from-amber-400 to-amber-600';
-      case 'EPIC':
-        return 'from-purple-400 to-purple-600';
-      case 'RARE':
-        return 'from-blue-400 to-blue-600';
-      case 'COMMON':
-        return 'from-slate-400 to-slate-600';
-      case 'COMEBACK':
-        return 'from-emerald-400 to-emerald-600';
-      default:
-        return 'from-amber-400 to-amber-500';
-    }
   };
 
   const getChampionMessage = () => {
@@ -178,51 +159,58 @@ export default function GiftRevealPage() {
   const isChampionReward = rewardData?.championPosition && rewardData.championPosition <= 3;
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 z-50 flex items-center justify-center overflow-hidden">
+    <div className="fixed inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 z-50 flex items-center justify-center overflow-hidden">
+      {/* Premium Ambient Background Lighting */}
+      <div className="absolute inset-0">
+        {/* Top-left ambient light */}
+        <div className="absolute top-0 left-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
+        {/* Top-right ambient light */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+        {/* Bottom ambient glow */}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-64 bg-gradient-to-t from-amber-500/10 to-transparent rounded-full blur-3xl" />
+      </div>
+
       {/* Close button */}
       <button
         onClick={handleClose}
-        className="absolute top-4 right-4 z-50 text-white/70 hover:text-white transition-colors"
+        className="absolute top-4 right-4 z-50 text-white/60 hover:text-white transition-colors bg-black/20 hover:bg-black/40 rounded-full p-2"
       >
         <X className="w-6 h-6" />
       </button>
 
       {/* Sound toggle */}
       <button
-        onClick={() => setSoundEnabled(!soundEnabled)}
-        className="absolute top-4 left-4 z-50 text-white/70 hover:text-white transition-colors"
+        onClick={() => {
+          setSoundEnabled(!soundEnabled);
+          soundEngine.toggle(!soundEnabled);
+        }}
+        className="absolute top-4 left-4 z-50 text-white/60 hover:text-white transition-colors bg-black/20 hover:bg-black/40 rounded-full p-2"
       >
         {soundEnabled ? '🔊' : '🔇'}
       </button>
 
+      {/* Four Corner Confetti */}
+      <FourCornerConfetti 
+        active={confettiActive} 
+        onComplete={() => setConfettiActive(false)} 
+      />
+
       <AnimatePresence mode="wait">
-        {/* Stage 1: Gift Falling */}
-        {stage === 'falling' && (
+        {/* Stage 1: Gift Appearing */}
+        {stage === 'appearing' && (
           <motion.div
-            key="falling"
-            initial={{ y: -500, rotate: -20 }}
-            animate={{ y: 0, rotate: 0 }}
+            key="appearing"
+            initial={{ y: -400, opacity: 0, rotate: -15 }}
+            animate={{ y: 0, opacity: 1, rotate: 0 }}
             transition={{
               type: 'spring',
               stiffness: 100,
               damping: 20,
-              duration: 1.5,
+              duration: prefersReducedMotion ? 0.5 : 1.5,
             }}
             className="relative"
           >
-            <motion.div
-              animate={{ y: [0, 20, 0] }}
-              transition={{ duration: 0.5, delay: 1.5 }}
-            >
-              <Gift className="w-48 h-48 text-amber-400 drop-shadow-2xl" />
-            </motion.div>
-            {/* Landing shadow */}
-            <motion.div
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 0.5 }}
-              transition={{ delay: 1.2, duration: 0.3 }}
-              className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-32 h-8 bg-black/30 rounded-full blur-md"
-            />
+            <PremiumGiftBox isOpen={false} isOpening={false} />
           </motion.div>
         )}
 
@@ -236,31 +224,11 @@ export default function GiftRevealPage() {
             onClick={handleGiftClick}
           >
             <motion.div
-              animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
+              animate={{ y: prefersReducedMotion ? 0 : [0, -8, 0] }}
+              transition={{ duration: prefersReducedMotion ? 0 : 2, repeat: Infinity }}
               className="relative"
             >
-              <Gift className="w-48 h-48 text-amber-400 drop-shadow-2xl" />
-              {/* Glowing particles */}
-              {[...Array(8)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  className="absolute w-2 h-2 bg-amber-400 rounded-full"
-                  style={{
-                    left: `${50 + (Math.random() - 0.5) * 100}%`,
-                    top: `${50 + (Math.random() - 0.5) * 100}%`,
-                  }}
-                  animate={{
-                    scale: [0, 1, 0],
-                    opacity: [0, 1, 0],
-                  }}
-                  transition={{
-                    duration: 1.5,
-                    repeat: Infinity,
-                    delay: i * 0.2,
-                  }}
-                />
-              ))}
+              <PremiumGiftBox isOpen={false} isOpening={false} />
             </motion.div>
             <motion.h2
               initial={{ y: 20, opacity: 0 }}
@@ -268,13 +236,13 @@ export default function GiftRevealPage() {
               transition={{ delay: 0.3 }}
               className="text-3xl font-black text-white mt-8 mb-2"
             >
-              {isChampionReward ? getChampionMessage() : 'YOUR SURPRISE IS WAITING!'}
+              {isChampionReward ? getChampionMessage() : 'YOUR SURPRISE AWAITS'}
             </motion.h2>
             <motion.p
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className="text-lg text-purple-200 font-medium"
+              className="text-lg text-slate-300 font-medium"
             >
               TAP TO OPEN
             </motion.p>
@@ -306,128 +274,23 @@ export default function GiftRevealPage() {
           <motion.div
             key="opening"
             initial={{ scale: 1 }}
-            animate={{ scale: [1, 1.2, 0] }}
-            transition={{ duration: 0.8 }}
+            animate={{ scale: [1, 1.1, 0] }}
+            transition={{ duration: prefersReducedMotion ? 0.4 : 0.8 }}
             className="relative"
           >
-            <Gift className="w-48 h-48 text-amber-400" />
-            {/* Explosion of particles - Champion-specific colors */}
-            {[...Array(30)].map((_, i) => {
-              let particleColor = 'bg-amber-400';
-              if (isChampionReward) {
-                if (rewardData?.championPosition === 1) {
-                  particleColor = 'bg-yellow-300'; // Gold
-                } else if (rewardData?.championPosition === 2) {
-                  particleColor = 'bg-slate-300'; // Silver
-                } else if (rewardData?.championPosition === 3) {
-                  particleColor = 'bg-orange-300'; // Bronze
-                }
-              }
-              
-              return (
-                <motion.div
-                  key={i}
-                  className={`absolute w-3 h-3 ${particleColor} rounded-full`}
-                  style={{
-                    left: '50%',
-                    top: '50%',
-                  }}
-                  animate={{
-                    x: (Math.random() - 0.5) * 500,
-                    y: (Math.random() - 0.5) * 500,
-                    scale: [1, 0],
-                    opacity: [1, 0],
-                  }}
-                  transition={{ duration: 1.2, delay: 0.3 }}
-                />
-              );
-            })}
-            {/* Additional confetti for champions */}
-            {isChampionReward && [...Array(20)].map((_, i) => (
-              <motion.div
-                key={`confetti-${i}`}
-                className="absolute w-2 h-2 rounded-full"
-                style={{
-                  left: '50%',
-                  top: '50%',
-                  backgroundColor: rewardData?.championPosition === 1 ? '#FFD700' : 
-                                  rewardData?.championPosition === 2 ? '#C0C0C0' : '#CD7F32',
-                }}
-                animate={{
-                  x: (Math.random() - 0.5) * 600,
-                  y: (Math.random() - 0.5) * 600,
-                  rotate: [0, 360],
-                  scale: [1, 0.5, 0],
-                  opacity: [1, 0.8, 0],
-                }}
-                transition={{ duration: 1.5, delay: 0.4 }}
-              />
-            ))}
+            <PremiumGiftBox isOpen={true} isOpening={true} />
           </motion.div>
         )}
 
         {/* Stage 5: Revealed */}
         {stage === 'revealed' && (
-          <motion.div
-            key="revealed"
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 max-w-md w-full mx-4 border border-white/20"
-          >
-            <motion.div
-              initial={{ rotate: -180 }}
-              animate={{ rotate: 0 }}
-              transition={{ duration: 0.8, type: 'spring' }}
-              className={`w-24 h-24 rounded-2xl bg-gradient-to-br ${getRarityColor()} flex items-center justify-center mx-auto mb-6 shadow-2xl`}
-            >
-              {React.createElement(getRewardIcon(), { className: 'w-12 h-12 text-white' })}
-            </motion.div>
-
-            <h2 className="text-2xl font-black text-white text-center mb-2">
-              {isChampionReward && rewardData?.championPosition === 1 && '👑 CHAMPION REWARD'}
-              {isChampionReward && rewardData?.championPosition === 2 && '🥈 RUNNER-UP REWARD'}
-              {isChampionReward && rewardData?.championPosition === 3 && '🥉 RISING CHAMPION REWARD'}
-              {!isChampionReward && (rewardData?.badgeName || 'Reward Unlocked!')}
-            </h2>
-
-            <div className="space-y-3 mb-6">
-              {rewardData?.xpAmount && (
-                <div className="flex items-center justify-between text-white">
-                  <span className="text-purple-200">XP Earned</span>
-                  <span className="font-bold text-xl">+{rewardData.xpAmount}</span>
-                </div>
-              )}
-              {rewardData?.coinAmount && rewardData.coinAmount > 0 && (
-                <div className="flex items-center justify-between text-white">
-                  <span className="text-purple-200">Coins Earned</span>
-                  <span className="font-bold text-xl">+{rewardData.coinAmount}</span>
-                </div>
-              )}
-              <div className="flex items-center justify-between text-white">
-                <span className="text-purple-200">Rarity</span>
-                <span className="font-bold">{rewardData?.rewardRarity}</span>
-              </div>
-            </div>
-
-            <p className="text-purple-200 text-sm text-center mb-6">
-              {rewardData?.personalizedMessage}
-            </p>
-
-            <p className="text-white/60 text-xs text-center mb-6">
-              {rewardData?.reasonEarned}
-            </p>
-
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleClaim}
-              disabled={claiming || claimed}
-              className="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {claiming ? 'Claiming...' : claimed ? 'Claimed! ✓' : 'Claim Reward'}
-            </motion.button>
-          </motion.div>
+          <PremiumRewardCard
+            rewardData={rewardData}
+            onClaim={handleClaim}
+            claiming={claiming}
+            claimed={claimed}
+            claimResult={claimResult}
+          />
         )}
 
         {/* Stage 6: Claimed */}
@@ -436,40 +299,40 @@ export default function GiftRevealPage() {
             key="claimed"
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="text-center"
+            className="text-center max-w-md w-full mx-4"
           >
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: 'spring', duration: 0.5 }}
-              className="w-24 h-24 rounded-full bg-emerald-500 flex items-center justify-center mx-auto mb-6"
+              className="w-24 h-24 rounded-full bg-emerald-500 flex items-center justify-center mx-auto mb-6 shadow-2xl"
             >
               <CheckCircle2 className="w-12 h-12 text-white" />
             </motion.div>
             <h2 className="text-3xl font-black text-white mb-2">
               Reward Claimed!
             </h2>
-            <p className="text-purple-200 mb-4">
+            <p className="text-slate-300 mb-4">
               Your reward has been added to your account
             </p>
 
             {claimResult && (
-              <div className="mb-6 space-y-2 rounded-2xl border border-white/20 bg-white/10 p-4 text-left">
+              <div className="mb-6 space-y-2 rounded-2xl border border-white/20 bg-white/5 p-4 text-left">
                 {typeof claimResult.xpAwarded === 'number' && claimResult.xpAwarded > 0 && (
                   <div className="flex items-center justify-between text-white">
-                    <span className="text-purple-200">XP added</span>
+                    <span className="text-slate-300">XP added</span>
                     <span className="font-bold">+{claimResult.xpAwarded}</span>
                   </div>
                 )}
                 {typeof claimResult.coinsAwarded === 'number' && claimResult.coinsAwarded > 0 && (
                   <div className="flex items-center justify-between text-white">
-                    <span className="text-purple-200">Coins added</span>
+                    <span className="text-slate-300">Coins added</span>
                     <span className="font-bold">+{claimResult.coinsAwarded}</span>
                   </div>
                 )}
                 {typeof claimResult.coinBalance === 'number' && (
                   <div className="flex items-center justify-between border-t border-white/10 pt-2 text-white">
-                    <span className="text-purple-200">Coin balance</span>
+                    <span className="text-slate-300">Coin balance</span>
                     <span className="font-bold">{claimResult.coinBalance}</span>
                   </div>
                 )}

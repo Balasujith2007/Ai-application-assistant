@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
 import { corsHeaders, jsonWithCors, optionsOk } from '@/lib/applyAgent/cors';
 import { extensionResumePayload, saveResumeForUser } from '@/lib/applyAgent/resumeFile';
+import { recordCareerActivity } from '@/lib/gamification/badgeTriggers';
 
 export function OPTIONS(req: Request) {
   return optionsOk(req);
@@ -70,6 +71,9 @@ export async function POST(req: Request) {
     if (resume.userId !== userId) {
       return jsonWithCors(req, { success: false, error: 'Ownership mismatch' }, 500);
     }
+
+    // Career-growth trigger: uploading/replacing an active resume is a qualifying activity.
+    await recordCareerActivity(userId, 'RESUME_UPLOADED', `resume:${resume.id}`);
 
     return jsonWithCors(req, {
       success: true,

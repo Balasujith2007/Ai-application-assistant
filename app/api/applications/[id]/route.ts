@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
+import { recordCareerActivity } from '@/lib/gamification/badgeTriggers';
 
 export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
   try {
@@ -53,6 +54,8 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
       where: { id: (await props.params).id, userId },
       data: updateData
     });
+
+    await recordCareerActivity(userId, 'APPLICATION_STATUS_CHANGE', application.id);
 
     return NextResponse.json(application);
   } catch (error) {

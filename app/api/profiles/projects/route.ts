@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
+import { recordCareerActivity } from '@/lib/gamification/badgeTriggers';
 
 
 export async function POST(req: Request) {
@@ -11,6 +12,8 @@ export async function POST(req: Request) {
     if (!profile) profile = await prisma.profile.create({ data: { userId } });
     const body = await req.json();
     const project = await prisma.project.create({ data: { profileId: profile.id, ...body } });
+    await recordCareerActivity(userId, 'PROJECT_ADDED');
+
     return NextResponse.json({ data: project });
   } catch (error) { return NextResponse.json({ message: 'Error' }, { status: 500 }); }
 }

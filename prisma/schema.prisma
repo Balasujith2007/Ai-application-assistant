@@ -930,20 +930,27 @@ model LeaderboardSnapshot {
 }
 
 model StudentBadge {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   studentId         String
   badgeId           String
   category          String
-  tier              String   @default("BRONZE")
+  tier              String    @default("BRONZE")
   title             String
   description       String
   icon              String
-  awardedAt         DateTime @default(now())
+  awardedAt         DateTime  @default(now())
   evidenceData      Json?
-  unlockedToastSeen Boolean  @default(false)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  student           User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  unlockedToastSeen Boolean   @default(false)
+  // ── LinkedIn-ready verifiable credential fields (additive) ──
+  credentialId      String?   @unique
+  awardSource       String    @default("ENGINE") // ENGINE | MONTHLY | MANUAL
+  awardedById       String? // Super Admin userId for manual grants
+  credentialStatus  String    @default("VALID") // VALID | REVOKED
+  revokedAt         DateTime?
+  revokedReason     String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  student           User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, badgeId], name: "studentId_badgeId")
   @@index([studentId, category])
@@ -1235,6 +1242,92 @@ model ShopPurchase {
   @@map("shop_purchases")
 }
 
+/// Super-Admin-editable badge catalog. Seeded from the code catalog
+/// (`lib/gamification/badgeConfig.ts`) and override-safe: `evaluate()` stays in
+/// code, keyed by `badgeId`, while threshold/metadata overrides live here.
+model BadgeCatalog {
+  badgeId     String   @id
+  title       String
+  category    String
+  tier        String   @default("BRONZE")
+  description String
+  criteria    String
+  icon        String
+  unit        String   @default("")
+  threshold   Float
+  xpReward    Int      @default(0)
+  rarity      String   @default("COMMON")
+  awardSource String   @default("ENGINE") // ENGINE | MONTHLY
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  artworkKey  String?
+  monthlyRule Json?
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category, active])
+  @@map("badge_catalog")
+}
+
+/// Immutable monthly career-performance snapshot (frozen at month end).
+/// Mirrors `WeeklyPerformanceSnapshot` but never overwrites weekly data.
+model MonthlyPerformanceSnapshot {
+  id              String   @id @default(cuid())
+  studentId       String
+  monthKey        String // YYYY-MM (Asia/Kolkata)
+  startDate       DateTime
+  endDate         DateTime
+  weightedScore   Float    @default(0.0)
+  careerBreakdown Json?
+  weeksActive     Int      @default(0)
+  rank            Int?
+  createdAt       DateTime @default(now())
+
+  @@unique([studentId, monthKey], name: "MonthlyPerformanceSnapshot_studentId_monthKey_unique")
+  @@index([monthKey, weightedScore])
+  @@index([studentId, monthKey])
+  @@map("monthly_performance_snapshots")
+}
+
+/// Idempotency ledger for the monthly recognition run (one row per month).
+model MonthlyRecognitionRun {
+  id               String    @id @default(cuid())
+  monthKey         String    @unique
+  evaluationStart  DateTime
+  evaluationEnd    DateTime
+  totalStudents    Int       @default(0)
+  championsAwarded Int       @default(0)
+  badgesAwarded    Int       @default(0)
+  failedCount      Int       @default(0)
+  status           String    @default("PENDING") // PENDING | COMPLETED | FAILED
+  resultSummary    Json?
+  startedAt        DateTime?
+  completedAt      DateTime?
+  errorLog         Json?
+  createdAt        DateTime  @default(now())
+
+  @@index([status])
+  @@map("monthly_recognition_runs")
+}
+
+/// Audit trail for every badge grant / revocation (engine, monthly or manual).
+model BadgeAwardAudit {
+  id        String   @id @default(cuid())
+  studentId String
+  badgeId   String
+  action    String // GRANT | REVOKE
+  source    String   @default("ENGINE") // ENGINE | MONTHLY | MANUAL
+  reason    String
+  actorId   String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([studentId, createdAt])
+  @@index([badgeId, createdAt])
+  @@map("badge_award_audits")
+}
+
 enum Role {
   STUDENT
   MENTOR
@@ -1415,6 +1508,12 @@ enum RewardTriggerType {
   CHAMPION_FIRST_PLACE
   CHAMPION_SECOND_PLACE
   CHAMPION_THIRD_PLACE
+  MONTHLY_GOLD_CHAMPION
+  MONTHLY_SILVER_CHAMPION
+  MONTHLY_BRONZE_CHAMPION
+  MONTHLY_CAREER_EXCELLENCE
+  MONTHLY_CONSISTENT_PERFORMER
+  MONTHLY_RISING_STAR
 }
 
 enum RewardStatus {

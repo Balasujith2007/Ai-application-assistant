@@ -3,18 +3,26 @@ import prisma from './prisma';
 import { Role } from '@prisma/client';
 
 export const CANONICAL_SIDEBARS: Record<Role, Array<{ title: string; path: string; order: number; enabled: boolean }>> = {
+  // Student navigation is grouped in the UI as:
+  //   Main Menu -> Overview, Explore Opportunities, My Applications, My Resume,
+  //                Career Progress, Achievements
+  //   Rewards   -> Rewards & Inventory, Coin Shop, Tokens
+  //   Account   -> My Profile, Settings
+  // "Career Growth" is merged into "Career Progress" (its content renders there),
+  // and "Career Leaderboard" is no longer surfaced in the sidebar (its dedicated
+  // route, APIs, ranking engine and Champion Gift logic are preserved).
   STUDENT: [
     { title: 'Overview', path: '/dashboard/student', order: 0, enabled: true },
-    { title: 'Opportunities', path: '/dashboard/student/opportunities', order: 1, enabled: true },
+    { title: 'Explore Opportunities', path: '/dashboard/student/opportunities', order: 1, enabled: true },
     { title: 'My Applications', path: '/dashboard/student/applications', order: 2, enabled: true },
     { title: 'My Resume', path: '/resume', order: 3, enabled: true },
-    { title: 'My Progress', path: '/dashboard/student/progress', order: 4, enabled: true },
+    { title: 'Career Progress', path: '/dashboard/student/progress', order: 4, enabled: true },
     { title: 'Achievements', path: '/dashboard/student/achievements', order: 5, enabled: true },
-    { title: 'Career Growth', path: '/dashboard/student/growth', order: 6, enabled: true },
-    { title: 'Rewards & Inventory', path: '/dashboard/student/rewards', order: 7, enabled: true },
-    { title: 'Coin Shop', path: '/dashboard/student/shop', order: 8, enabled: true },
-    { title: 'Tokens', path: '/dashboard/student/tokens', order: 9, enabled: true },
-    { title: 'Career Leaderboard', path: '/dashboard/student/leaderboard', order: 10, enabled: true },
+    { title: 'Rewards & Inventory', path: '/dashboard/student/rewards', order: 6, enabled: true },
+    { title: 'Coin Shop', path: '/dashboard/student/shop', order: 7, enabled: true },
+    { title: 'Tokens', path: '/dashboard/student/tokens', order: 8, enabled: true },
+    { title: 'My Profile', path: '/profile', order: 9, enabled: true },
+    { title: 'Settings', path: '/dashboard/settings', order: 10, enabled: true },
   ],
   MENTOR: [
     { title: 'Dashboard', path: '/dashboard/mentor', order: 0, enabled: true },
@@ -52,9 +60,10 @@ export const CANONICAL_SIDEBARS: Record<Role, Array<{ title: string; path: strin
     { title: 'Auto-Fill Agent', path: '/dashboard/super-admin/auto-fill-agent', order: 7, enabled: true },
     { title: 'AI Features', path: '/dashboard/super-admin/ai-features', order: 8, enabled: true },
     { title: 'Reward Configuration', path: '/dashboard/super-admin/gamification/reward-configuration', order: 9, enabled: true },
-    { title: 'Gift Distribution', path: '/dashboard/super-admin/gamification/distribution', order: 10, enabled: true },
-    { title: 'Audit Logs', path: '/dashboard/super-admin/audit-logs', order: 11, enabled: true },
-    { title: 'System Health', path: '/dashboard/super-admin/system-health', order: 12, enabled: true },
+    { title: 'Badge Management', path: '/dashboard/super-admin/gamification/badges', order: 10, enabled: true },
+    { title: 'Gift Distribution', path: '/dashboard/super-admin/gamification/distribution', order: 11, enabled: true },
+    { title: 'Audit Logs', path: '/dashboard/super-admin/audit-logs', order: 12, enabled: true },
+    { title: 'System Health', path: '/dashboard/super-admin/system-health', order: 13, enabled: true },
   ],
   FACULTY: [],
   PLACEMENT_CELL: [],
@@ -153,21 +162,38 @@ export async function ensureRoleSidebarDefaults(role: Role) {
   // Skip if already initialized in this process instance
   if (initializedRoles.has(role)) return;
 
-  // Clean up any redundant Preferences items from main sidebar table
+  // Clean up any redundant Preferences items from main sidebar table.
+  // Students now surface "Settings" inside the Account sidebar group, so only
+  // Notifications is removed for STUDENT; other roles keep both removed.
   await prisma.roleSidebarItem.deleteMany({
     where: {
       role,
-      title: { in: ['Notifications', 'Settings'] }
+      title: { in: role === Role.STUDENT ? ['Notifications'] : ['Notifications', 'Settings'] }
     }
   });
 
-  // Clean up Announcements and Tasks from Student role
+  // Reconcile legacy Student items with the redesigned student navigation:
+  //  - remove entries that are no longer surfaced (Announcements/Tasks, and the
+  //    retired Career Growth + Career Leaderboard sidebar entries)
+  //  - drop the pre-rename titles so the additive step below recreates them
+  //    under their new names (Opportunities -> Explore Opportunities,
+  //    My Progress -> Career Progress).
   if (role === Role.STUDENT) {
     await prisma.roleSidebarItem.deleteMany({
       where: {
         role: Role.STUDENT,
-        title: { in: ['Announcements', 'My Tasks', 'Tasks'] }
-      }
+        title: {
+          in: [
+            'Announcements',
+            'My Tasks',
+            'Tasks',
+            'Opportunities',
+            'My Progress',
+            'Career Growth',
+            'Career Leaderboard',
+          ],
+        },
+      },
     });
   }
 

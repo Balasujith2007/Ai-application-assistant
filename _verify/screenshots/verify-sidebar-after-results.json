@@ -1,0 +1,434 @@
+{
+  "phase": "after",
+  "results": [
+    {
+      "name": "desktop: section labels rendered",
+      "ok": true,
+      "detail": "Main Menu | Rewards | Account"
+    },
+    {
+      "name": "desktop: nav has \"Overview\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: nav has \"Explore Opportunities\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: nav has \"My Applications\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: nav has \"My Resume\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: nav has \"Career Progress\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: nav has \"Achievements\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: nav has \"Rewards & Inventory\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: nav has \"Coin Shop\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: nav has \"Tokens\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: nav has \"My Profile\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: nav has \"Settings\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: \"Career Growth\" removed from sidebar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: \"Career Leaderboard\" removed from sidebar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: no legacy \"Opportunities\"/\"My Progress\" titles",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: no duplicate nav items",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: exactly 11 nav items",
+      "ok": true,
+      "detail": "count=11"
+    },
+    {
+      "name": "desktop: nav order matches spec",
+      "ok": true,
+      "detail": "Overview > Explore Opportunities > My Applications > My Resume > Career Progress > Achievements > Rewards & Inventory > Coin Shop > Tokens > My Profile > Settings"
+    },
+    {
+      "name": "desktop: exactly one active nav item",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "desktop: active item is Overview",
+      "ok": true,
+      "detail": "Overview"
+    },
+    {
+      "name": "desktop: no horizontal overflow",
+      "ok": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "name": "tablet: section labels rendered",
+      "ok": true,
+      "detail": "Main Menu | Rewards | Account | Your efforts deserve something special"
+    },
+    {
+      "name": "tablet: nav has \"Overview\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: nav has \"Explore Opportunities\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: nav has \"My Applications\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: nav has \"My Resume\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: nav has \"Career Progress\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: nav has \"Achievements\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: nav has \"Rewards & Inventory\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: nav has \"Coin Shop\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: nav has \"Tokens\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: nav has \"My Profile\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: nav has \"Settings\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: \"Career Growth\" removed from sidebar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: \"Career Leaderboard\" removed from sidebar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: no legacy \"Opportunities\"/\"My Progress\" titles",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: no duplicate nav items",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: exactly 11 nav items",
+      "ok": true,
+      "detail": "count=11"
+    },
+    {
+      "name": "tablet: nav order matches spec",
+      "ok": true,
+      "detail": "Overview > Explore Opportunities > My Applications > My Resume > Career Progress > Achievements > Rewards & Inventory > Coin Shop > Tokens > My Profile > Settings"
+    },
+    {
+      "name": "tablet: exactly one active nav item",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "tablet: active item is Overview",
+      "ok": true,
+      "detail": "Overview"
+    },
+    {
+      "name": "tablet: no horizontal overflow",
+      "ok": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "name": "mobile: section labels rendered",
+      "ok": true,
+      "detail": "Main Menu | Rewards | Account | Your efforts deserve something special"
+    },
+    {
+      "name": "mobile: nav has \"Overview\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: nav has \"Explore Opportunities\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: nav has \"My Applications\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: nav has \"My Resume\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: nav has \"Career Progress\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: nav has \"Achievements\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: nav has \"Rewards & Inventory\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: nav has \"Coin Shop\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: nav has \"Tokens\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: nav has \"My Profile\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: nav has \"Settings\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: \"Career Growth\" removed from sidebar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: \"Career Leaderboard\" removed from sidebar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: no legacy \"Opportunities\"/\"My Progress\" titles",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: no duplicate nav items",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: exactly 11 nav items",
+      "ok": true,
+      "detail": "count=11"
+    },
+    {
+      "name": "mobile: nav order matches spec",
+      "ok": true,
+      "detail": "Overview > Explore Opportunities > My Applications > My Resume > Career Progress > Achievements > Rewards & Inventory > Coin Shop > Tokens > My Profile > Settings"
+    },
+    {
+      "name": "mobile: exactly one active nav item",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "mobile: active item is Overview",
+      "ok": true,
+      "detail": "Overview"
+    },
+    {
+      "name": "mobile: no horizontal overflow",
+      "ok": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "name": "route /dashboard/student loads (no redirect)",
+      "ok": true,
+      "detail": "landed on /dashboard/student"
+    },
+    {
+      "name": "route /dashboard/student renders expected content",
+      "ok": true,
+      "detail": "marker=\"Career Readiness Score\""
+    },
+    {
+      "name": "route /dashboard/student/opportunities loads (no redirect)",
+      "ok": true,
+      "detail": "landed on /dashboard/student/opportunities"
+    },
+    {
+      "name": "route /dashboard/student/opportunities renders expected content",
+      "ok": true,
+      "detail": "marker=\"Opportunit\""
+    },
+    {
+      "name": "route /dashboard/student/applications loads (no redirect)",
+      "ok": true,
+      "detail": "landed on /dashboard/student/applications"
+    },
+    {
+      "name": "route /dashboard/student/applications renders expected content",
+      "ok": true,
+      "detail": "marker=\"Application\""
+    },
+    {
+      "name": "route /resume loads (no redirect)",
+      "ok": true,
+      "detail": "landed on /resume"
+    },
+    {
+      "name": "route /dashboard/student/progress loads (no redirect)",
+      "ok": true,
+      "detail": "landed on /dashboard/student/progress"
+    },
+    {
+      "name": "route /dashboard/student/progress renders expected content",
+      "ok": true,
+      "detail": "marker=\"Career Growth\""
+    },
+    {
+      "name": "route /dashboard/student/achievements loads (no redirect)",
+      "ok": true,
+      "detail": "landed on /dashboard/student/achievements"
+    },
+    {
+      "name": "route /dashboard/student/rewards loads (no redirect)",
+      "ok": true,
+      "detail": "landed on /dashboard/student/rewards"
+    },
+    {
+      "name": "route /dashboard/student/shop loads (no redirect)",
+      "ok": true,
+      "detail": "landed on /dashboard/student/shop"
+    },
+    {
+      "name": "route /dashboard/student/tokens loads (no redirect)",
+      "ok": true,
+      "detail": "landed on /dashboard/student/tokens"
+    },
+    {
+      "name": "route /profile loads (no redirect)",
+      "ok": true,
+      "detail": "landed on /profile"
+    },
+    {
+      "name": "route /dashboard/settings loads (no redirect)",
+      "ok": true,
+      "detail": "landed on /dashboard/settings"
+    },
+    {
+      "name": "Career Progress: \"Career Growth\" tab present",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Career Progress: growth summary content rendered",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "leaderboard route works directly",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: drawer opens",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: navigates to Career Progress",
+      "ok": true,
+      "detail": "http://localhost:3001/dashboard/student/progress"
+    },
+    {
+      "name": "mobile: drawer closed after navigation",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: touch target >= 40px",
+      "ok": true,
+      "detail": "h=40"
+    }
+  ],
+  "consoleErrors": [
+    "[routes] Cannot read properties of undefined (reading 'available')",
+    "[routes] Cannot read properties of undefined (reading 'available')"
+  ]
+}

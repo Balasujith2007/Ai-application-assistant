@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/weekly-rewards",
       "schedule": "30 12 * * 6"
+    },
+    {
+      "path": "/api/cron/monthly-recognition",
+      "schedule": "0 19 1 * *"
     }
   ]
 }

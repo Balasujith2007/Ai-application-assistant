@@ -10,6 +10,7 @@ type SoundType =
   | 'countdown'
   | 'gift_shake'
   | 'gift_open'
+  | 'confetti_burst'
   | 'xp_reveal'
   | 'coin_reveal'
   | 'streak_rescue'
@@ -79,6 +80,9 @@ class SoundEngine {
           break;
         case 'gift_open':
           this.playGiftOpen(ctx);
+          break;
+        case 'confetti_burst':
+          this.playConfettiBurst(ctx);
           break;
         case 'xp_reveal':
           this.playXpReveal(ctx);
@@ -207,6 +211,55 @@ class SoundEngine {
         oscillator.start(ctx.currentTime);
         oscillator.stop(ctx.currentTime + 0.1);
       }, i * 100);
+    }
+  }
+
+  /**
+   * Confetti burst sound - celebratory
+   */
+  private playConfettiBurst(ctx: AudioContext): void {
+    // Create a layered celebratory sound
+    const baseFreq = 400;
+    const harmonics = [1, 1.5, 2, 2.5, 3];
+    
+    harmonics.forEach((mult, i) => {
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      oscillator.frequency.setValueAtTime(baseFreq * mult, ctx.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(baseFreq * mult * 0.5, ctx.currentTime + 0.3);
+      
+      const volume = this.volume * (0.3 - i * 0.05);
+      gainNode.gain.setValueAtTime(0, ctx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(volume, ctx.currentTime + 0.05);
+      gainNode.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+      
+      oscillator.start(ctx.currentTime);
+      oscillator.stop(ctx.currentTime + 0.4);
+    });
+    
+    // Add a shimmer effect using high frequencies
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        osc.frequency.setValueAtTime(2000 + Math.random() * 1000, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(3000, ctx.currentTime + 0.1);
+        
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(this.volume * 0.15, ctx.currentTime + 0.02);
+        gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+        
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.15);
+      }, i * 50);
     }
   }
 

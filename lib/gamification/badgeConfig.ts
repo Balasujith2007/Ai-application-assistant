@@ -1,51 +1,90 @@
 /**
- * CareerAI Configurable Badge & Achievement Definitions
- * 
- * Configurable, criteria-based gamification structure supporting:
- * - Coding Performance (Problem Solver, Code Challenger, Algorithm Specialist)
- * - Consistency (3-Day Starter, 7-Day Streak, 30-Day Consistency, Monthly Momentum, Comeback Champion)
- * - Skill Progress (Python, SQL, DSA, Web Development)
- * - Career Activities (Application Starter, Application Pro, Hackathon Rookie, Innovation Builder, Interview Ready, Placement Progressor, Offer Achiever)
- * - XP Milestones (XP Explorer, XP Challenger, XP Achiever, XP Master, XP Elite)
+ * AI Career Platform — Professional 30-Badge Achievement Framework
+ * -----------------------------------------------------------------
+ * Badges are grouped into five categories (six badges each) and are awarded
+ * ONLY from verified career events collected by the badge engine:
+ *
+ *   A. Career Excellence          — internship / job application milestones
+ *   B. Innovation & Competition   — hackathons, competitions and projects
+ *   C. Consistency & Streak       — daily career-activity streaks
+ *   D. Professional Development   — profile, resume, skills, projects, experience
+ *   E. Monthly Excellence         — monthly recognition (awarded by the monthly engine)
+ *
+ * Design notes
+ *  - This platform is a Student Career Growth & Opportunity Platform, so LMS
+ *    metrics (lessons, courses, learning streaks, coding-contest ratings) are
+ *    deliberately NOT part of the framework.
+ *  - Every threshold here is a DEFAULT. Super Admin can override the threshold,
+ *    title, description, criteria text, icon, category, tier and active flag per
+ *    badge through the persisted `BadgeCatalog` table (see `badgeCatalogService`).
+ *  - `evaluate` stays in code (deterministic, testable) and receives the
+ *    effective threshold so overrides immediately affect eligibility.
  */
 
-export type BadgeCategory = 'CODING' | 'CONSISTENCY' | 'SKILL' | 'CAREER' | 'XP';
+export type BadgeCategory =
+  | 'CAREER_EXCELLENCE'
+  | 'INNOVATION'
+  | 'CONSISTENCY'
+  | 'PROFESSIONAL_DEVELOPMENT'
+  | 'MONTHLY_EXCELLENCE';
+
 export type BadgeTier = 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND';
 export type BadgeStatus = 'EARNED' | 'IN_PROGRESS' | 'LOCKED';
 
+/** How a badge is awarded. MONTHLY badges are awarded by the monthly engine. */
+export type BadgeAwardSource = 'ENGINE' | 'MONTHLY';
+
+/**
+ * Authoritative, verified student statistics. Every field is derived from real
+ * platform records by `badgeEngine.gatherStudentStats` — never from unverified
+ * student claims.
+ */
 export interface StudentActivityStats {
-  problemsSolved: number;
-  contestsCount: number;
-  highestRating: number;
+  // ── A. Career Excellence ──
+  applicationsSubmitted: number;
+  shortlistCount: number;
+  interviewStageCount: number;
+  interviewsAttendedCount: number;
+  selectionCount: number;
+  internshipCompletedCount: number;
+
+  // ── B. Innovation & Competition ──
+  competitionRegistrations: number;
+  projectSubmissionsCount: number;
+  finalistCount: number;
+  podiumCount: number;
+  winnerCount: number;
+
+  // ── C. Consistency & Streak ──
   currentStreakDays: number;
   longestStreakDays: number;
   totalActiveDays: number;
   activeWeeksInMonth: number;
-  comebackDays: number;
-  hasPythonSkill: boolean;
-  hasSqlSkill: boolean;
-  hasDsaSkill: boolean;
-  hasWebDevSkill: boolean;
-  applicationsCount: number;
-  hackathonsCount: number;
-  hackathonProjectSubmitted: boolean;
-  interviewsCount: number;
-  offersCount: number;
-  totalXp: number;
-  // Career-specific event tracking
-  firstShortlist: boolean;
-  firstInterviewAttended: boolean;
-  firstInternshipSelection: boolean;
-  firstJobSelection: boolean;
-  firstHackathonProjectSubmission: boolean;
-  firstHackathonFinalist: boolean;
-  firstHackathonWinner: boolean;
-  multipleHackathonParticipation: boolean;
-  profileCompleted: boolean;
-  firstProjectAdded: boolean;
-  technicalSkillsMilestone: boolean;
+
+  // ── D. Professional Development ──
+  profileCompleteness: number;
+  resumeUploaded: boolean;
+  resumeReviewed: boolean;
+  resumeStrengthScore: number;
   resumeStrengthImproved: boolean;
-  professionalExperienceAdded: boolean;
+  skillsCount: number;
+  projectsCount: number;
+  experiencesCount: number;
+
+  // ── E. Monthly Excellence (populated by the monthly engine only) ──
+  monthlyRank?: number | null;
+  monthlyScore?: number | null;
+  monthlyImprovement?: number | null;
+  monthlyActiveWeeks?: number | null;
+}
+
+export interface BadgeEvaluation {
+  isEligible: boolean;
+  currentValue: number;
+  targetValue: number;
+  progressPercentage: number;
+  /** False when progress genuinely cannot be measured (e.g. monthly awards). */
+  progressAvailable: boolean;
 }
 
 export interface BadgeDefinition {
@@ -56,23 +95,20 @@ export interface BadgeDefinition {
   description: string;
   criteria: string;
   icon: string; // Lucide icon name
-  targetValue: number;
+  /** Default threshold; overridable by Super Admin in the BadgeCatalog table. */
+  defaultThreshold: number;
   unit: string;
   xpReward: number;
-  evaluate: (stats: StudentActivityStats) => {
-    isEligible: boolean;
-    currentValue: number;
-    targetValue: number;
-    progressPercentage: number;
-  };
+  awardSource: BadgeAwardSource;
+  evaluate: (stats: StudentActivityStats, threshold: number) => BadgeEvaluation;
 }
 
 export const BADGE_CATEGORIES: Array<{ key: BadgeCategory; label: string; icon: string }> = [
-  { key: 'CODING', label: 'Coding Performance', icon: 'Code' },
-  { key: 'CONSISTENCY', label: 'Consistency', icon: 'Flame' },
-  { key: 'SKILL', label: 'Skill Progress', icon: 'Cpu' },
-  { key: 'CAREER', label: 'Career Activities', icon: 'Briefcase' },
-  { key: 'XP', label: 'XP Milestones', icon: 'Trophy' },
+  { key: 'CAREER_EXCELLENCE', label: 'Career Excellence', icon: 'Briefcase' },
+  { key: 'INNOVATION', label: 'Innovation & Competition', icon: 'Rocket' },
+  { key: 'CONSISTENCY', label: 'Consistency & Streak', icon: 'Flame' },
+  { key: 'PROFESSIONAL_DEVELOPMENT', label: 'Professional Development', icon: 'GraduationCap' },
+  { key: 'MONTHLY_EXCELLENCE', label: 'Monthly Excellence', icon: 'Trophy' },
 ];
 
 export const TIER_COLORS: Record<BadgeTier, { border: string; bg: string; text: string; ring: string }> = {
@@ -108,824 +144,484 @@ export const TIER_COLORS: Record<BadgeTier, { border: string; bg: string; text: 
   },
 };
 
+/** Clamped percentage helper for measurable thresholds. */
+function pct(current: number, target: number): number {
+  if (target <= 0) return current > 0 ? 100 : 0;
+  return Math.min(100, Math.max(0, Math.round((current / target) * 100)));
+}
+
+/** Builds an evaluation for a measurable (countable) threshold. */
+function measurable(current: number, threshold: number): BadgeEvaluation {
+  return {
+    isEligible: current >= threshold,
+    currentValue: current,
+    targetValue: threshold,
+    progressPercentage: pct(current, threshold),
+    progressAvailable: true,
+  };
+}
+
+/** Builds an evaluation for a binary (achieved / not achieved) threshold. */
+function binary(done: boolean): BadgeEvaluation {
+  return {
+    isEligible: done,
+    currentValue: done ? 1 : 0,
+    targetValue: 1,
+    progressPercentage: done ? 100 : 0,
+    progressAvailable: true,
+  };
+}
+
+/** Monthly awards: eligibility is decided by the monthly engine (rank based). */
+function monthly(eligible: boolean): BadgeEvaluation {
+  return {
+    isEligible: eligible,
+    currentValue: eligible ? 1 : 0,
+    targetValue: 1,
+    progressPercentage: 0,
+    progressAvailable: false,
+  };
+}
+
 export const BADGE_CATALOG: BadgeDefinition[] = [
   // =========================================================================
-  // A. CODING PERFORMANCE
+  // A. CAREER EXCELLENCE — verified internship / job application transitions
   // =========================================================================
   {
-    id: 'problem-solver',
-    title: 'Problem Solver',
-    category: 'CODING',
+    id: 'career-first-step',
+    title: 'First Step',
+    category: 'CAREER_EXCELLENCE',
     tier: 'BRONZE',
-    description: 'Solve 25+ verified competitive programming or practice problems.',
-    criteria: '25+ problems verified from connected LeetCode, Codeforces, or CodeChef profiles.',
-    icon: 'Code',
-    targetValue: 25,
-    unit: 'problems',
-    xpReward: 100,
-    evaluate: (s) => {
-      const cur = s.problemsSolved || 0;
-      const target = 25;
-      return {
-        isEligible: cur >= target,
-        currentValue: cur,
-        targetValue: target,
-        progressPercentage: Math.min(100, Math.round((cur / target) * 100)),
-      };
-    },
-  },
-  {
-    id: 'code-challenger',
-    title: 'Code Challenger',
-    category: 'CODING',
-    tier: 'SILVER',
-    description: 'Participate in 3+ verified official contests or solve 100+ problems.',
-    criteria: 'Participated in at least 3 rated contests on supported platforms.',
-    icon: 'Zap',
-    targetValue: 3,
-    unit: 'contests',
-    xpReward: 250,
-    evaluate: (s) => {
-      const cur = s.contestsCount || 0;
-      const target = 3;
-      const altEligible = (s.problemsSolved || 0) >= 100;
-      return {
-        isEligible: cur >= target || altEligible,
-        currentValue: altEligible ? Math.max(cur, target) : cur,
-        targetValue: target,
-        progressPercentage: Math.min(100, altEligible ? 100 : Math.round((cur / target) * 100)),
-      };
-    },
-  },
-  {
-    id: 'algorithm-specialist',
-    title: 'Algorithm Specialist',
-    category: 'CODING',
-    tier: 'GOLD',
-    description: 'Achieve a verified competitive contest rating of 1400+.',
-    criteria: 'Verified 1400+ rating on Codeforces (Specialist), LeetCode (1600+), or CodeChef (3-Star).',
-    icon: 'Terminal',
-    targetValue: 1400,
-    unit: 'rating',
-    xpReward: 500,
-    evaluate: (s) => {
-      const cur = s.highestRating || 0;
-      const target = 1400;
-      return {
-        isEligible: cur >= target,
-        currentValue: cur,
-        targetValue: target,
-        progressPercentage: Math.min(100, Math.round((cur / target) * 100)),
-      };
-    },
-  },
-
-  // =========================================================================
-  // B. CONSISTENCY
-  // =========================================================================
-  {
-    id: '3-day-starter',
-    title: '3-Day Starter',
-    category: 'CONSISTENCY',
-    tier: 'BRONZE',
-    description: 'Complete qualifying learning or coding activity for 3 consecutive days.',
-    criteria: 'Active on 3 consecutive days in Asia/Kolkata timezone.',
-    icon: 'Flame',
-    targetValue: 3,
-    unit: 'days',
-    xpReward: 50,
-    evaluate: (s) => {
-      const cur = Math.max(s.currentStreakDays || 0, s.longestStreakDays || 0);
-      const target = 3;
-      return {
-        isEligible: cur >= target,
-        currentValue: cur,
-        targetValue: target,
-        progressPercentage: Math.min(100, Math.round((cur / target) * 100)),
-      };
-    },
-  },
-  {
-    id: '7-day-streak',
-    title: '7-Day Streak',
-    category: 'CONSISTENCY',
-    tier: 'SILVER',
-    description: 'Maintain an unbroken 7-day consistency streak.',
-    criteria: '7 consecutive days of verified learning; badge is retained permanently even if streak later resets.',
-    icon: 'Flame',
-    targetValue: 7,
-    unit: 'days',
-    xpReward: 150,
-    evaluate: (s) => {
-      const cur = Math.max(s.currentStreakDays || 0, s.longestStreakDays || 0);
-      const target = 7;
-      return {
-        isEligible: cur >= target,
-        currentValue: cur,
-        targetValue: target,
-        progressPercentage: Math.min(100, Math.round((cur / target) * 100)),
-      };
-    },
-  },
-  {
-    id: '30-day-consistency',
-    title: '30-Day Consistency',
-    category: 'CONSISTENCY',
-    tier: 'GOLD',
-    description: 'Log 30 active days of verified learning or maintain a 30-day streak.',
-    criteria: 'Accumulate 30 unique active days of learning in your consistency ledger.',
-    icon: 'CalendarCheck',
-    targetValue: 30,
-    unit: 'days',
-    xpReward: 500,
-    evaluate: (s) => {
-      const cur = Math.max(s.totalActiveDays || 0, s.longestStreakDays || 0);
-      const target = 30;
-      return {
-        isEligible: cur >= target,
-        currentValue: cur,
-        targetValue: target,
-        progressPercentage: Math.min(100, Math.round((cur / target) * 100)),
-      };
-    },
-  },
-  {
-    id: 'monthly-momentum',
-    title: 'Monthly Momentum',
-    category: 'CONSISTENCY',
-    tier: 'GOLD',
-    description: 'Maintain verified activity across 4 distinct weeks in the current month.',
-    criteria: 'Recorded qualifying activity in at least 4 calendar weeks this month.',
-    icon: 'TrendingUp',
-    targetValue: 4,
-    unit: 'weeks',
-    xpReward: 300,
-    evaluate: (s) => {
-      const cur = s.activeWeeksInMonth || 0;
-      const target = 4;
-      return {
-        isEligible: cur >= target,
-        currentValue: cur,
-        targetValue: target,
-        progressPercentage: Math.min(100, Math.round((cur / target) * 100)),
-      };
-    },
-  },
-  {
-    id: 'comeback-champion',
-    title: 'Comeback Champion',
-    category: 'CONSISTENCY',
-    tier: 'SILVER',
-    description: 'Resume activity after inactivity or streak freeze and complete 3 new active days.',
-    criteria: 'Logged 3+ active days after a pause or streak reset.',
-    icon: 'RotateCw',
-    targetValue: 3,
-    unit: 'days',
-    xpReward: 200,
-    evaluate: (s) => {
-      const cur = s.comebackDays || (s.currentStreakDays >= 3 ? 3 : s.currentStreakDays);
-      const target = 3;
-      return {
-        isEligible: cur >= target,
-        currentValue: cur,
-        targetValue: target,
-        progressPercentage: Math.min(100, Math.round((cur / target) * 100)),
-      };
-    },
-  },
-
-  // =========================================================================
-  // C. SKILL PROGRESS
-  // =========================================================================
-  {
-    id: 'skill-python',
-    title: 'Python Specialist',
-    category: 'SKILL',
-    tier: 'BRONZE',
-    description: 'Demonstrate verified Python proficiency in profile or verified problems.',
-    criteria: 'Python skill verified in profile and backed by code solutions or verified repositories.',
-    icon: 'Terminal',
-    targetValue: 1,
-    unit: 'verified',
-    xpReward: 150,
-    evaluate: (s) => {
-      const cur = s.hasPythonSkill ? 1 : 0;
-      return {
-        isEligible: cur === 1,
-        currentValue: cur,
-        targetValue: 1,
-        progressPercentage: cur === 1 ? 100 : 0,
-      };
-    },
-  },
-  {
-    id: 'skill-sql',
-    title: 'SQL Maestro',
-    category: 'SKILL',
-    tier: 'BRONZE',
-    description: 'Demonstrate relational database and SQL query proficiency.',
-    criteria: 'SQL or Database skills verified in profile through assessments or projects.',
-    icon: 'Database',
-    targetValue: 1,
-    unit: 'verified',
-    xpReward: 150,
-    evaluate: (s) => {
-      const cur = s.hasSqlSkill ? 1 : 0;
-      return {
-        isEligible: cur === 1,
-        currentValue: cur,
-        targetValue: 1,
-        progressPercentage: cur === 1 ? 100 : 0,
-      };
-    },
-  },
-  {
-    id: 'skill-dsa',
-    title: 'DSA Master',
-    category: 'SKILL',
-    tier: 'GOLD',
-    description: 'Master Data Structures & Algorithms with verified problem solving and profile validation.',
-    criteria: 'DSA verified in profile skills and backed by 25+ verified solved problems.',
-    icon: 'Cpu',
-    targetValue: 1,
-    unit: 'verified',
-    xpReward: 300,
-    evaluate: (s) => {
-      const cur = s.hasDsaSkill || s.problemsSolved >= 25 ? 1 : 0;
-      return {
-        isEligible: cur === 1,
-        currentValue: cur,
-        targetValue: 1,
-        progressPercentage: cur === 1 ? 100 : 0,
-      };
-    },
-  },
-  {
-    id: 'skill-web-dev',
-    title: 'Web Development Pro',
-    category: 'SKILL',
-    tier: 'SILVER',
-    description: 'Demonstrate verified full-stack or frontend web development capabilities.',
-    criteria: 'Web Development / React / Node.js skills verified in profile.',
-    icon: 'Globe',
-    targetValue: 1,
-    unit: 'verified',
-    xpReward: 200,
-    evaluate: (s) => {
-      const cur = s.hasWebDevSkill ? 1 : 0;
-      return {
-        isEligible: cur === 1,
-        currentValue: cur,
-        targetValue: 1,
-        progressPercentage: cur === 1 ? 100 : 0,
-      };
-    },
-  },
-
-  // =========================================================================
-  // D. CAREER ACTIVITIES
-  // =========================================================================
-  {
-    id: 'application-starter',
-    title: 'Application Starter',
-    category: 'CAREER',
-    tier: 'BRONZE',
-    description: 'Submit your first verified internship or placement drive application.',
-    criteria: 'Completed 1 verified job, internship, or campus drive application.',
+    description: 'Submit your first verified internship or job application.',
+    criteria: 'One verified internship/job application recorded on your profile.',
     icon: 'Send',
-    targetValue: 1,
+    defaultThreshold: 1,
     unit: 'application',
     xpReward: 100,
-    evaluate: (s) => {
-      const cur = s.applicationsCount || 0;
-      const target = 1;
-      return {
-        isEligible: cur >= target,
-        currentValue: cur,
-        targetValue: target,
-        progressPercentage: Math.min(100, Math.round((cur / target) * 100)),
-      };
-    },
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.applicationsSubmitted, t),
   },
   {
-    id: 'application-pro',
-    title: 'Application Pro',
-    category: 'CAREER',
+    id: 'career-shortlist-achiever',
+    title: 'Shortlist Achiever',
+    category: 'CAREER_EXCELLENCE',
     tier: 'SILVER',
-    description: 'Actively pursue career opportunities with 10+ submitted applications.',
-    criteria: 'Complete and submit 10 verified placement drive or internship applications.',
-    icon: 'Briefcase',
-    targetValue: 10,
-    unit: 'applications',
-    xpReward: 300,
-    evaluate: (s) => {
-      const cur = s.applicationsCount || 0;
-      const target = 10;
-      return {
-        isEligible: cur >= target,
-        currentValue: cur,
-        targetValue: target,
-        progressPercentage: Math.min(100, Math.round((cur / target) * 100)),
-      };
-    },
-  },
-  {
-    id: 'hackathon-rookie',
-    title: 'Hackathon Rookie',
-    category: 'CAREER',
-    tier: 'BRONZE',
-    description: 'Participate in your first campus or national hackathon competition.',
-    criteria: 'Verified registration and participation in a collegiate or national hackathon.',
-    icon: 'Sparkles',
-    targetValue: 1,
-    unit: 'hackathon',
-    xpReward: 150,
-    evaluate: (s) => {
-      const cur = s.hackathonsCount || 0;
-      const target = 1;
-      return {
-        isEligible: cur >= target,
-        currentValue: cur,
-        targetValue: target,
-        progressPercentage: Math.min(100, Math.round((cur / target) * 100)),
-      };
-    },
-  },
-  {
-    id: 'innovation-builder',
-    title: 'Innovation Builder',
-    category: 'CAREER',
-    tier: 'GOLD',
-    description: 'Submit a verified project or qualify as a finalist in a hackathon.',
-    criteria: 'Hackathon project submission confirmed or shortlisted in competitive review.',
-    icon: 'Layers',
-    targetValue: 1,
-    unit: 'project',
-    xpReward: 400,
-    evaluate: (s) => {
-      const cur = s.hackathonProjectSubmitted ? 1 : 0;
-      return {
-        isEligible: cur === 1,
-        currentValue: cur,
-        targetValue: 1,
-        progressPercentage: cur === 1 ? 100 : 0,
-      };
-    },
-  },
-  {
-    id: 'interview-ready',
-    title: 'Interview Ready',
-    category: 'CAREER',
-    tier: 'SILVER',
-    description: 'Advance through initial screenings and enter technical interview rounds.',
-    criteria: 'At least 1 technical interview round officially scheduled or confirmed.',
-    icon: 'Users',
-    targetValue: 1,
-    unit: 'interview',
-    xpReward: 250,
-    evaluate: (s) => {
-      const cur = s.interviewsCount || 0;
-      const target = 1;
-      return {
-        isEligible: cur >= target,
-        currentValue: cur,
-        targetValue: target,
-        progressPercentage: Math.min(100, Math.round((cur / target) * 100)),
-      };
-    },
-  },
-  {
-    id: 'placement-progressor',
-    title: 'Placement Progressor',
-    category: 'CAREER',
-    tier: 'PLATINUM',
-    description: 'Demonstrate high placement readiness with 2+ shortlists or interview rounds.',
-    criteria: 'Shortlisted or completed multiple technical/HR interview stages.',
-    icon: 'ShieldCheck',
-    targetValue: 2,
-    unit: 'interviews',
-    xpReward: 500,
-    evaluate: (s) => {
-      const cur = s.interviewsCount || 0;
-      const target = 2;
-      return {
-        isEligible: cur >= target,
-        currentValue: cur,
-        targetValue: target,
-        progressPercentage: Math.min(100, Math.round((cur / target) * 100)),
-      };
-    },
-  },
-  {
-    id: 'offer-achiever',
-    title: 'Offer Achiever',
-    category: 'CAREER',
-    tier: 'DIAMOND',
-    description: 'Secure a verified internship or full-time placement offer.',
-    criteria: 'Official job offer letter verified by Placement Cell / HOD.',
-    icon: 'Trophy',
-    targetValue: 1,
-    unit: 'offer',
-    xpReward: 1000,
-    evaluate: (s) => {
-      const cur = s.offersCount || 0;
-      const target = 1;
-      return {
-        isEligible: cur >= target,
-        currentValue: cur,
-        targetValue: target,
-        progressPercentage: Math.min(100, Math.round((cur / target) * 100)),
-      };
-    },
-  },
-  // Additional Career-Specific Achievements
-  {
-    id: 'first-shortlist',
-    title: 'First Shortlist',
-    category: 'CAREER',
-    tier: 'BRONZE',
-    description: 'Get shortlisted for your first internship or job application.',
-    criteria: 'Application status updated to SHORTLISTED for the first time.',
-    icon: 'CheckCircle',
-    targetValue: 1,
+    description: 'Get shortlisted for an internship or job you applied to.',
+    criteria: 'An application reached the SHORTLISTED status.',
+    icon: 'ListChecks',
+    defaultThreshold: 1,
     unit: 'shortlist',
-    xpReward: 150,
-    evaluate: (s) => {
-      const cur = s.firstShortlist ? 1 : 0;
-      return {
-        isEligible: cur === 1,
-        currentValue: cur,
-        targetValue: 1,
-        progressPercentage: cur === 1 ? 100 : 0,
-      };
-    },
+    xpReward: 200,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.shortlistCount, t),
   },
   {
-    id: 'first-interview-attended',
-    title: 'First Interview',
-    category: 'CAREER',
+    id: 'career-interview-ready',
+    title: 'Interview Ready',
+    category: 'CAREER_EXCELLENCE',
     tier: 'SILVER',
-    description: 'Attend your first technical or HR interview.',
-    criteria: 'Completed first interview round for an application.',
+    description: 'Advance past screening into a technical or HR interview round.',
+    criteria: 'An application advanced to the interview stage (verified status change).',
     icon: 'UserCheck',
-    targetValue: 1,
-    unit: 'interview',
+    defaultThreshold: 1,
+    unit: 'round',
     xpReward: 250,
-    evaluate: (s) => {
-      const cur = s.firstInterviewAttended ? 1 : 0;
-      return {
-        isEligible: cur === 1,
-        currentValue: cur,
-        targetValue: 1,
-        progressPercentage: cur === 1 ? 100 : 0,
-      };
-    },
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.interviewStageCount, t),
   },
   {
-    id: 'first-internship-selection',
-    title: 'Internship Selected',
-    category: 'CAREER',
+    id: 'career-interview-performer',
+    title: 'Interview Performer',
+    category: 'CAREER_EXCELLENCE',
     tier: 'GOLD',
-    description: 'Get selected for your first internship.',
-    criteria: 'Application status updated to SELECTED for an internship.',
-    icon: 'Star',
-    targetValue: 1,
-    unit: 'selection',
-    xpReward: 500,
-    evaluate: (s) => {
-      const cur = s.firstInternshipSelection ? 1 : 0;
-      return {
-        isEligible: cur === 1,
-        currentValue: cur,
-        targetValue: 1,
-        progressPercentage: cur === 1 ? 100 : 0,
-      };
-    },
-  },
-  {
-    id: 'first-job-selection',
-    title: 'Job Offer Secured',
-    category: 'CAREER',
-    tier: 'PLATINUM',
-    description: 'Secure your first full-time job offer.',
-    criteria: 'Application status updated to SELECTED for a full-time job.',
-    icon: 'Award',
-    targetValue: 1,
-    unit: 'offer',
-    xpReward: 750,
-    evaluate: (s) => {
-      const cur = s.firstJobSelection ? 1 : 0;
-      return {
-        isEligible: cur === 1,
-        currentValue: cur,
-        targetValue: 1,
-        progressPercentage: cur === 1 ? 100 : 0,
-      };
-    },
-  },
-  {
-    id: 'hackathon-project-submitted',
-    title: 'Project Submitted',
-    category: 'CAREER',
-    tier: 'SILVER',
-    description: 'Submit a project for a hackathon or competition.',
-    criteria: 'Project submission confirmed in a hackathon/competition.',
-    icon: 'FolderOpen',
-    targetValue: 1,
-    unit: 'project',
-    xpReward: 300,
-    evaluate: (s) => {
-      const cur = s.firstHackathonProjectSubmission ? 1 : 0;
-      return {
-        isEligible: cur === 1,
-        currentValue: cur,
-        targetValue: 1,
-        progressPercentage: cur === 1 ? 100 : 0,
-      };
-    },
-  },
-  {
-    id: 'hackathon-finalist',
-    title: 'Hackathon Finalist',
-    category: 'CAREER',
-    tier: 'GOLD',
-    description: 'Reach the finalist stage in a hackathon or competition.',
-    criteria: 'Registration outcome set to FINALIST.',
-    icon: 'Medal',
-    targetValue: 1,
-    unit: 'finalist',
-    xpReward: 500,
-    evaluate: (s) => {
-      const cur = s.firstHackathonFinalist ? 1 : 0;
-      return {
-        isEligible: cur === 1,
-        currentValue: cur,
-        targetValue: 1,
-        progressPercentage: cur === 1 ? 100 : 0,
-      };
-    },
-  },
-  {
-    id: 'hackathon-winner',
-    title: 'Hackathon Winner',
-    category: 'CAREER',
-    tier: 'DIAMOND',
-    description: 'Win a hackathon or competition.',
-    criteria: 'Registration outcome set to WINNER or prize recipient.',
-    icon: 'Crown',
-    targetValue: 1,
-    unit: 'win',
-    xpReward: 1000,
-    evaluate: (s) => {
-      const cur = s.firstHackathonWinner ? 1 : 0;
-      return {
-        isEligible: cur === 1,
-        currentValue: cur,
-        targetValue: 1,
-        progressPercentage: cur === 1 ? 100 : 0,
-      };
-    },
-  },
-  {
-    id: 'multiple-hackathon-participation',
-    title: 'Hackathon Enthusiast',
-    category: 'CAREER',
-    tier: 'SILVER',
-    description: 'Participate in 3+ hackathons or competitions.',
-    criteria: 'Registered and participated in 3+ hackathons/competitions.',
-    icon: 'Sparkles',
-    targetValue: 3,
-    unit: 'hackathons',
+    description: 'Successfully attend and complete a verified interview.',
+    criteria: 'A verified interview record exists for one of your applications.',
+    icon: 'Presentation',
+    defaultThreshold: 1,
+    unit: 'interview',
     xpReward: 350,
-    evaluate: (s) => {
-      const cur = s.multipleHackathonParticipation ? 3 : s.hackathonsCount || 0;
-      const target = 3;
-      return {
-        isEligible: cur >= target,
-        currentValue: cur,
-        targetValue: target,
-        progressPercentage: Math.min(100, Math.round((cur / target) * 100)),
-      };
-    },
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.interviewsAttendedCount, t),
   },
   {
-    id: 'profile-completed',
-    title: 'Profile Complete',
-    category: 'CAREER',
-    tier: 'BRONZE',
-    description: 'Complete your profile with all required information.',
-    criteria: 'Profile completeness >= 80% with all key fields filled.',
-    icon: 'User',
-    targetValue: 1,
-    unit: 'profile',
-    xpReward: 100,
-    evaluate: (s) => {
-      const cur = s.profileCompleted ? 1 : 0;
-      return {
-        isEligible: cur === 1,
-        currentValue: cur,
-        targetValue: 1,
-        progressPercentage: cur === 1 ? 100 : 0,
-      };
-    },
+    id: 'career-breakthrough',
+    title: 'Career Breakthrough',
+    category: 'CAREER_EXCELLENCE',
+    tier: 'PLATINUM',
+    description: 'Get selected for an internship or a full-time role.',
+    criteria: 'An application reached the SELECTED status.',
+    icon: 'Star',
+    defaultThreshold: 1,
+    unit: 'selection',
+    xpReward: 600,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.selectionCount, t),
   },
   {
-    id: 'first-project-added',
-    title: 'First Project',
-    category: 'CAREER',
-    tier: 'BRONZE',
-    description: 'Add your first project to your profile.',
-    criteria: 'First project entry added to profile.',
-    icon: 'FolderPlus',
-    targetValue: 1,
-    unit: 'project',
-    xpReward: 100,
-    evaluate: (s) => {
-      const cur = s.firstProjectAdded ? 1 : 0;
-      return {
-        isEligible: cur === 1,
-        currentValue: cur,
-        targetValue: 1,
-        progressPercentage: cur === 1 ? 100 : 0,
-      };
-    },
-  },
-  {
-    id: 'technical-skills-milestone',
-    title: 'Skills Builder',
-    category: 'CAREER',
-    tier: 'SILVER',
-    description: 'Add 5+ technical skills to your profile.',
-    criteria: '5+ technical skills verified in profile.',
-    icon: 'Wrench',
-    targetValue: 5,
-    unit: 'skills',
-    xpReward: 200,
-    evaluate: (s) => {
-      const cur = s.technicalSkillsMilestone ? 5 : 0;
-      return {
-        isEligible: cur >= 5,
-        currentValue: cur,
-        targetValue: 5,
-        progressPercentage: cur >= 5 ? 100 : 0,
-      };
-    },
-  },
-  {
-    id: 'resume-strength-improved',
-    title: 'Resume Enhanced',
-    category: 'CAREER',
-    tier: 'BRONZE',
-    description: 'Improve your resume strength score by 10+ points.',
-    criteria: 'Resume strength improved by 10+ points since previous evaluation.',
-    icon: 'FileText',
-    targetValue: 1,
-    unit: 'improvement',
-    xpReward: 150,
-    evaluate: (s) => {
-      const cur = s.resumeStrengthImproved ? 1 : 0;
-      return {
-        isEligible: cur === 1,
-        currentValue: cur,
-        targetValue: 1,
-        progressPercentage: cur === 1 ? 100 : 0,
-      };
-    },
-  },
-  {
-    id: 'professional-experience-added',
-    title: 'Experience Added',
-    category: 'CAREER',
-    tier: 'SILVER',
-    description: 'Add professional experience to your profile.',
-    criteria: 'First experience entry (internship, job, etc.) added to profile.',
-    icon: 'Briefcase',
-    targetValue: 1,
-    unit: 'experience',
-    xpReward: 200,
-    evaluate: (s) => {
-      const cur = s.professionalExperienceAdded ? 1 : 0;
-      return {
-        isEligible: cur === 1,
-        currentValue: cur,
-        targetValue: 1,
-        progressPercentage: cur === 1 ? 100 : 0,
-      };
-    },
+    id: 'career-professional-starter',
+    title: 'Professional Starter',
+    category: 'CAREER_EXCELLENCE',
+    tier: 'DIAMOND',
+    description: 'Complete an internship and add it as professional experience.',
+    criteria: 'A selected internship is confirmed by a matching experience entry in your profile.',
+    icon: 'Rocket',
+    defaultThreshold: 1,
+    unit: 'completion',
+    xpReward: 900,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.internshipCompletedCount, t),
   },
 
   // =========================================================================
-  // E. XP MILESTONES
+  // B. INNOVATION & COMPETITION — verified hackathon / competition outcomes
   // =========================================================================
   {
-    id: 'xp-explorer',
-    title: 'XP Explorer',
-    category: 'XP',
+    id: 'innovation-hackathon-explorer',
+    title: 'Hackathon Explorer',
+    category: 'INNOVATION',
     tier: 'BRONZE',
-    description: 'Accumulate 500+ verified CareerAI XP points.',
-    criteria: 'Earn 500 total points in PointsLedger from verified performance.',
-    icon: 'Target',
-    targetValue: 500,
-    unit: 'XP',
-    xpReward: 50,
-    evaluate: (s) => {
-      const cur = s.totalXp || 0;
-      const target = 500;
-      return {
-        isEligible: cur >= target,
-        currentValue: cur,
-        targetValue: target,
-        progressPercentage: Math.min(100, Math.round((cur / target) * 100)),
-      };
-    },
-  },
-  {
-    id: 'xp-challenger',
-    title: 'XP Challenger',
-    category: 'XP',
-    tier: 'SILVER',
-    description: 'Accumulate 1,500+ verified CareerAI XP points.',
-    criteria: 'Earn 1,500 total points in PointsLedger from verified performance.',
-    icon: 'Zap',
-    targetValue: 1500,
-    unit: 'XP',
+    description: 'Register and take part in your first hackathon or competition.',
+    criteria: 'One verified hackathon/competition registration.',
+    icon: 'Compass',
+    defaultThreshold: 1,
+    unit: 'registration',
     xpReward: 150,
-    evaluate: (s) => {
-      const cur = s.totalXp || 0;
-      const target = 1500;
-      return {
-        isEligible: cur >= target,
-        currentValue: cur,
-        targetValue: target,
-        progressPercentage: Math.min(100, Math.round((cur / target) * 100)),
-      };
-    },
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.competitionRegistrations, t),
   },
   {
-    id: 'xp-achiever',
-    title: 'XP Achiever',
-    category: 'XP',
-    tier: 'GOLD',
-    description: 'Accumulate 3,000+ verified CareerAI XP points.',
-    criteria: 'Earn 3,000 total points in PointsLedger from verified performance.',
-    icon: 'Medal',
-    targetValue: 3000,
-    unit: 'XP',
+    id: 'innovation-project-builder',
+    title: 'Project Builder',
+    category: 'INNOVATION',
+    tier: 'SILVER',
+    description: 'Submit a project to a hackathon or competition.',
+    criteria: 'A verified project submission in a hackathon/competition.',
+    icon: 'Hammer',
+    defaultThreshold: 1,
+    unit: 'submission',
     xpReward: 300,
-    evaluate: (s) => {
-      const cur = s.totalXp || 0;
-      const target = 3000;
-      return {
-        isEligible: cur >= target,
-        currentValue: cur,
-        targetValue: target,
-        progressPercentage: Math.min(100, Math.round((cur / target) * 100)),
-      };
-    },
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.projectSubmissionsCount, t),
   },
   {
-    id: 'xp-master',
-    title: 'XP Master',
-    category: 'XP',
+    id: 'innovation-finalist',
+    title: 'Innovation Finalist',
+    category: 'INNOVATION',
+    tier: 'GOLD',
+    description: 'Reach the finalist round of a hackathon or competition.',
+    criteria: 'A verified finalist outcome for a competition registration.',
+    icon: 'Medal',
+    defaultThreshold: 1,
+    unit: 'finalist',
+    xpReward: 450,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.finalistCount, t),
+  },
+  {
+    id: 'innovation-podium-finisher',
+    title: 'Podium Finisher',
+    category: 'INNOVATION',
+    tier: 'GOLD',
+    description: 'Finish on the podium (2nd or 3rd place) in a competition.',
+    criteria: 'A verified 2nd or 3rd place outcome for a competition registration.',
+    icon: 'Award',
+    defaultThreshold: 1,
+    unit: 'podium',
+    xpReward: 550,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.podiumCount, t),
+  },
+  {
+    id: 'innovation-competition-champion',
+    title: 'Competition Champion',
+    category: 'INNOVATION',
     tier: 'PLATINUM',
-    description: 'Accumulate 5,000+ verified CareerAI XP points.',
-    criteria: 'Earn 5,000 total points in PointsLedger from verified performance.',
-    icon: 'Crown',
-    targetValue: 5000,
-    unit: 'XP',
-    xpReward: 500,
-    evaluate: (s) => {
-      const cur = s.totalXp || 0;
-      const target = 5000;
-      return {
-        isEligible: cur >= target,
-        currentValue: cur,
-        targetValue: target,
-        progressPercentage: Math.min(100, Math.round((cur / target) * 100)),
-      };
-    },
+    description: 'Win a hackathon or competition (1st place).',
+    criteria: 'A verified winner / 1st-place outcome for a competition registration.',
+    icon: 'Trophy',
+    defaultThreshold: 1,
+    unit: 'win',
+    xpReward: 800,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.winnerCount, t),
   },
   {
-    id: 'xp-elite',
-    title: 'XP Elite',
-    category: 'XP',
+    id: 'innovation-elite',
+    title: 'Innovation Elite',
+    category: 'INNOVATION',
     tier: 'DIAMOND',
-    description: 'Ascend to elite status with 10,000+ verified CareerAI XP points.',
-    criteria: 'Earn 10,000 total points in PointsLedger from verified performance.',
-    icon: 'Sparkles',
-    targetValue: 10000,
-    unit: 'XP',
+    description: 'Sustain top-tier innovation results across multiple competitions.',
+    criteria: 'Three or more verified finalist-or-better outcomes across competitions.',
+    icon: 'Crown',
+    defaultThreshold: 3,
+    unit: 'top finishes',
     xpReward: 1000,
-    evaluate: (s) => {
-      const cur = s.totalXp || 0;
-      const target = 10000;
-      return {
-        isEligible: cur >= target,
-        currentValue: cur,
-        targetValue: target,
-        progressPercentage: Math.min(100, Math.round((cur / target) * 100)),
-      };
-    },
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.finalistCount + s.podiumCount + s.winnerCount, t),
+  },
+
+  // =========================================================================
+  // C. CONSISTENCY & STREAK — verified daily career-activity streaks (IST)
+  // =========================================================================
+  {
+    id: 'streak-consistency-starter',
+    title: 'Consistency Starter',
+    category: 'CONSISTENCY',
+    tier: 'BRONZE',
+    description: 'Maintain a 5-day career activity streak.',
+    criteria: '5 consecutive days of qualifying career activity (Asia/Kolkata).',
+    icon: 'Flame',
+    defaultThreshold: 5,
+    unit: 'days',
+    xpReward: 75,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.longestStreakDays, t),
+  },
+  {
+    id: 'streak-consistency-pro',
+    title: 'Consistency Pro',
+    category: 'CONSISTENCY',
+    tier: 'SILVER',
+    description: 'Maintain a 15-day career activity streak.',
+    criteria: '15 consecutive days of qualifying career activity (Asia/Kolkata).',
+    icon: 'Flame',
+    defaultThreshold: 15,
+    unit: 'days',
+    xpReward: 200,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.longestStreakDays, t),
+  },
+  {
+    id: 'streak-consistency-master',
+    title: 'Consistency Master',
+    category: 'CONSISTENCY',
+    tier: 'GOLD',
+    description: 'Maintain a 30-day career activity streak.',
+    criteria: '30 consecutive days of qualifying career activity (Asia/Kolkata).',
+    icon: 'Flame',
+    defaultThreshold: 30,
+    unit: 'days',
+    xpReward: 500,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.longestStreakDays, t),
+  },
+  {
+    id: 'streak-consistency-elite',
+    title: 'Consistency Elite',
+    category: 'CONSISTENCY',
+    tier: 'PLATINUM',
+    description: 'Maintain a 50-day career activity streak.',
+    criteria: '50 consecutive days of qualifying career activity (Asia/Kolkata).',
+    icon: 'Zap',
+    defaultThreshold: 50,
+    unit: 'days',
+    xpReward: 800,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.longestStreakDays, t),
+  },
+  {
+    id: 'streak-century-achiever',
+    title: 'Century Achiever',
+    category: 'CONSISTENCY',
+    tier: 'DIAMOND',
+    description: 'Maintain a 100-day career activity streak.',
+    criteria: '100 consecutive days of qualifying career activity (Asia/Kolkata).',
+    icon: 'CalendarCheck',
+    defaultThreshold: 100,
+    unit: 'days',
+    xpReward: 1500,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.longestStreakDays, t),
+  },
+  {
+    id: 'streak-unstoppable',
+    title: 'Unstoppable',
+    category: 'CONSISTENCY',
+    tier: 'DIAMOND',
+    description: 'Maintain a 180-day career activity streak.',
+    criteria: '180 consecutive days of qualifying career activity (Asia/Kolkata).',
+    icon: 'Infinity',
+    defaultThreshold: 180,
+    unit: 'days',
+    xpReward: 2500,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.longestStreakDays, t),
+  },
+
+  // =========================================================================
+  // D. PROFESSIONAL DEVELOPMENT — real profile / resume / portfolio records
+  // =========================================================================
+  {
+    id: 'dev-profile-complete',
+    title: 'Profile Complete',
+    category: 'PROFESSIONAL_DEVELOPMENT',
+    tier: 'BRONZE',
+    description: 'Complete your professional profile to a recruiter-ready level.',
+    criteria: 'Profile completeness of 80% or higher across key fields.',
+    icon: 'UserCheck',
+    defaultThreshold: 80,
+    unit: '% complete',
+    xpReward: 150,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.profileCompleteness, t),
+  },
+  {
+    id: 'dev-resume-ready',
+    title: 'Resume Ready',
+    category: 'PROFESSIONAL_DEVELOPMENT',
+    tier: 'SILVER',
+    description: 'Upload a resume and have it reviewed for professional use.',
+    criteria: 'An active resume uploaded and marked as reviewed.',
+    icon: 'FileText',
+    defaultThreshold: 1,
+    unit: 'resume',
+    xpReward: 250,
+    awardSource: 'ENGINE',
+    evaluate: (s) => binary(s.resumeUploaded && s.resumeReviewed),
+  },
+  {
+    id: 'dev-skill-builder',
+    title: 'Skill Builder',
+    category: 'PROFESSIONAL_DEVELOPMENT',
+    tier: 'BRONZE',
+    description: 'Add technical skills to your professional profile.',
+    criteria: 'Five or more technical skills listed on your profile.',
+    icon: 'Wrench',
+    defaultThreshold: 5,
+    unit: 'skills',
+    xpReward: 150,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.skillsCount, t),
+  },
+  {
+    id: 'dev-project-portfolio',
+    title: 'Project Portfolio',
+    category: 'PROFESSIONAL_DEVELOPMENT',
+    tier: 'SILVER',
+    description: 'Build a portfolio of professional projects.',
+    criteria: 'Four or more projects added to your profile.',
+    icon: 'FolderOpen',
+    defaultThreshold: 4,
+    unit: 'projects',
+    xpReward: 300,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.projectsCount, t),
+  },
+  {
+    id: 'dev-experience-builder',
+    title: 'Experience Builder',
+    category: 'PROFESSIONAL_DEVELOPMENT',
+    tier: 'GOLD',
+    description: 'Add professional experience to your profile.',
+    criteria: 'One or more professional experience entries (internship, job, etc.).',
+    icon: 'Briefcase',
+    defaultThreshold: 1,
+    unit: 'experience',
+    xpReward: 400,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.experiencesCount, t),
+  },
+  {
+    id: 'dev-career-improver',
+    title: 'Career Improver',
+    category: 'PROFESSIONAL_DEVELOPMENT',
+    tier: 'GOLD',
+    description: 'Meaningfully improve your resume strength over time.',
+    criteria: 'Resume strength improved by 10+ points between evaluations.',
+    icon: 'TrendingUp',
+    defaultThreshold: 10,
+    unit: 'points',
+    xpReward: 350,
+    awardSource: 'ENGINE',
+    evaluate: (s) => binary(s.resumeStrengthImproved),
+  },
+
+  // =========================================================================
+  // E. MONTHLY EXCELLENCE — awarded by the monthly recognition engine
+  // =========================================================================
+  {
+    id: 'monthly-gold-champion',
+    title: 'Gold Champion',
+    category: 'MONTHLY_EXCELLENCE',
+    tier: 'DIAMOND',
+    description: 'Finish the month as the #1 student on the career leaderboard.',
+    criteria: 'Monthly career performance rank #1 (verified career performance only).',
+    icon: 'Crown',
+    defaultThreshold: 1,
+    unit: 'rank',
+    xpReward: 1500,
+    awardSource: 'MONTHLY',
+    evaluate: (s) => monthly(s.monthlyRank === 1),
+  },
+  {
+    id: 'monthly-silver-champion',
+    title: 'Silver Champion',
+    category: 'MONTHLY_EXCELLENCE',
+    tier: 'PLATINUM',
+    description: 'Finish the month as the #2 student on the career leaderboard.',
+    criteria: 'Monthly career performance rank #2 (verified career performance only).',
+    icon: 'Medal',
+    defaultThreshold: 2,
+    unit: 'rank',
+    xpReward: 1000,
+    awardSource: 'MONTHLY',
+    evaluate: (s) => monthly(s.monthlyRank === 2),
+  },
+  {
+    id: 'monthly-bronze-champion',
+    title: 'Bronze Champion',
+    category: 'MONTHLY_EXCELLENCE',
+    tier: 'GOLD',
+    description: 'Finish the month as the #3 student on the career leaderboard.',
+    criteria: 'Monthly career performance rank #3 (verified career performance only).',
+    icon: 'Award',
+    defaultThreshold: 3,
+    unit: 'rank',
+    xpReward: 700,
+    awardSource: 'MONTHLY',
+    evaluate: (s) => monthly(s.monthlyRank === 3),
+  },
+  {
+    id: 'monthly-career-excellence',
+    title: 'Career Excellence',
+    category: 'MONTHLY_EXCELLENCE',
+    tier: 'PLATINUM',
+    description: 'Reach an exceptional monthly career performance score.',
+    criteria: 'Monthly career performance score of 85 or higher.',
+    icon: 'Sparkles',
+    defaultThreshold: 85,
+    unit: 'score',
+    xpReward: 900,
+    awardSource: 'MONTHLY',
+    evaluate: (s) => monthly(typeof s.monthlyScore === 'number' && s.monthlyScore >= 85),
+  },
+  {
+    id: 'monthly-consistent-performer',
+    title: 'Consistent Performer',
+    category: 'MONTHLY_EXCELLENCE',
+    tier: 'GOLD',
+    description: 'Stay active across every week of the month.',
+    criteria: 'Qualifying career activity recorded in 4 or more distinct weeks of the month.',
+    icon: 'CalendarRange',
+    defaultThreshold: 4,
+    unit: 'weeks',
+    xpReward: 600,
+    awardSource: 'MONTHLY',
+    evaluate: (s) => monthly(typeof s.monthlyActiveWeeks === 'number' && s.monthlyActiveWeeks >= 4),
+  },
+  {
+    id: 'monthly-rising-star',
+    title: 'Rising Star',
+    category: 'MONTHLY_EXCELLENCE',
+    tier: 'SILVER',
+    description: 'Show the strongest month-over-month career growth.',
+    criteria: 'Monthly career performance improved by 10 or more points versus the previous month.',
+    icon: 'TrendingUp',
+    defaultThreshold: 10,
+    unit: 'points',
+    xpReward: 500,
+    awardSource: 'MONTHLY',
+    evaluate: (s) => monthly(typeof s.monthlyImprovement === 'number' && s.monthlyImprovement >= 10),
   },
 ];
 
@@ -934,3 +630,86 @@ export const BADGE_DEFINITIONS = BADGE_CATALOG;
 export function getBadgeById(id: string): BadgeDefinition | undefined {
   return BADGE_CATALOG.find((b) => b.id === id);
 }
+
+/** Badges awarded by the standard per-student evaluation engine. */
+export const ENGINE_BADGES = BADGE_CATALOG.filter((b) => b.awardSource === 'ENGINE');
+
+/** Badges awarded exclusively by the monthly recognition engine. */
+export const MONTHLY_BADGES = BADGE_CATALOG.filter((b) => b.awardSource === 'MONTHLY');
+
+/**
+ * Legacy badge IDs retired by the 30-badge professional framework. These stop
+ * being awarded but their historical `StudentBadge` / `AchievementHistory`
+ * records are preserved. Overlapping legacy badges are migrated to the new IDs
+ * by the migration artifact.
+ */
+export const RETIRED_BADGE_IDS = [
+  // LMS / coding-platform metrics
+  'problem-solver',
+  'code-challenger',
+  'algorithm-specialist',
+  'skill-python',
+  'skill-sql',
+  'skill-dsa',
+  'skill-web-dev',
+  'xp-explorer',
+  'xp-challenger',
+  'xp-achiever',
+  'xp-master',
+  'xp-elite',
+  // Superseded career/consistency definitions (migrated to new IDs)
+  '3-day-starter',
+  '7-day-streak',
+  '30-day-consistency',
+  'monthly-momentum',
+  'comeback-champion',
+  'application-starter',
+  'application-pro',
+  'hackathon-rookie',
+  'innovation-builder',
+  'interview-ready',
+  'placement-progressor',
+  'offer-achiever',
+  'first-shortlist',
+  'first-interview-attended',
+  'first-internship-selection',
+  'first-job-selection',
+  'hackathon-project-submitted',
+  'hackathon-finalist',
+  'hackathon-winner',
+  'multiple-hackathon-participation',
+  'profile-completed',
+  'first-project-added',
+  'technical-skills-milestone',
+  'resume-strength-improved',
+  'professional-experience-added',
+] as const;
+
+/** Maps retired legacy badge IDs to their replacement in the 30-badge framework. */
+export const LEGACY_BADGE_MIGRATION: Record<string, string> = {
+  'application-starter': 'career-first-step',
+  'first-shortlist': 'career-shortlist-achiever',
+  'interview-ready': 'career-interview-ready',
+  'first-interview-attended': 'career-interview-performer',
+  'first-internship-selection': 'career-breakthrough',
+  'first-job-selection': 'career-breakthrough',
+  'offer-achiever': 'career-breakthrough',
+  'placement-progressor': 'career-interview-performer',
+  'application-pro': 'career-first-step',
+  'hackathon-rookie': 'innovation-hackathon-explorer',
+  'multiple-hackathon-participation': 'innovation-hackathon-explorer',
+  'hackathon-project-submitted': 'innovation-project-builder',
+  'innovation-builder': 'innovation-project-builder',
+  'hackathon-finalist': 'innovation-finalist',
+  'hackathon-winner': 'innovation-competition-champion',
+  '3-day-starter': 'streak-consistency-starter',
+  '7-day-streak': 'streak-consistency-starter',
+  '30-day-consistency': 'streak-consistency-master',
+  'monthly-momentum': 'monthly-consistent-performer',
+  'comeback-champion': 'streak-consistency-starter',
+  'profile-completed': 'dev-profile-complete',
+  'resume-strength-improved': 'dev-career-improver',
+  'technical-skills-milestone': 'dev-skill-builder',
+  'first-project-added': 'dev-project-portfolio',
+  'professional-experience-added': 'dev-experience-builder',
+};

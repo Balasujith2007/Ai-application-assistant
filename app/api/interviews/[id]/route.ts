@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
+import { recordCareerActivity } from '@/lib/gamification/badgeTriggers';
 
 export async function PUT(req: Request, props: { params: Promise<{ id: string }> }) {
   try {
@@ -12,6 +13,12 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
       where: { id: (await props.params).id, userId },
       data: body
     });
+
+    // Feedback/attendance updates count as attended; otherwise it is a scheduling change.
+    const activityType = interview.feedback && interview.feedback.trim()
+      ? 'INTERVIEW_ATTENDED'
+      : 'INTERVIEW_SCHEDULED';
+    await recordCareerActivity(userId, activityType, interview.id);
 
     return NextResponse.json(interview);
   } catch (error) {

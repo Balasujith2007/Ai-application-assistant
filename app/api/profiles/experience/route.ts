@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
+import { recordCareerActivity } from '@/lib/gamification/badgeTriggers';
 
 
 export async function POST(req: Request) {
@@ -23,6 +24,10 @@ export async function POST(req: Request) {
         duration: duration || null,
       },
     });
+
+    // Career-growth trigger: adding experience is a qualifying career activity.
+    await recordCareerActivity(userId, 'EXPERIENCE_ADDED', `experience:${exp.id}`);
+
     return NextResponse.json({ data: exp });
   } catch (error) {
     console.error('Experience create error:', error);

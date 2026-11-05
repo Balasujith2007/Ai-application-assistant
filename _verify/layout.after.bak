@@ -1,0 +1,685 @@
+'use client';
+
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
+import { getCleanProfilePhotoUrl } from '@/lib/avatar';
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
+  Briefcase,
+  PieChart,
+  Bell,
+  Settings,
+  LogOut,
+  Search,
+  Menu,
+  X,
+  Building2,
+  CheckSquare,
+  Zap,
+  ShieldCheck,
+  Activity,
+  Sparkles,
+  Trophy,
+  TrendingUp,
+  Gift,
+  ShoppingBag,
+  Shield,
+  User as UserIcon,
+  ChevronDown,
+  Compass,
+  Award,
+} from 'lucide-react';
+import { getDashboardRoute } from '@/lib/auth';
+
+import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
+
+const ICON_MAP: Record<string, any> = {
+  'Dashboard': LayoutDashboard,
+  'Overview': LayoutDashboard,
+  'My Students': Users,
+  'Our Students': Users,
+  'Students': Users,
+  'User Management': Users,
+  'Mentors': Building2,
+  'Companies': Building2,
+  'Student Assignment': CheckSquare,
+  'Student Progress': PieChart,
+  'My Progress': PieChart,
+  'Analytics': PieChart,
+  'Opportunities': Trophy,
+  'Opportunity History': Trophy,
+  'Internship / Hackathon': Trophy,
+  'Explore Opportunities': Compass,
+  'Resumes': FileText,
+  'My Resume': FileText,
+  'Resume': FileText,
+  'Reports': FileText,
+  'Audit Logs': FileText,
+  'Tasks': CheckSquare,
+  'My Tasks': CheckSquare,
+  'Forms': CheckSquare,
+  'Announcements': Bell,
+  'Notifications': Bell,
+  'Roles & Permissions': ShieldCheck,
+  'Sidebar Management': Settings,
+  'Feature Management': Settings,
+  'Settings': Settings,
+  'Auto-Fill Agent': Zap,
+  'AI Features': Sparkles,
+  'System Health': Activity,
+  'Reward Configuration': Settings,
+  'Gift Distribution': Trophy,
+  // Student navigation icons
+  'My Applications': Briefcase,
+  'Career Progress': TrendingUp,
+  'Achievements': Award,
+  'My Profile': UserIcon,
+  'Rewards & Inventory': Gift,
+  'Coin Shop': ShoppingBag,
+  'Tokens': Shield,
+  // Legacy titles retained for safety (no longer surfaced for students)
+  'Career Growth': TrendingUp,
+  'Career Leaderboard': Trophy,
+};
+
+// Grouped student sidebar sections. Grouping is derived client-side from the
+// titles returned by /api/sidebar so the DB-driven navigation system (and the
+// admin "Sidebar Management" module) is left untouched. Non-student roles keep
+// their single "Main Menu" listing.
+const STUDENT_SECTION_GROUPS: { label: string; titles: string[] }[] = [
+  {
+    label: 'Main Menu',
+    titles: [
+      'Overview',
+      'Explore Opportunities',
+      'My Applications',
+      'My Resume',
+      'Career Progress',
+      'Achievements',
+    ],
+  },
+  { label: 'Rewards', titles: ['Rewards & Inventory', 'Coin Shop', 'Tokens'] },
+  { label: 'Account', titles: ['My Profile', 'Settings'] },
+];
+
+/** Active-state detection shared by the desktop rail and the mobile drawer. */
+function isLinkActive(pathname: string, rawPath: string): boolean {
+  const linkBase = String(rawPath || '').split('?')[0];
+  const isOverviewRoot = linkBase === '/dashboard/student' || linkBase === '/dashboard';
+  return isOverviewRoot
+    ? pathname === linkBase
+    : pathname === linkBase || pathname.startsWith(`${linkBase}/`);
+}
+
+// Module-level sidebar cache: keyed by role, 5 min TTL
+const sidebarCache: Record<string, { links: any[]; fetchedAt: number }> = {};
+const SIDEBAR_TTL_MS = 5 * 60_000; // 5 minutes
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { user, isLoading, isAuthenticated, logout } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mainLinks, setMainLinks] = useState<any[]>([]);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const closeProfile = useCallback(() => setProfileOpen(false), []);
+
+  const filteredLinks = useMemo(() => {
+    const isStudent = user?.role === 'STUDENT';
+    return mainLinks.filter((link) => {
+      if (link.title === 'Notifications' || link.path === '/dashboard/notifications') return false;
+      // Students surface Settings + My Profile inside the Account group.
+      if (isStudent) return true;
+      return link.title !== 'Settings' && link.path !== '/dashboard/settings';
+    });
+  }, [mainLinks, user?.role]);
+
+  // Group the student links into Main Menu / Rewards / Account sections.
+  // Non-student roles keep a single "Main Menu" group (unchanged behaviour).
+  const sidebarGroups = useMemo(() => {
+    if (user?.role !== 'STUDENT') {
+      return [{ label: 'Main Menu', items: filteredLinks }];
+    }
+    const byTitle = new Map<string, any>(filteredLinks.map((l) => [l.title, l]));
+    const used = new Set<string>();
+    const groups = STUDENT_SECTION_GROUPS.map((group) => {
+      const items = group.titles.map((t) => byTitle.get(t)).filter(Boolean) as any[];
+      items.forEach((i) => used.add(i.title));
+      return { label: group.label, items };
+    }).filter((g) => g.items.length > 0);
+
+    // Never silently drop a link — append any unmatched item to Main Menu.
+    const leftovers = filteredLinks.filter((l) => !used.has(l.title));
+    if (leftovers.length > 0) {
+      const main = groups.find((g) => g.label === 'Main Menu');
+      if (main) main.items = [...main.items, ...leftovers];
+      else groups.unshift({ label: 'Main Menu', items: leftovers });
+    }
+    return groups;
+  }, [filteredLinks, user?.role]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (!profileOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        closeProfile();
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeProfile();
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [profileOpen, closeProfile]);
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchSidebar = async () => {
+      try {
+        // Check module-level cache first (keyed by role)
+        const cacheKey = user.role;
+        const cached = sidebarCache[cacheKey];
+        const now = Date.now();
+        if (cached && (now - cached.fetchedAt) < SIDEBAR_TTL_MS) {
+          setMainLinks(cached.links);
+          return;
+        }
+
+        const token = localStorage.getItem('token');
+        const res = await axios.get('/api/sidebar', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const links = res.data.data;
+        // Update module-level cache
+        sidebarCache[cacheKey] = { links, fetchedAt: Date.now() };
+        setMainLinks(links);
+      } catch (err) {
+        console.error('Failed to load dynamic layout sidebar', err);
+      }
+    };
+    fetchSidebar();
+  }, [user]);
+
+  // Client-side route protection
+  useEffect(() => {
+    if (isLoading || !isAuthenticated || !user || mainLinks.length === 0) return;
+
+    // Super Admin bypasses client route guards
+    if (user.role === 'SUPER_ADMIN') return;
+
+    const currentPath = pathname;
+
+    const allowedSubpaths = [
+      '/dashboard/settings',
+      '/dashboard/notifications',
+      '/dashboard/mentor/profile',
+      '/dashboard/hod/profile',
+      '/profile',
+      '/resume'
+    ];
+
+    const isAllowed =
+      allowedSubpaths.some(p => currentPath.startsWith(p)) ||
+      mainLinks.some(link => currentPath.startsWith(link.path.split('?')[0]));
+
+    if (currentPath.startsWith('/dashboard/') && !isAllowed) {
+      router.replace(getDashboardRoute(user.role));
+    }
+  }, [pathname, mainLinks, user, isLoading, isAuthenticated, router]);
+
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-kit-600 border-t-transparent" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-screen h-[100dvh] w-full overflow-hidden bg-gray-50/50 font-[var(--font-inter)]">
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSidebarOpen(false)}
+            className="fixed inset-0 z-40 bg-gray-900/50 backdrop-blur-sm lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Desktop rail placeholder: 76px reserved so main content never sits under the fixed sidebar */}
+      <div
+        className="hidden lg:block shrink-0 pointer-events-none"
+        style={{ width: '76px', minWidth: '76px', maxWidth: '76px', flexBasis: '76px' }}
+        aria-hidden="true"
+      />
+
+      {/* Desktop Hover-Expandable Sidebar Overlay (Expands over content without pushing layout) */}
+      <aside
+        onMouseEnter={() => setIsSidebarHovered(true)}
+        onMouseLeave={() => setIsSidebarHovered(false)}
+        onFocusCapture={() => setIsSidebarHovered(true)}
+        onBlurCapture={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget)) {
+            setIsSidebarHovered(false);
+          }
+        }}
+        style={{
+          width: isSidebarHovered ? '260px' : '76px',
+          boxShadow: isSidebarHovered
+            ? '4px 0 32px -4px rgba(0,0,0,0.13), 2px 0 8px -2px rgba(0,0,0,0.07)'
+            : 'none',
+          transition: 'width 220ms cubic-bezier(0.4,0,0.2,1), box-shadow 220ms cubic-bezier(0.4,0,0.2,1)',
+          willChange: 'width',
+        }}
+        className="hidden lg:flex fixed inset-y-0 left-0 z-40 flex-col bg-white border-r border-gray-200/90 overflow-hidden select-none"
+        aria-label="Main sidebar navigation"
+      >
+        {/* Logo Header — 40px icon centered in 76px rail (18px + 20px = 38px) */}
+        <div className="flex h-16 shrink-0 items-center border-b border-gray-100 overflow-hidden" style={{ paddingLeft: '18px', paddingRight: '18px' }}>
+          <Link href="/" className="flex items-center min-w-0" aria-label="CareerAI Home">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center">
+              <img
+                src="/kit-logo.png"
+                alt="KIT CareerAI Logo"
+                className="h-8 w-8 object-contain shrink-0"
+              />
+            </div>
+            <span
+              className={`text-xl font-bold text-gray-900 tracking-tight whitespace-nowrap transition-all duration-200 ${
+                isSidebarHovered
+                  ? 'opacity-100 max-w-[160px] ml-2.5 font-bold'
+                  : 'opacity-0 max-w-0 ml-0 overflow-hidden pointer-events-none'
+              }`}
+              aria-hidden={!isSidebarHovered}
+            >
+              CareerAI
+            </span>
+          </Link>
+        </div>
+
+        {/* Links List — icons share the same 38px center line as the logo */}
+        <div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden py-3" style={{ paddingLeft: '18px', paddingRight: '18px' }}>
+          {sidebarGroups.map((group, groupIndex) => (
+            <div key={group.label} className={groupIndex > 0 ? 'mt-4' : ''}>
+              <p
+                className={`px-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap transition-all duration-200 ${
+                  isSidebarHovered
+                    ? 'opacity-100 mb-2 h-auto'
+                    : 'opacity-0 mb-0 h-0 overflow-hidden pointer-events-none'
+                }`}
+              >
+                {group.label}
+              </p>
+              <div className="space-y-1.5">
+                {group.items.map((link) => {
+                  const isActive = isLinkActive(pathname, link.path);
+                  const LinkIcon = ICON_MAP[link.title] || FileText;
+                  return (
+                    <div key={link.title} className="relative group/navitem">
+                      {isActive && (
+                        <span
+                          className="absolute -left-[10px] top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-full bg-[#990024]"
+                          aria-hidden="true"
+                        />
+                      )}
+                      <Link
+                        href={link.path}
+                        className={`flex items-center rounded-xl text-sm font-medium transition-colors ${
+                          isActive
+                            ? 'bg-[#990024]/10 text-[#990024] font-semibold'
+                            : 'text-gray-600 hover:bg-gray-100/80 hover:text-gray-900'
+                        }`}
+                        aria-current={isActive ? 'page' : undefined}
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center">
+                          <LinkIcon
+                            className={`h-5 w-5 shrink-0 transition-colors ${
+                              isActive ? 'text-[#990024]' : 'text-gray-500 group-hover/navitem:text-gray-800'
+                            }`}
+                          />
+                        </div>
+                        <span
+                          className={`whitespace-nowrap transition-all duration-200 ${
+                            isSidebarHovered
+                              ? 'opacity-100 max-w-[180px] ml-2 font-semibold'
+                              : 'opacity-0 max-w-0 ml-0 overflow-hidden pointer-events-none'
+                          }`}
+                        >
+                          {link.title}
+                        </span>
+                      </Link>
+
+                      {/* Tooltip on individual item hover when collapsed */}
+                      {!isSidebarHovered && (
+                        <div className="pointer-events-none absolute left-[70px] top-1/2 -translate-y-1/2 z-50 hidden rounded-md bg-slate-900 px-2.5 py-1 text-xs font-semibold text-white shadow-lg group-hover/navitem:block whitespace-nowrap">
+                          {link.title}
+                          <div className="absolute -left-1 top-1/2 -translate-y-1/2 border-y-4 border-y-transparent border-r-4 border-r-slate-900" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          {/* Logout Action */}
+          <div className="mt-auto pt-3 border-t border-gray-100 shrink-0">
+            <div className="relative group/logout">
+              <button
+                onClick={logout}
+                className="w-full flex items-center rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center">
+                  <LogOut className="h-5 w-5 shrink-0 text-red-500" />
+                </div>
+                <span
+                  className={`whitespace-nowrap transition-all duration-200 ${
+                    isSidebarHovered
+                      ? 'opacity-100 max-w-[180px] ml-2 font-semibold'
+                      : 'opacity-0 max-w-0 ml-0 overflow-hidden pointer-events-none'
+                  }`}
+                >
+                  Logout
+                </span>
+              </button>
+
+              {/* Tooltip on hover when collapsed */}
+              {!isSidebarHovered && (
+                <div className="pointer-events-none absolute left-[70px] top-1/2 -translate-y-1/2 z-50 hidden rounded-md bg-slate-900 px-2.5 py-1 text-xs font-semibold text-white shadow-lg group-hover/logout:block whitespace-nowrap">
+                  Logout
+                  <div className="absolute -left-1 top-1/2 -translate-y-1/2 border-y-4 border-y-transparent border-r-4 border-r-slate-900" />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Mobile Drawer (Visible when burger menu tapped on mobile/touch) */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.aside
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+            className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] flex flex-col border-r border-gray-200 bg-white shadow-2xl lg:hidden"
+          >
+            <div className="flex h-16 shrink-0 items-center justify-between px-6 border-b border-gray-100">
+              <Link href="/" onClick={() => setSidebarOpen(false)} className="flex items-center gap-2">
+                <img src="/kit-logo.png" alt="KIT Logo" className="h-8 w-8 object-contain" />
+                <span className="text-xl font-bold text-gray-900 tracking-tight">CareerAI</span>
+              </Link>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                aria-label="Close menu"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="flex flex-1 flex-col overflow-y-auto px-4 py-6">
+              {sidebarGroups.map((group, groupIndex) => (
+                <div key={group.label} className={groupIndex > 0 ? 'mt-6' : ''}>
+                  <p className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">{group.label}</p>
+                  <div className="space-y-1">
+                    {group.items.map((link) => {
+                      const isActive = isLinkActive(pathname, link.path);
+                      const LinkIcon = ICON_MAP[link.title] || FileText;
+                      return (
+                        <Link
+                          key={link.title}
+                          href={link.path}
+                          onClick={() => setSidebarOpen(false)}
+                          className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                            isActive
+                              ? 'bg-[#990024]/10 text-[#990024] font-semibold'
+                              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                          }`}
+                          aria-current={isActive ? 'page' : undefined}
+                        >
+                          <LinkIcon className={`h-5 w-5 shrink-0 ${isActive ? 'text-[#990024]' : 'text-gray-400 group-hover:text-gray-600'}`} />
+                          {link.title}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              <div className="mt-auto pt-4 border-t border-gray-100 shrink-0">
+                <button
+                  onClick={() => {
+                    setSidebarOpen(false);
+                    logout();
+                  }}
+                  className="w-full group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 transition-all duration-200 hover:bg-red-50"
+                >
+                  <LogOut className="h-5 w-5 shrink-0 text-red-500" />
+                  Logout
+                </button>
+              </div>
+            </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      {/* Main Content Area */}
+      <div className="flex flex-1 flex-col min-w-0 h-full overflow-hidden">
+        {/* Top Navbar */}
+        <header className="z-30 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white/95 backdrop-blur-md px-4 sm:gap-x-6 sm:px-6 lg:px-7">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
+          >
+            <span className="sr-only">Open sidebar</span>
+            <Menu className="h-6 w-6" aria-hidden="true" />
+          </button>
+
+          <div className="flex flex-1 items-center gap-x-4 self-stretch lg:gap-x-6 min-w-0">
+            <form className="flex flex-1 items-center min-w-0" action="#" method="GET">
+              <label htmlFor="search-field" className="sr-only">
+                Search
+              </label>
+              <div className="relative flex items-center w-full max-w-md">
+                <Search
+                  className="absolute left-3.5 h-4 w-4 text-gray-400 pointer-events-none"
+                  aria-hidden="true"
+                />
+                <input
+                  ref={searchInputRef}
+                  id="search-field"
+                  className="h-10 w-full rounded-xl border border-gray-200/90 bg-gray-50/80 pl-10 pr-12 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#990024]/40 focus:bg-white focus:ring-2 focus:ring-[#990024]/10 focus:outline-none transition-all shadow-2xs"
+                  placeholder="Search opportunities, skills, tasks..."
+                  type="search"
+                  name="search"
+                />
+                <div className="absolute right-3 hidden sm:flex items-center pointer-events-none">
+                  <kbd className="rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-gray-400 shadow-2xs">
+                    ⌘K
+                  </kbd>
+                </div>
+              </div>
+            </form>
+            
+            <div className="flex items-center gap-x-4 lg:gap-x-6">
+              <NotificationDropdown />
+
+              {/* Separator */}
+              <div className="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200" aria-hidden="true" />
+
+              {/* Profile Dropdown */}
+              <div className="relative" ref={profileRef}>
+                <button
+                  type="button"
+                  id="header-profile-menu-button"
+                  onClick={() => setProfileOpen((prev) => !prev)}
+                  className="flex items-center gap-x-3 rounded-xl p-1.5 hover:bg-gray-100/80 active:bg-gray-200/70 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-kit-500 group"
+                  aria-haspopup="menu"
+                  aria-expanded={profileOpen}
+                >
+                  <div className={`relative h-8 w-8 rounded-full overflow-hidden bg-rose-100 flex items-center justify-center text-[#990024] font-bold text-sm ring-2 transition-all ${profileOpen ? 'ring-kit-500' : 'ring-transparent group-hover:ring-kit-300'}`}>
+                    {user?.profile?.profilePhotoUrl ? (
+                      <img
+                        src={getCleanProfilePhotoUrl(user.profile.profilePhotoUrl, 160)!}
+                        alt={user.name || 'User'}
+                        className="h-full w-full object-cover"
+                        style={{ objectFit: 'cover', objectPosition: 'center 20%' }}
+                      />
+                    ) : (
+                      user?.name?.charAt(0).toUpperCase() || 'B'
+                    )}
+                  </div>
+                  <div className="hidden lg:flex lg:flex-col lg:items-start lg:justify-center text-left">
+                    <span className="text-sm font-semibold text-gray-900 leading-tight group-hover:text-kit-700 transition-colors">
+                      {user?.name || 'Bala Sujith'}
+                    </span>
+                    <span className="text-xs font-medium text-gray-500 capitalize leading-tight mt-0.5">
+                      {user?.role ? user.role.toLowerCase().replace(/_/g, ' ') : 'Student'}
+                    </span>
+                  </div>
+                  <ChevronDown
+                    className={`h-4 w-4 text-gray-400 transition-transform duration-200 hidden lg:block ${
+                      profileOpen ? 'rotate-180 text-kit-600' : ''
+                    }`}
+                  />
+                </button>
+
+                {/* Dropdown Menu */}
+                {profileOpen && (
+                  <div
+                    role="menu"
+                    aria-labelledby="header-profile-menu-button"
+                    className="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-gray-100 bg-white shadow-2xl z-50 overflow-hidden"
+                    style={{
+                      animation: 'profileDropdownIn 0.15s cubic-bezier(0.22, 1, 0.36, 1) both',
+                    }}
+                  >
+                    {/* User Header */}
+                    <div className="flex items-center gap-3 px-4 py-3.5 bg-gradient-to-br from-kit-50 via-white to-white border-b border-gray-100">
+                      <div className="relative h-9 w-9 shrink-0 rounded-full overflow-hidden bg-kit-100 flex items-center justify-center text-kit-700 font-bold text-sm">
+                        {user?.profile?.profilePhotoUrl ? (
+                          <img
+                            src={getCleanProfilePhotoUrl(user.profile.profilePhotoUrl, 160)!}
+                            alt={user.name || 'User'}
+                            className="h-full w-full object-cover"
+                            style={{ objectFit: 'cover', objectPosition: 'center 20%' }}
+                          />
+                        ) : (
+                          user?.name?.charAt(0).toUpperCase() || 'U'
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-gray-900 truncate leading-tight">{user?.name}</p>
+                        <p className="text-xs text-gray-500 truncate mt-0.5 leading-tight">{user?.email}</p>
+                        <span className="inline-block mt-1 rounded-md bg-kit-100 px-1.5 py-0.5 text-[10px] font-bold text-kit-700 border border-kit-200 uppercase tracking-wider leading-none">
+                          {user?.role ? user.role.replace(/_/g, ' ') : 'STUDENT'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Menu Items */}
+                    <div role="none" className="py-1.5">
+                      <Link
+                        href={
+                          user?.role === 'HOD'
+                            ? '/dashboard/hod/profile'
+                            : user?.role === 'MENTOR' || user?.role === 'FACULTY'
+                            ? '/dashboard/mentor/profile'
+                            : '/profile'
+                        }
+                        role="menuitem"
+                        onClick={closeProfile}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-kit-50 hover:text-kit-700 transition-colors group"
+                      >
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 group-hover:bg-kit-100 group-hover:text-kit-600 transition-colors">
+                          <UserIcon className="h-4 w-4" />
+                        </span>
+                        My Profile
+                      </Link>
+
+                      <Link
+                        href="/dashboard/settings"
+                        role="menuitem"
+                        onClick={closeProfile}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-kit-50 hover:text-kit-700 transition-colors group"
+                      >
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 group-hover:bg-kit-100 group-hover:text-kit-600 transition-colors">
+                          <Settings className="h-4 w-4" />
+                        </span>
+                        Settings
+                      </Link>
+                    </div>
+
+                    {/* Logout */}
+                    <div role="none" className="border-t border-gray-100 py-1.5">
+                      <button
+                        role="menuitem"
+                        onClick={() => {
+                          closeProfile();
+                          logout();
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors group"
+                      >
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-500 group-hover:bg-red-100 transition-colors">
+                          <LogOut className="h-4 w-4" />
+                        </span>
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Page Content */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden py-5 focus:outline-none">
+          <div className="mx-auto max-w-[1600px] px-4 sm:px-5 lg:px-6">
+            {children}
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}

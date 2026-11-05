@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
+import { recordCareerActivity } from '@/lib/gamification/badgeTriggers';
 
 
 export const dynamic = 'force-dynamic';
@@ -128,6 +129,10 @@ export async function PUT(req: Request) {
       create: { userId, ...validProfileData },
       update: validProfileData,
     });
+
+    // Career-growth trigger: a profile change is a qualifying career activity.
+    await recordCareerActivity(userId, 'PROFILE_UPDATED', `profile:${updated.id}`);
+
     return NextResponse.json({ data: updated });
   } catch (error: any) { 
     console.error('Profile Update Error:', error);

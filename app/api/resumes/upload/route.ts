@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
 import { saveResumeForUser } from '@/lib/applyAgent/resumeFile';
+import { recordCareerActivity } from '@/lib/gamification/badgeTriggers';
 
 export async function POST(req: Request) {
   try {
@@ -19,6 +20,9 @@ export async function POST(req: Request) {
       mimeType: file.type,
       buffer,
     });
+
+    // Career-growth trigger: uploading an active resume is a qualifying career activity.
+    await recordCareerActivity(userId, 'RESUME_UPLOADED', `resume:${resume.id}`);
 
     return NextResponse.json({ data: resume });
   } catch (error) {

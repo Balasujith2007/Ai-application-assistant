@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
+import { recordCareerActivity } from '@/lib/gamification/badgeTriggers';
 
 
 export async function POST(req: Request) {
@@ -24,6 +25,8 @@ export async function POST(req: Request) {
       create: { profileId: profile.id, skillId: skill.id },
       update: {},
     });
+
+    await recordCareerActivity(userId, 'SKILL_ADDED');
 
     return NextResponse.json({ data: skill });
   } catch (error) { return NextResponse.json({ message: 'Error' }, { status: 500 }); }

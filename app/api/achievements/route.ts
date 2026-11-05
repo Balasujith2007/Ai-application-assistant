@@ -43,7 +43,10 @@ export async function GET(req: Request) {
       summary: overview.summary,
       nextMilestone: overview.nextMilestone,
       stats: overview.stats,
+      categories: overview.categories,
+      monthlyAwards: overview.monthlyAwards,
       badges: filteredBadges,
+      badgesByStatus: overview.badges,
       history: overview.history,
     });
   } catch (err: any) {

@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { validateStudentEligibility } from '@/lib/opportunity/lifecycle.service';
 import { isOpportunityOpen } from '@/lib/utils';
 import { OpportunityRegistrationStatus } from '@prisma/client';
+import { recordCareerActivity } from '@/lib/gamification/badgeTriggers';
 
 export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
   try {
@@ -174,6 +175,12 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
         }
       }).catch((err) => console.warn('Poster notification failed:', err));
     }
+
+    await recordCareerActivity(
+      userId,
+      opportunity.type === 'HACKATHON' ? 'HACKATHON_REGISTERED' : 'COMPETITION_REGISTERED',
+      registration.id
+    );
 
     return NextResponse.json({
       success: true,

@@ -32,6 +32,8 @@ import {
   Shield,
   User as UserIcon,
   ChevronDown,
+  Compass,
+  Award,
 } from 'lucide-react';
 import { getDashboardRoute } from '@/lib/auth';
 
@@ -53,6 +55,7 @@ const ICON_MAP: Record<string, any> = {
   'Opportunities': Trophy,
   'Opportunity History': Trophy,
   'Internship / Hackathon': Trophy,
+  'Explore Opportunities': Compass,
   'Resumes': FileText,
   'My Resume': FileText,
   'Resume': FileText,
@@ -71,14 +74,72 @@ const ICON_MAP: Record<string, any> = {
   'AI Features': Sparkles,
   'System Health': Activity,
   'Reward Configuration': Settings,
+  'Badge Management': Award,
   'Gift Distribution': Trophy,
-  // Student gamification sidebar pages
-  'Career Growth': TrendingUp,
+  // Student navigation icons
+  'My Applications': Briefcase,
+  'Career Progress': TrendingUp,
+  'Achievements': Award,
+  'My Profile': UserIcon,
   'Rewards & Inventory': Gift,
   'Coin Shop': ShoppingBag,
   'Tokens': Shield,
+  // Legacy titles retained for safety (no longer surfaced for students)
+  'Career Growth': TrendingUp,
   'Career Leaderboard': Trophy,
 };
+
+// Grouped student sidebar sections. Grouping is derived client-side from the
+// titles returned by /api/sidebar so the DB-driven navigation system (and the
+// admin "Sidebar Management" module) is left untouched. Non-student roles keep
+// their single "Main Menu" listing.
+const STUDENT_SECTION_GROUPS: { label: string; titles: string[] }[] = [
+  {
+    label: 'Main Menu',
+    titles: [
+      'Overview',
+      'Explore Opportunities',
+      'My Applications',
+      'My Resume',
+      'Career Progress',
+      'Achievements',
+    ],
+  },
+  { label: 'Rewards', titles: ['Rewards & Inventory', 'Coin Shop', 'Tokens'] },
+  { label: 'Account', titles: ['My Profile', 'Settings'] },
+];
+
+/** Active-state detection shared by the desktop rail and the mobile drawer. */
+function isLinkActive(pathname: string, rawPath: string): boolean {
+  const linkBase = String(rawPath || '').split('?')[0];
+  const isOverviewRoot = linkBase === '/dashboard/student' || linkBase === '/dashboard';
+  
+  if (isOverviewRoot) {
+    // Exact match only for overview roots
+    return pathname === linkBase;
+  }
+  
+  // For other routes, use exact match
+  // Parent routes should NOT highlight when on child routes
+  if (pathname === linkBase) {
+    return true;
+  }
+  
+  // Allow prefix matching only for deeply nested routes within the same parent
+  // But NOT for parent-child relationships
+  // Example: /dashboard/super-admin/gamification/analytics should NOT highlight /dashboard/super-admin
+  // But /dashboard/super-admin/gamification/analytics should highlight itself
+  const pathSegments = pathname.split('/').filter(Boolean);
+  const linkSegments = linkBase.split('/').filter(Boolean);
+  
+  // If link is a parent path (shorter), don't match children
+  if (linkSegments.length < pathSegments.length) {
+    return false;
+  }
+  
+  // If link is the same or longer, allow prefix match
+  return pathname.startsWith(`${linkBase}/`);
+}
 
 // Module-level sidebar cache: keyed by role, 5 min TTL
 const sidebarCache: Record<string, { links: any[]; fetchedAt: number }> = {};
@@ -97,17 +158,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const closeProfile = useCallback(() => setProfileOpen(false), []);
 
-  const filteredLinks = useMemo(
-    () =>
-      mainLinks.filter(
-        (link) =>
-          link.title !== 'Notifications' &&
-          link.title !== 'Settings' &&
-          link.path !== '/dashboard/notifications' &&
-          link.path !== '/dashboard/settings'
-      ),
-    [mainLinks]
-  );
+  const filteredLinks = useMemo(() => {
+    const isStudent = user?.role === 'STUDENT';
+    return mainLinks.filter((link) => {
+      if (link.title === 'Notifications' || link.path === '/dashboard/notifications') return false;
+      // Students surface Settings + My Profile inside the Account group.
+      if (isStudent) return true;
+      return link.title !== 'Settings' && link.path !== '/dashboard/settings';
+    });
+  }, [mainLinks, user?.role]);
+
+  // Group the student links into Main Menu / Rewards / Account sections.
+  // Non-student roles keep a single "Main Menu" group (unchanged behaviour).
+  const sidebarGroups = useMemo(() => {
+    if (user?.role !== 'STUDENT') {
+      return [{ label: 'Main Menu', items: filteredLinks }];
+    }
+    const byTitle = new Map<string, any>(filteredLinks.map((l) => [l.title, l]));
+    const used = new Set<string>();
+    const groups = STUDENT_SECTION_GROUPS.map((group) => {
+      const items = group.titles.map((t) => byTitle.get(t)).filter(Boolean) as any[];
+      items.forEach((i) => used.add(i.title));
+      return { label: group.label, items };
+    }).filter((g) => g.items.length > 0);
+
+    // Never silently drop a link — append any unmatched item to Main Menu.
+    const leftovers = filteredLinks.filter((l) => !used.has(l.title));
+    if (leftovers.length > 0) {
+      const main = groups.find((g) => g.label === 'Main Menu');
+      if (main) main.items = [...main.items, ...leftovers];
+      else groups.unshift({ label: 'Main Menu', items: leftovers });
+    }
+    return groups;
+  }, [filteredLinks, user?.role]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -277,69 +360,69 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Links List — icons share the same 38px center line as the logo */}
         <div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden py-3" style={{ paddingLeft: '18px', paddingRight: '18px' }}>
-          <div className="space-y-1.5 mb-4">
-            <p
-              className={`px-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap transition-all duration-200 ${
-                isSidebarHovered
-                  ? 'opacity-100 mb-2 h-auto'
-                  : 'opacity-0 mb-0 h-0 overflow-hidden pointer-events-none'
-              }`}
-            >
-              Main Menu
-            </p>
-            {filteredLinks.map((link) => {
-              const linkBase = String(link.path || '').split('?')[0];
-              const isOverviewRoot = linkBase === '/dashboard/student' || linkBase === '/dashboard';
-              const isActive = isOverviewRoot
-                ? pathname === linkBase
-                : pathname === linkBase || pathname.startsWith(`${linkBase}/`);
-              const LinkIcon = ICON_MAP[link.title] || FileText;
-              return (
-                <div key={link.title} className="relative group/navitem">
-                  {isActive && (
-                    <span
-                      className="absolute -left-[10px] top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-full bg-[#990024]"
-                      aria-hidden="true"
-                    />
-                  )}
-                  <Link
-                    href={link.path}
-                    className={`flex items-center rounded-xl text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'bg-[#990024]/10 text-[#990024] font-semibold'
-                        : 'text-gray-600 hover:bg-gray-100/80 hover:text-gray-900'
-                    }`}
-                    aria-current={isActive ? 'page' : undefined}
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center">
-                      <LinkIcon
-                        className={`h-5 w-5 shrink-0 transition-colors ${
-                          isActive ? 'text-[#990024]' : 'text-gray-500 group-hover/navitem:text-gray-800'
+          {sidebarGroups.map((group, groupIndex) => (
+            <div key={group.label} className={groupIndex > 0 ? 'mt-4' : ''}>
+              <p
+                className={`px-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap transition-all duration-200 ${
+                  isSidebarHovered
+                    ? 'opacity-100 mb-2 h-auto'
+                    : 'opacity-0 mb-0 h-0 overflow-hidden pointer-events-none'
+                }`}
+              >
+                {group.label}
+              </p>
+              <div className="space-y-1.5">
+                {group.items.map((link) => {
+                  const isActive = isLinkActive(pathname, link.path);
+                  const LinkIcon = ICON_MAP[link.title] || FileText;
+                  return (
+                    <div key={link.title} className="relative group/navitem">
+                      {isActive && (
+                        <span
+                          className="absolute -left-[10px] top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-full bg-[#990024]"
+                          aria-hidden="true"
+                        />
+                      )}
+                      <Link
+                        href={link.path}
+                        className={`flex items-center rounded-xl text-sm font-medium transition-colors ${
+                          isActive
+                            ? 'bg-[#990024]/10 text-[#990024] font-semibold'
+                            : 'text-gray-600 hover:bg-gray-100/80 hover:text-gray-900'
                         }`}
-                      />
-                    </div>
-                    <span
-                      className={`whitespace-nowrap transition-all duration-200 ${
-                        isSidebarHovered
-                          ? 'opacity-100 max-w-[180px] ml-2 font-semibold'
-                          : 'opacity-0 max-w-0 ml-0 overflow-hidden pointer-events-none'
-                      }`}
-                    >
-                      {link.title}
-                    </span>
-                  </Link>
+                        aria-current={isActive ? 'page' : undefined}
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center">
+                          <LinkIcon
+                            className={`h-5 w-5 shrink-0 transition-colors ${
+                              isActive ? 'text-[#990024]' : 'text-gray-500 group-hover/navitem:text-gray-800'
+                            }`}
+                          />
+                        </div>
+                        <span
+                          className={`whitespace-nowrap transition-all duration-200 ${
+                            isSidebarHovered
+                              ? 'opacity-100 max-w-[180px] ml-2 font-semibold'
+                              : 'opacity-0 max-w-0 ml-0 overflow-hidden pointer-events-none'
+                          }`}
+                        >
+                          {link.title}
+                        </span>
+                      </Link>
 
-                  {/* Tooltip on individual item hover when collapsed */}
-                  {!isSidebarHovered && (
-                    <div className="pointer-events-none absolute left-[70px] top-1/2 -translate-y-1/2 z-50 hidden rounded-md bg-slate-900 px-2.5 py-1 text-xs font-semibold text-white shadow-lg group-hover/navitem:block whitespace-nowrap">
-                      {link.title}
-                      <div className="absolute -left-1 top-1/2 -translate-y-1/2 border-y-4 border-y-transparent border-r-4 border-r-slate-900" />
+                      {/* Tooltip on individual item hover when collapsed */}
+                      {!isSidebarHovered && (
+                        <div className="pointer-events-none absolute left-[70px] top-1/2 -translate-y-1/2 z-50 hidden rounded-md bg-slate-900 px-2.5 py-1 text-xs font-semibold text-white shadow-lg group-hover/navitem:block whitespace-nowrap">
+                          {link.title}
+                          <div className="absolute -left-1 top-1/2 -translate-y-1/2 border-y-4 border-y-transparent border-r-4 border-r-slate-900" />
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
 
           {/* Logout Action */}
           <div className="mt-auto pt-3 border-t border-gray-100 shrink-0">
@@ -399,28 +482,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
 
             <div className="flex flex-1 flex-col overflow-y-auto px-4 py-6">
-              <div className="space-y-1 mb-8">
-                <p className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Main Menu</p>
-                {filteredLinks.map((link) => {
-                  const isActive = pathname === link.path;
-                  const LinkIcon = ICON_MAP[link.title] || FileText;
-                  return (
-                    <Link
-                      key={link.title}
-                      href={link.path}
-                      onClick={() => setSidebarOpen(false)}
-                      className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                        isActive
-                          ? 'bg-[#990024]/10 text-[#990024] font-semibold'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      }`}
-                    >
-                      <LinkIcon className={`h-5 w-5 shrink-0 ${isActive ? 'text-[#990024]' : 'text-gray-400 group-hover:text-gray-600'}`} />
-                      {link.title}
-                    </Link>
-                  );
-                })}
-              </div>
+              {sidebarGroups.map((group, groupIndex) => (
+                <div key={group.label} className={groupIndex > 0 ? 'mt-6' : ''}>
+                  <p className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">{group.label}</p>
+                  <div className="space-y-1">
+                    {group.items.map((link) => {
+                      const isActive = isLinkActive(pathname, link.path);
+                      const LinkIcon = ICON_MAP[link.title] || FileText;
+                      return (
+                        <Link
+                          key={link.title}
+                          href={link.path}
+                          onClick={() => setSidebarOpen(false)}
+                          className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                            isActive
+                              ? 'bg-[#990024]/10 text-[#990024] font-semibold'
+                              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                          }`}
+                          aria-current={isActive ? 'page' : undefined}
+                        >
+                          <LinkIcon className={`h-5 w-5 shrink-0 ${isActive ? 'text-[#990024]' : 'text-gray-400 group-hover:text-gray-600'}`} />
+                          {link.title}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
 
               <div className="mt-auto pt-4 border-t border-gray-100 shrink-0">
                 <button

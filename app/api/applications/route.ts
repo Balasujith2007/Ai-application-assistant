@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
 import { ApplicationStatus, ApplicationType } from '@prisma/client';
+import { recordCareerActivity } from '@/lib/gamification/badgeTriggers';
 
 export async function GET(req: Request) {
   try {
@@ -98,6 +99,8 @@ export async function POST(req: Request) {
         userId,
       }
     });
+
+    await recordCareerActivity(userId, 'APPLICATION_SUBMITTED', application.id);
 
     return NextResponse.json(application, { status: 201 });
   } catch (error) {
