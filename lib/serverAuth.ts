@@ -1,26 +1,39 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
 import prisma from './prisma';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
+// CRITICAL: JWT_SECRET must be configured in environment variables
+// Fallback secrets are intentionally removed for security
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+
+if (!JWT_SECRET) {
+  throw new Error(
+    'CRITICAL: JWT_SECRET environment variable is not configured. ' +
+    'Authentication cannot function without a secure secret. ' +
+    'Please set JWT_SECRET in your environment variables.'
+  );
+}
+
+// Type assertion to satisfy TypeScript after runtime check
+const SECRET: string = JWT_SECRET;
 
 export function signToken(payload: object): string {
   const options: SignOptions = { expiresIn: JWT_EXPIRES_IN as unknown as SignOptions['expiresIn'] };
-  return jwt.sign(payload, JWT_SECRET, options);
+  return jwt.sign(payload, SECRET, options);
 }
 
 /** Short-lived token for the Apply Agent only. Never embed website 7d JWTs in page messaging. */
 export function signExtensionToken(payload: { sub: string; email: string; role?: string }): string {
   return jwt.sign(
     { ...payload, aud: 'careerai-extension', typ: 'ext' },
-    JWT_SECRET,
+    SECRET,
     { expiresIn: '2h' },
   );
 }
 
 export function verifyToken(token: string): jwt.JwtPayload | string | null {
   try {
-    return jwt.verify(token, JWT_SECRET);
+    return jwt.verify(token, SECRET);
   } catch {
     return null;
   }
@@ -46,15 +59,9 @@ export function getUserIdFromRequest(req: Request): string | null {
     }
   }
 
-  // 3. Fallback to URL search parameter if header & cookie are absent
-  if (!token && req.url) {
-    try {
-      const url = new URL(req.url);
-      token = url.searchParams.get('token') || url.searchParams.get('auth_token');
-    } catch {
-      // Ignore URL parsing errors
-    }
-  }
+  // SECURITY: URL-based token extraction removed to prevent token leakage
+  // through browser history, referrer headers, and analytics
+  // Tokens must be transmitted via Authorization header or secure cookies only
 
   if (!token) return null;
 

@@ -5,7 +5,16 @@ import jwt from 'jsonwebtoken';
 import * as path from 'path';
 import * as fs from 'fs';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error(
+    'CRITICAL: JWT_SECRET environment variable is not configured. ' +
+    'Test requires a valid JWT_SECRET to generate authentication tokens.'
+  );
+}
+
+const SECRET: string = JWT_SECRET;
 const APP_URL = 'http://localhost:3000';
 const ARTIFACT_DIR = 'C:\\Users\\sathi\\.gemini\\antigravity-ide\\brain\\56ca71df-f12c-4021-bb24-f41132436cb8';
 
@@ -57,7 +66,7 @@ async function runCrossBrowserTest() {
 
     const token = jwt.sign(
       { sub: studentId, email: studentEmail, role: 'STUDENT' },
-      JWT_SECRET,
+      SECRET,
       { expiresIn: '1d' }
     );
 

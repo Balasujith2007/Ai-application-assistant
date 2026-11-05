@@ -26,6 +26,9 @@ import {
 import { MotivationBanner } from '@/components/dashboard/MotivationBanner';
 import { StudentPerformancePanel } from '@/components/dashboard/StudentPerformancePanel';
 import { CareerGrowthSummaryCard } from '@/components/dashboard/CareerGrowthSummaryCard';
+import { RewardInventory } from '@/components/dashboard/RewardInventory';
+import { CoinShop } from '@/components/dashboard/CoinShop';
+import { CareerLeaderboard } from '@/components/dashboard/CareerLeaderboard';
 import Link from 'next/link';
 
 // ─────────────────────────────────────────────
@@ -518,6 +521,15 @@ export default function StudentDashboard() {
 
             {/* A2. Weekly Career Growth Summary (transparency for the gift tier) */}
             <CareerGrowthSummaryCard />
+
+            {/* A3. Reward Inventory */}
+            <RewardInventory />
+
+            {/* A4. Coin Shop */}
+            <CoinShop />
+
+            {/* A5. Career Leaderboard */}
+            <CareerLeaderboard />
 
             {/* B. IRP Card */}
             <div className="dash-widget-card">

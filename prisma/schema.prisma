@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,259 +6,144 @@ datasource db {
   provider = "postgresql"
 }
 
-// ============================================================
-// ENUMS
-// ============================================================
-
-enum Role {
-  STUDENT
-  MENTOR
-  FACULTY
-  HOD
-  PLACEMENT_CELL
-  ADMIN
-  SUPER_ADMIN
-}
-
-enum ApplicationType {
-  INTERNSHIP
-  JOB
-  HACKATHON
-  COMPETITION
-  WORKSHOP
-  SCHOLARSHIP
-  OTHER
-}
-
-enum ApplicationStatus {
-  SAVED
-  INITIATED
-  APPLIED
-  UNDER_REVIEW
-  SHORTLISTED
-  INTERVIEW
-  SELECTED
-  REJECTED
-  DISQUALIFIED
-  WITHDRAWN
-}
-
-enum OpportunityType {
-  JOB
-  FULL_TIME
-  INTERNSHIP
-  HACKATHON
-  COMPETITION
-  SCHOLARSHIP
-  WORKSHOP
-  OTHER
-}
-
-enum OpportunityMode {
-  ONLINE
-  OFFLINE
-  HYBRID
-}
-
-enum OpportunityStatus {
-  DRAFT
-  PUBLISHED
-  REGISTRATION_OPEN
-  REGISTRATION_CLOSED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-  CLOSED
-}
-
-enum OpportunityRegistrationStatus {
-  STARTED
-  INITIATED
-  IN_PROGRESS
-  STUDENT_CONFIRMED
-  PENDING_VERIFICATION
-  PROOF_SUBMITTED
-  VERIFYING
-  PENDING_REVIEW
-  VERIFIED
-  REGISTERED
-  ONGOING
-  UNDER_REVIEW
-  SHORTLISTED
-  INTERVIEW
-  SELECTED
-  REJECTED
-  DISQUALIFIED
-  WITHDRAWN
-  FAILED
-  CANCELLED
-  COMPLETED
-}
-
-// ============================================================
-// USER
-// ============================================================
-
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String?
-  googleId  String?  @unique
-  role      Role     @default(STUDENT)
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  notificationPreferences Json?
-  privacySettings Json?
-  aiPreferences Json?
-
-  profile              Profile?
-  verifiedProfiles     VerifiedProfile[]
-  resumes              Resume[]
-  applications         Application[]
-  tasks                Task[]
-  interviews           Interview[]
-  activities           Activity[]
-  notifications        Notification[] @relation("UserNotifications")
-  sentNotifications    Notification[] @relation("SentNotifications")
-  postedOpportunities  Opportunity[]  @relation("PostedOpportunities")
-  registrations        OpportunityRegistration[]
-  autofillSessions     AutofillSession[]
-  customProfileFields  CustomProfileField[]
-  applicationDrafts    ApplicationDraftAnswer[]
-  extensionAuthCodes   ExtensionAuthCode[]
-  autofillAuditEvents  AutofillAuditEvent[]
-  createdForms         Form[]                 @relation("FormCreator")
-  formResponses        FormResponse[]
-  auditLogs            AuditLog[]
-  notificationDeliveries NotificationDelivery[]
-  emailIntegration       StudentEmailIntegration?
-  emailEvidences         EmailEvidence[]
-  emailReviews           EmailStatusReview[]
-  registrationEvidences  RegistrationEvidence[]  @relation("StudentEvidences")
-  reviewedEvidences      RegistrationEvidence[]  @relation("ReviewedEvidences")
-  verifiedActivities     VerifiedActivity[]      @relation("StudentVerifiedActivities")
-  reviewedActivities     VerifiedActivity[]      @relation("ReviewedActivities")
-  pointsLedgers          PointsLedger[]
-  syncHistories          SyncHistory[]
-  leaderboardSnapshots   LeaderboardSnapshot[]
-  studentBadges          StudentBadge[]
-  dailyStreaks           StudentDailyStreak[]
-  achievementHistories   AchievementHistory[]
-  dailyCheckIns          DailyCheckIn[]
-  studentRewards         StudentReward[]
+  id                         String                      @id @default(cuid())
+  name                       String
+  email                      String                      @unique
+  password                   String?
+  googleId                   String?                     @unique
+  role                       Role                        @default(STUDENT)
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  aiPreferences              Json?
+  notificationPreferences    Json?
+  privacySettings            Json?
+  mentorId                   String?
+  active                     Boolean                     @default(true)
+  achievementHistories       AchievementHistory[]
+  activities                 Activity[]
+  applicationDrafts          ApplicationDraftAnswer[]
+  applications               Application[]
+  auditLogs                  AuditLog[]
+  autofillAuditEvents        AutofillAuditEvent[]
+  autofillSessions           AutofillSession[]
+  coinTransactions           CoinTransaction[]
+  customProfileFields        CustomProfileField[]
+  dailyCheckIns              DailyCheckIn[]
+  emailEvidences             EmailEvidence[]
+  emailReviews               EmailStatusReview[]
+  extensionAuthCodes         ExtensionAuthCode[]
+  formResponses              FormResponse[]
+  createdForms               Form[]                      @relation("FormCreator")
+  interviews                 Interview[]
+  leaderboardBoostTokens     LeaderboardBoostToken[]
+  leaderboardSnapshots       LeaderboardSnapshot[]
+  notificationDeliveries     NotificationDelivery[]
+  sentNotifications          Notification[]              @relation("SentNotifications")
+  notifications              Notification[]              @relation("UserNotifications")
+  postedOpportunities        Opportunity[]               @relation("PostedOpportunities")
+  registrations              OpportunityRegistration[]
+  pointsLedgers              PointsLedger[]
+  profile                    Profile?
+  reviewedEvidences          RegistrationEvidence[]      @relation("ReviewedEvidences")
+  registrationEvidences      RegistrationEvidence[]      @relation("StudentEvidences")
+  resumes                    Resume[]
+  shopPurchases              ShopPurchase[]
+  streakRescueTokens         StreakRescueToken[]
+  studentBadges              StudentBadge[]
+  coinBalance                StudentCoinBalance?
+  dailyStreaks               StudentDailyStreak[]
+  emailIntegration           StudentEmailIntegration?
+  studentRewards             StudentReward[]
+  syncHistories              SyncHistory[]
+  tasks                      Task[]
+  mentor                     User?                       @relation("StudentMentor", fields: [mentorId], references: [id])
+  students                   User[]                      @relation("StudentMentor")
+  reviewedActivities         VerifiedActivity[]          @relation("ReviewedActivities")
+  verifiedActivities         VerifiedActivity[]          @relation("StudentVerifiedActivities")
+  verifiedProfiles           VerifiedProfile[]
   weeklyPerformanceSnapshots WeeklyPerformanceSnapshot[]
-  streakRescueTokens     StreakRescueToken[]
-  leaderboardBoostTokens LeaderboardBoostToken[]
-  coinBalance            StudentCoinBalance?
-  coinTransactions       CoinTransaction[]
-
-  // Mentor-Student relationship
-  mentorId      String?
-  mentor        User?   @relation("StudentMentor", fields: [mentorId], references: [id], onDelete: SetNull)
-  students      User[]  @relation("StudentMentor")
 
   @@index([role])
   @@index([mentorId])
   @@map("users")
 }
 
-// ============================================================
-// VERIFIED PROFILE
-// ============================================================
-
 model VerifiedProfile {
   id                 String   @id @default(cuid())
   studentId          String
-  platform           String   // GITHUB, LINKEDIN, CODOLIO
+  platform           String
   profileUrl         String
   username           String?
-  verificationStatus String   @default("UNVERIFIED") // VERIFIED, FORMAT_VERIFIED, UNVERIFIED, FAILED
+  verificationStatus String   @default("UNVERIFIED")
   verifiedAt         DateTime @default(now())
   publicMetadata     Json?
-
-  student User @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student            User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, platform])
   @@map("verified_profiles")
 }
 
-// ============================================================
-// PROFILE
-// ============================================================
-
 model Profile {
-  id               String   @id @default(cuid())
-  userId           String   @unique
-  phone            String?
-  department       String?
-  year             Int?
-  section          String?
-  college          String?
-  location         String?
-  careerObjective  String?
-  linkedinUrl      String?
-  githubUrl        String?
-  portfolioUrl     String?
-  codolioUrl       String?
-  codechefUrl      String?
-  leetcodeUrl      String?
-  codeforcesUrl    String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  careerPreferences Json?
-  employeeId       String?
-  registerNo       String?  @unique
-  profilePhotoUrl  String?
-  photoPublicId    String?
-
-  // Personal Information Extensions
-  dob              String?
-  gender           String?
-  disabilityStatus String?
-  nationality      String?
-  country          String?
-  state            String?
-  preferredLocation String?
-  pinCode          String?
-
-  // Career Information
-  preferredRole    String?
-  expectedSalary   String?
-
-  // School Education
-  tenthSchool      String?
-  tenthPercentage  String?
-  twelfthSchool    String?
-  twelfthPercentage String?
-
-  // College Education
-  collegeName      String?
-  cgpa             String?
-  collegeJoiningYear Int?
+  id                    String         @id @default(cuid())
+  userId                String         @unique
+  phone                 String?
+  department            String?
+  year                  Int?
+  section               String?
+  college               String?
+  location              String?
+  careerObjective       String?
+  linkedinUrl           String?
+  githubUrl             String?
+  portfolioUrl          String?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  careerPreferences     Json?
+  employeeId            String?
+  registerNo            String?        @unique
+  codolioUrl            String?
+  dob                   String?
+  nationality           String?
+  country               String?
+  state                 String?
+  preferredLocation     String?
+  pinCode               String?
+  preferredRole         String?
+  expectedSalary        String?
+  tenthSchool           String?
+  tenthPercentage       String?
+  twelfthSchool         String?
+  twelfthPercentage     String?
+  collegeName           String?
+  cgpa                  String?
+  collegeJoiningYear    Int?
   collegeGraduationYear Int?
-  major            String?
-  minor            String?
-
-  // Work Preferences
-  previousWorkMode String?
-  preferredWorkMode String?
-
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  education   Education[]
-  projects    Project[]
-  experiences Experience[]
-  skills      ProfileSkill[]
+  major                 String?
+  minor                 String?
+  previousWorkMode      String?
+  preferredWorkMode     String?
+  disabilityStatus      String?
+  gender                String?
+  codechefUrl           String?
+  leetcodeUrl           String?
+  codeforcesUrl         String?
+  photoPublicId         String?
+  profilePhotoUrl       String?
+  equippedBadgeId       String?
+  equippedFrameRewardId String?
+  equippedTitleRewardId String?
+  showcaseBadgeIds      String[]       @default([])
+  education             Education[]
+  experiences           Experience[]
+  skills                ProfileSkill[]
+  user                  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projects              Project[]
 
   @@index([department, year, section])
   @@index([department])
   @@map("profiles")
 }
-
-// ============================================================
-// SKILL (many-to-many via ProfileSkill)
-// ============================================================
 
 model Skill {
   id       String         @id @default(cuid())
@@ -274,17 +156,12 @@ model Skill {
 model ProfileSkill {
   profileId String
   skillId   String
-
-  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  skill   Skill   @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  skill     Skill   @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
   @@id([profileId, skillId])
   @@map("profile_skills")
 }
-
-// ============================================================
-// EDUCATION
-// ============================================================
 
 model Education {
   id           String  @id @default(cuid())
@@ -296,15 +173,10 @@ model Education {
   endYear      Int?
   grade        String?
   minor        String?
-
-  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profile      Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@map("education")
 }
-
-// ============================================================
-// PROJECT
-// ============================================================
 
 model Project {
   id           String    @id @default(cuid())
@@ -316,15 +188,10 @@ model Project {
   liveUrl      String?
   startDate    DateTime?
   endDate      DateTime?
-
-  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profile      Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@map("projects")
 }
-
-// ============================================================
-// EXPERIENCE
-// ============================================================
 
 model Experience {
   id               String    @id @default(cuid())
@@ -336,93 +203,63 @@ model Experience {
   endDate          DateTime?
   currentlyWorking Boolean   @default(false)
   duration         String?
-
-  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profile          Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@map("experiences")
 }
 
-// ============================================================
-// RESUME
-// ============================================================
-
 model Resume {
-  id           String   @id @default(cuid())
-  userId       String
-  fileName     String
-  fileUrl      String
-  originalName String
-  mimeType     String?
-  fileSize     Int?
-  isActive     Boolean  @default(true)
-  uploadedAt   DateTime @default(now())
-
-  // Mentor review fields
-  reviewStatus   String?   @default("PENDING_REVIEW") // PENDING_REVIEW, REVIEWED, CHANGES_REQUESTED
+  id             String    @id @default(cuid())
+  userId         String
+  fileName       String
+  fileUrl        String
+  originalName   String
+  mimeType       String?
+  fileSize       Int?
+  isActive       Boolean   @default(true)
+  uploadedAt     DateTime  @default(now())
   reviewFeedback String?
+  reviewStatus   String?   @default("PENDING_REVIEW")
   reviewedAt     DateTime?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, isActive])
   @@map("resumes")
 }
 
-// ============================================================
-// APPLICATION
-// ============================================================
-
 model Application {
-  id              String            @id @default(cuid())
-  userId          String
-  opportunityId   String?
-  companyName     String
-  position        String
-  applicationType ApplicationType   @default(INTERNSHIP)
-  applicationUrl  String?
-  location        String?
-  salary          String?
-  description     String?
-  nextAction      String?
-  resumeVersion   String?
-  status          ApplicationStatus @default(SAVED)
-  statusSource    String?           @default("MANUAL") // MANUAL, COMPANY_EMAIL, EXTENSION, SYSTEM
-  statusConfidence Float?           @default(1.0)
-  statusUpdatedAt DateTime?
-  appliedDate     DateTime?
-  deadline        DateTime?
-  notes           String?
-  githubUrl       String?
-  codolioUrl      String?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  opportunity Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
-  emailEvidences EmailEvidence[]
+  id               String            @id @default(cuid())
+  userId           String
+  companyName      String
+  position         String
+  applicationType  ApplicationType   @default(INTERNSHIP)
+  applicationUrl   String?
+  status           ApplicationStatus @default(SAVED)
+  appliedDate      DateTime?
+  deadline         DateTime?
+  notes            String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  description      String?
+  location         String?
+  nextAction       String?
+  resumeVersion    String?
+  salary           String?
+  codolioUrl       String?
+  githubUrl        String?
+  opportunityId    String?
+  statusConfidence Float?            @default(1.0)
+  statusSource     String?           @default("MANUAL")
+  statusUpdatedAt  DateTime?
+  opportunity      Opportunity?      @relation(fields: [opportunityId], references: [id])
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailEvidences   EmailEvidence[]
 
   @@index([userId])
   @@index([userId, status])
   @@index([opportunityId])
   @@map("applications")
-}
-
-// ============================================================
-// TASK
-// ============================================================
-
-enum TaskPriority {
-  LOW
-  MEDIUM
-  HIGH
-}
-
-enum TaskCategory {
-  APPLICATION
-  PREPARATION
-  FOLLOW_UP
-  OTHER
 }
 
 model Task {
@@ -435,24 +272,11 @@ model Task {
   deadline    DateTime?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, isCompleted])
   @@map("tasks")
-}
-
-// ============================================================
-// INTERVIEW
-// ============================================================
-
-enum InterviewType {
-  TECHNICAL
-  HR
-  MANAGER
-  ONLINE_ASSESSMENT
-  OTHER
 }
 
 model Interview {
@@ -468,102 +292,88 @@ model Interview {
   feedback    String?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, date])
   @@map("interviews")
 }
 
-// ============================================================
-// OPPORTUNITY
-// ============================================================
-
 model Opportunity {
-  id                  String            @id @default(cuid())
-  title               String
-  organization        String
-  companyName         String?
-  role                String?
-  type                OpportunityType   @default(JOB)
-  description         String
-  opportunityUrl      String?
-  registrationUrl     String?
-  applyUrl            String?
-  location            String?
-  mode                OpportunityMode   @default(ONLINE)
-  salary              String?
-  stipend             String?
-  prize               String?
-  openings            Int?
-  eligibility         String?
-  additionalInfo      String?
-  applicationDeadline DateTime
-  deadline            DateTime?
-  startDate           DateTime?
-  endDate             DateTime?
-  minCgpa             Float?
-  requiredSkills      String[]
-  allowedDegrees      String[]
-  allowedYears        Int[]
-  postedById          String?
-  postedByRole        Role?             @default(MENTOR)
-  status              OpportunityStatus @default(PUBLISHED)
-
-  // Targeting fields for HOD / Placement
-  targetAudience      String?           // ALL_STUDENTS, SELECTED_STUDENTS, ALL_MENTORS, SELECTED_MENTORS, BOTH
-  targetDepartment    String?
-  targetYear          Int?
-  targetSection       String?
-
-  viewsCount          Int               @default(0)
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
-
-  postedBy      User?                     @relation("PostedOpportunities", fields: [postedById], references: [id], onDelete: SetNull)
-  registrations OpportunityRegistration[]
-  applications  Application[]
-  autofillSessions AutofillSession[]
-  reminders     OpportunityReminder[]
+  id                    String                    @id @default(cuid())
+  companyName           String?
+  role                  String?
+  type                  OpportunityType           @default(JOB)
+  location              String?
+  salary                String?
+  description           String
+  applyUrl              String?
+  deadline              DateTime?
+  minCgpa               Float?
+  requiredSkills        String[]
+  allowedDegrees        String[]
+  allowedYears          Int[]
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+  additionalInfo        String?
+  applicationDeadline   DateTime
+  eligibility           String?
+  endDate               DateTime?
+  mode                  OpportunityMode           @default(ONLINE)
+  openings              Int?
+  opportunityUrl        String?
+  organization          String
+  postedById            String?
+  postedByRole          Role?                     @default(MENTOR)
+  prize                 String?
+  registrationUrl       String?
+  startDate             DateTime?
+  status                OpportunityStatus         @default(PUBLISHED)
+  stipend               String?
+  targetAudience        String?
+  targetDepartment      String?
+  targetSection         String?
+  targetYear            Int?
+  title                 String
+  viewsCount            Int                       @default(0)
+  applications          Application[]
+  autofillSessions      AutofillSession[]
+  postedBy              User?                     @relation("PostedOpportunities", fields: [postedById], references: [id])
+  registrations         OpportunityRegistration[]
+  reminders             OpportunityReminder[]
   registrationEvidences RegistrationEvidence[]
-  verifiedActivities VerifiedActivity[]
+  verifiedActivities    VerifiedActivity[]
 
   @@index([status, deadline])
   @@index([type, status])
   @@map("opportunities")
 }
 
-// ============================================================
-// OPPORTUNITY REGISTRATION
-// ============================================================
-
 model OpportunityRegistration {
   id                      String                        @id @default(cuid())
   opportunityId           String
   studentId               String
   status                  OpportunityRegistrationStatus @default(STARTED)
-  verificationMethod      String?                       // EXTENSION, STUDENT_CONFIRMATION, MANUAL, SYSTEM
-  verifiedAt              DateTime?
-  confirmedAt             DateTime?
-  startedAt               DateTime?                     @default(now())
-  externalRegistrationId  String?                       // Detected or entered registration/application ID
-  confirmationEvidenceUrl String?                       // Screenshot / proof URL
   notes                   String?
-  outcome                 String?                       // Participated, Finalist, Winner, Runner-up, Selected, Completed, Other
-  role                    String?                       // Role or Position
-  certificateUrl          String?
+  registeredAt            DateTime?
+  updatedAt               DateTime                      @updatedAt
   initiatedAt             DateTime                      @default(now())
   appliedAt               DateTime?
-  registeredAt            DateTime?
+  certificateUrl          String?
   completedAt             DateTime?
-  updatedAt               DateTime                      @updatedAt
-
-  opportunity   Opportunity                @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
-  student       User                       @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  workflowSteps OpportunityWorkflowStep[]
-  statusHistory OpportunityStatusHistory[]
-  evidences     RegistrationEvidence[]
+  outcome                 String?
+  role                    String?
+  startedAt               DateTime?                     @default(now())
+  confirmationEvidenceUrl String?
+  confirmedAt             DateTime?
+  externalRegistrationId  String?
+  verificationMethod      String?
+  verifiedAt              DateTime?
+  opportunity             Opportunity                   @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  student                 User                          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  statusHistory           OpportunityStatusHistory[]
+  workflowSteps           OpportunityWorkflowStep[]
+  evidences               RegistrationEvidence[]
 
   @@unique([opportunityId, studentId])
   @@index([studentId])
@@ -571,111 +381,90 @@ model OpportunityRegistration {
   @@map("opportunity_registrations")
 }
 
-// ============================================================
-// ACTIVITY
-// ============================================================
-
 model Activity {
   id        String   @id @default(cuid())
   userId    String
   title     String
-  type      String // e.g., "APPLICATION_ADDED", "INTERVIEW_SCHEDULED"
+  type      String
   metadata  Json?
   createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@map("activities")
 }
 
-// ============================================================
-// NOTIFICATION
-// ============================================================
-
 model Notification {
   id                String   @id @default(cuid())
   userId            String
-  senderId          String?
-  type              String?  // OPPORTUNITY_POSTED, OPPORTUNITY_REGISTERED, REGISTRATION_STATUS_CHANGED, etc.
   title             String
   message           String
-  relatedEntityId   String?
-  relatedEntityType String?
   isRead            Boolean  @default(false)
   link              String?
   createdAt         DateTime @default(now())
-
-  user   User  @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
-  sender User? @relation("SentNotifications", fields: [senderId], references: [id], onDelete: SetNull)
+  relatedEntityId   String?
+  relatedEntityType String?
+  senderId          String?
+  type              String?
+  sender            User?    @relation("SentNotifications", fields: [senderId], references: [id])
+  user              User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([userId, isRead])
   @@map("notifications")
 }
 
-// ============================================================
-// AUTOFILL SESSION
-// ============================================================
-
 model AutofillSession {
-  id             String   @id @default(cuid())
+  id             String       @id @default(cuid())
   studentId      String
   opportunityId  String?
-  sessionToken   String   @unique
-  status         String   @default("CREATED") // CREATED, OPENED, FILLING, PAUSED, REVIEW, COMPLETED, EXPIRED
-  fieldsDetected Int      @default(0)
-  fieldsFilled   Int      @default(0)
-  newFieldsSaved Int      @default(0)
+  sessionToken   String       @unique
+  status         String       @default("CREATED")
+  fieldsDetected Int          @default(0)
+  fieldsFilled   Int          @default(0)
+  expiresAt      DateTime
+  createdAt      DateTime     @default(now())
+  newFieldsSaved Int          @default(0)
   pauseReason    String?
   report         Json?
-  expiresAt      DateTime
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now()) @updatedAt
-
-  student     User         @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  opportunity Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  updatedAt      DateTime     @default(now()) @updatedAt
+  opportunity    Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  student        User         @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("autofill_sessions")
 }
 
-// ============================================================
-// APPLY AGENT — persistent profile learning
-// ============================================================
-
 model CustomProfileField {
-  id         String   @id @default(cuid())
+  id         String                @id @default(cuid())
   userId     String
   key        String
-  category   String   @default("custom")
+  category   String                @default("custom")
   label      String
   value      String
-  source     String   @default("USER_ENTERED")
-  verified   Boolean  @default(true)
-  confidence Float    @default(1.0)
-  enabled    Boolean  @default(true)
-  sensitive  Boolean  @default(false)
-  fillPolicy String   @default("AUTOMATIC") // AUTOMATIC | ASK_BEFORE_FILLING | NEVER_FILL
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  user    User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  history ProfileFieldHistory[]
+  source     String                @default("USER_ENTERED")
+  verified   Boolean               @default(true)
+  confidence Float                 @default(1.0)
+  enabled    Boolean               @default(true)
+  sensitive  Boolean               @default(false)
+  fillPolicy String                @default("AUTOMATIC")
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
+  user       User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  history    ProfileFieldHistory[]
 
   @@unique([userId, key])
   @@map("custom_profile_fields")
 }
 
 model ProfileFieldHistory {
-  id        String   @id @default(cuid())
+  id        String             @id @default(cuid())
   fieldId   String
   oldValue  String?
   newValue  String
   source    String
-  updatedBy String   @default("USER")
-  createdAt DateTime @default(now())
-
-  field CustomProfileField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  createdAt DateTime           @default(now())
+  updatedBy String             @default("USER")
+  field     CustomProfileField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
 
   @@map("profile_field_history")
 }
@@ -705,8 +494,7 @@ model ApplicationDraftAnswer {
   fieldKey      String?
   value         String
   createdAt     DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("application_draft_answers")
 }
@@ -719,8 +507,7 @@ model ExtensionAuthCode {
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("extension_auth_codes")
@@ -736,68 +523,50 @@ model AutofillAuditEvent {
   fieldLabel   String?
   detail       String?
   createdAt    DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@map("autofill_audit_events")
 }
 
-// ============================================================
-// FORM BUILDER
-// ============================================================
-
-enum FormStatus {
-  DRAFT
-  PUBLISHED
-  CLOSED
-}
-
-enum FormAudienceType {
-  HOD_DEPARTMENT
-  MENTOR_ASSIGNED_STUDENTS
-}
-
 model Form {
-  id                        String           @id @default(cuid())
-  title                     String
-  description               String?
-  instructions              String?
-  status                    FormStatus       @default(DRAFT)
-  createdBy                 String
-  ownerRole                 Role             @default(HOD)
-  audienceType              FormAudienceType @default(HOD_DEPARTMENT)
-  allowMultipleSubmissions  Boolean          @default(false)
-  allowEditing              Boolean          @default(false)
-  confirmationMessage       String?          @default("Your response has been submitted successfully.")
-  redirectUrl               String?
-  publishedAt               DateTime?
-  closedAt                  DateTime?
-  createdAt                 DateTime         @default(now())
-  updatedAt                 DateTime         @updatedAt
-
-  creator                   User             @relation("FormCreator", fields: [createdBy], references: [id], onDelete: Cascade)
-  fields                    FormField[]
-  responses                 FormResponse[]
+  id                       String           @id @default(cuid())
+  title                    String
+  description              String?
+  instructions             String?
+  status                   FormStatus       @default(DRAFT)
+  createdBy                String
+  allowMultipleSubmissions Boolean          @default(false)
+  allowEditing             Boolean          @default(false)
+  confirmationMessage      String?          @default("Your response has been submitted successfully.")
+  redirectUrl              String?
+  publishedAt              DateTime?
+  closedAt                 DateTime?
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
+  audienceType             FormAudienceType @default(HOD_DEPARTMENT)
+  ownerRole                Role             @default(HOD)
+  fields                   FormField[]
+  responses                FormResponse[]
+  creator                  User             @relation("FormCreator", fields: [createdBy], references: [id], onDelete: Cascade)
 
   @@map("forms")
 }
 
 model FormField {
-  id          String   @id @default(cuid())
+  id          String               @id @default(cuid())
   formId      String
-  fieldId     String   // Stable client-side field ID (e.g. field_8f91c2)
-  type        String   // short-text, long-text, email, phone, number, date, dropdown, radio, checkbox, file, url, rating, yesno, section, paragraph, profile-field
+  fieldId     String
+  type        String
   label       String
   description String?
   placeholder String?
-  required    Boolean  @default(false)
-  order       Int      @default(0)
-  config      Json?    // options, min, max, allowedFileTypes, maxFileSize, profileKey, isReadOnly, etc.
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  form        Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  required    Boolean              @default(false)
+  order       Int                  @default(0)
+  config      Json?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  form        Form                 @relation(fields: [formId], references: [id], onDelete: Cascade)
   answers     FormResponseAnswer[]
 
   @@unique([formId, fieldId])
@@ -810,23 +579,21 @@ model FormResponse {
   studentId   String
   submittedAt DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
-
+  answers     FormResponseAnswer[]
   form        Form                 @relation(fields: [formId], references: [id], onDelete: Cascade)
   student     User                 @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  answers     FormResponseAnswer[]
 
   @@map("form_responses")
 }
 
 model FormResponseAnswer {
-  id          String       @id @default(cuid())
-  responseId  String
-  fieldId     String
-  value       String?      // Simple string or JSON string for multi-values / files
-  createdAt   DateTime     @default(now())
-
-  response    FormResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
-  field       FormField    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  id         String       @id @default(cuid())
+  responseId String
+  fieldId    String
+  value      String?
+  createdAt  DateTime     @default(now())
+  field      FormField    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  response   FormResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
 
   @@map("form_response_answers")
 }
@@ -873,58 +640,35 @@ model RoleSidebarItem {
 model AuditLog {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   action    String
   target    String?
   details   String?
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("audit_logs")
 }
-
-// ============================================================
-// NOTIFICATION DELIVERY TRACKING
-// ============================================================
 
 model NotificationDelivery {
   id                String    @id @default(cuid())
   userId            String?
   recipientPhone    String
   notificationType  String
-  provider          String    // MOCK, TWILIO
+  provider          String
   providerMessageId String?
-  status            String    // PENDING, SENT, DELIVERED, FAILED, SKIPPED, MOCKED
+  status            String
   failureReason     String?
   idempotencyKey    String?   @unique
   metadata          Json?
   sentAt            DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
-
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user              User?     @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([status])
   @@index([createdAt])
   @@map("notification_deliveries")
-}
-
-// ============================================================
-// OPPORTUNITY REMINDER
-// ============================================================
-
-enum OpportunityReminderType {
-  THREE_DAY
-  ONE_DAY
-  DEADLINE_CLOSED
-  CUSTOM
-}
-
-enum ReminderExecutionStatus {
-  SCHEDULED
-  SENT
-  FAILED
-  SKIPPED
 }
 
 model OpportunityReminder {
@@ -938,99 +682,66 @@ model OpportunityReminder {
   failureReason  String?
   createdAt      DateTime                @default(now())
   updatedAt      DateTime                @updatedAt
-
-  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  opportunity    Opportunity             @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
 
   @@unique([opportunityId, reminderType])
   @@index([scheduledFor, status])
   @@map("opportunity_reminders")
 }
 
-// ============================================================
-// OPPORTUNITY WORKFLOW STEP
-// ============================================================
-
-enum WorkflowStepType {
-  INTERVIEW
-  TECHNICAL_ASSESSMENT
-  DOCUMENT_SUBMISSION
-  EXTERNAL_VERIFICATION
-  JOINING
-  OTHER
-}
-
-enum WorkflowStepStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  OVERDUE
-  WAIVED
-}
-
 model OpportunityWorkflowStep {
-  id             String             @id @default(cuid())
+  id             String                  @id @default(cuid())
   registrationId String
-  stepType       WorkflowStepType   @default(INTERVIEW)
+  stepType       WorkflowStepType        @default(INTERVIEW)
   title          String
   description    String?
-  status         WorkflowStepStatus @default(PENDING)
+  status         WorkflowStepStatus      @default(PENDING)
   deadline       DateTime?
   scheduledAt    DateTime?
   completedAt    DateTime?
   notes          String?
   meetingLink    String?
   submissionUrl  String?
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
-
-  registration OpportunityRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  registration   OpportunityRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
 
   @@index([registrationId])
   @@index([status])
   @@map("opportunity_workflow_steps")
 }
 
-// ============================================================
-// OPPORTUNITY STATUS HISTORY
-// ============================================================
-
 model OpportunityStatusHistory {
-  id             String   @id @default(cuid())
+  id             String                  @id @default(cuid())
   registrationId String
   fromStatus     String?
   toStatus       String
   changedById    String?
   reason         String?
   notes          String?
-  createdAt      DateTime @default(now())
-
-  registration OpportunityRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime                @default(now())
+  registration   OpportunityRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
 
   @@index([registrationId])
   @@index([createdAt])
   @@map("opportunity_status_histories")
 }
 
-// ============================================================
-// COMPANY-EMAIL STATUS TRACKING & INTEGRATION
-// ============================================================
-
 model StudentEmailIntegration {
   id                    String    @id @default(cuid())
   userId                String    @unique
-  provider              String    @default("GMAIL") // GMAIL, OUTLOOK, FORWARDING
+  provider              String    @default("GMAIL")
   emailAddress          String
   encryptedAccessToken  String?
   encryptedRefreshToken String?
   tokenExpiresAt        DateTime?
-  syncStatus            String    @default("DISCONNECTED") // CONNECTED, SYNCING, ERROR, DISCONNECTED
+  syncStatus            String    @default("DISCONNECTED")
   lastSyncedAt          DateTime?
   lastHistoryId         String?
   autoSyncEnabled       Boolean   @default(true)
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("student_email_integrations")
 }
@@ -1051,9 +762,8 @@ model EmailEvidence {
   matchedKeywords String[]
   isVerified      Boolean           @default(true)
   createdAt       DateTime          @default(now())
-
-  application Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  student     User         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  application     Application?      @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  student         User              @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, sourceMessageId])
   @@index([studentId])
@@ -1073,13 +783,12 @@ model EmailStatusReview {
   confidence      Float
   subject         String
   cleanSnippet    String
-  candidateAppIds Json?             // Array of candidate application objects [{ id, companyName, position, score }]
-  status          String            @default("PENDING") // PENDING, CONFIRMED, DISMISSED
+  candidateAppIds Json?
+  status          String            @default("PENDING")
   resolvedAppId   String?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
-
-  student User @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student         User              @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, sourceMessageId])
   @@index([studentId])
@@ -1087,12 +796,8 @@ model EmailStatusReview {
   @@map("email_status_reviews")
 }
 
-// ============================================================
-// REGISTRATION VERIFICATION EVIDENCE
-// ============================================================
-
 model RegistrationEvidence {
-  id                 String    @id @default(cuid())
+  id                 String                  @id @default(cuid())
   registrationId     String
   opportunityId      String
   studentId          String
@@ -1102,26 +807,25 @@ model RegistrationEvidence {
   fileSize           Int
   mimeType           String
   fileHash           String?
-  status             String    @default("PENDING_REVIEW") // PROOF_SUBMITTED, VERIFYING, PENDING_REVIEW, VERIFIED, REJECTED, FAILED
-  verificationMethod String    @default("OCR_SCREENSHOT") // OCR_SCREENSHOT, EXTENSION, OFFICIAL_API, MANUAL_REVIEW
+  status             String                  @default("PENDING_REVIEW")
+  verificationMethod String                  @default("OCR_SCREENSHOT")
   ocrTextSnippet     String?
-  ocrConfidence      Float?    @default(0.0)
+  ocrConfidence      Float?                  @default(0.0)
   extractedData      Json?
   validationResults  Json?
-  mismatchReasons    String[]  @default([])
-  isAuthentic        Boolean   @default(false)
+  mismatchReasons    String[]                @default([])
+  isAuthentic        Boolean                 @default(false)
   reviewerId         String?
-  reviewDecision     String?   // APPROVED, REJECTED
+  reviewDecision     String?
   reviewerNotes      String?
   reviewedAt         DateTime?
-  submittedAt        DateTime  @default(now())
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-
-  registration OpportunityRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
-  opportunity  Opportunity             @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
-  student      User                    @relation("StudentEvidences", fields: [studentId], references: [id], onDelete: Cascade)
-  reviewer     User?                   @relation("ReviewedEvidences", fields: [reviewerId], references: [id], onDelete: SetNull)
+  submittedAt        DateTime                @default(now())
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  opportunity        Opportunity             @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  registration       OpportunityRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  reviewer           User?                   @relation("ReviewedEvidences", fields: [reviewerId], references: [id])
+  student            User                    @relation("StudentEvidences", fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([registrationId])
   @@index([studentId])
@@ -1131,35 +835,30 @@ model RegistrationEvidence {
   @@map("registration_evidences")
 }
 
-// ============================================================
-// VERIFIED CLASS LEADERBOARD MODELS
-// ============================================================
-
 model VerifiedActivity {
-  id                 String    @id @default(cuid())
+  id                 String         @id @default(cuid())
   studentId          String
-  sourceType         String    // CONTEST, HACKATHON, INTERNSHIP, CONSISTENCY
-  sourcePlatform     String    // CODEFORCES, LEETCODE, CODECHEF, CODOLIO, GITHUB, CAREERAI
-  sourceAccountId    String?   // External handle, username, or registrationId
-  activityType       String    // CONTEST_PARTICIPATION, RATING_ACHIEVEMENT, PROBLEMS_SOLVED, HACKATHON_REGISTRATION, HACKATHON_PARTICIPATION, HACKATHON_WINNER, INTERNSHIP_APPLICATION, INTERNSHIP_INTERVIEW, INTERNSHIP_OFFER, CONSISTENCY_STREAK
-  externalActivityId String    // Unique external activity identifier for deduplication
+  sourceType         String
+  sourcePlatform     String
+  sourceAccountId    String?
+  activityType       String
+  externalActivityId String
   opportunityId      String?
-  verificationStatus String    @default("PENDING") // VERIFIED, PENDING_REVIEW, REJECTED, UNAVAILABLE
-  verificationMethod String?   // OFFICIAL_API, REVIEWER_APPROVAL, SYSTEM_CROSS_CHECK
+  verificationStatus String         @default("PENDING")
+  verificationMethod String?
   evidenceReference  String?
   verifiedAt         DateTime?
   occurredAt         DateTime?
-  lastSyncedAt       DateTime? @default(now())
+  lastSyncedAt       DateTime?      @default(now())
   reviewerId         String?
   rejectionReason    String?
   rawMetadata        Json?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-
-  student            User         @relation("StudentVerifiedActivities", fields: [studentId], references: [id], onDelete: Cascade)
-  reviewer           User?        @relation("ReviewedActivities", fields: [reviewerId], references: [id], onDelete: SetNull)
-  opportunity        Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
   pointsEntries      PointsLedger[]
+  opportunity        Opportunity?   @relation(fields: [opportunityId], references: [id])
+  reviewer           User?          @relation("ReviewedActivities", fields: [reviewerId], references: [id])
+  student            User           @relation("StudentVerifiedActivities", fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, sourceType, sourcePlatform, externalActivityId, activityType], name: "studentId_sourceType_sourcePlatform_externalActivityId_activityType")
   @@index([studentId, verificationStatus])
@@ -1168,16 +867,15 @@ model VerifiedActivity {
 }
 
 model PointsLedger {
-  id                 String   @id @default(cuid())
+  id                 String           @id @default(cuid())
   studentId          String
   verifiedActivityId String
-  category           String   // CODING, HACKATHON, INTERNSHIP, CONSISTENCY
+  category           String
   pointsAwarded      Float
-  scoringRuleVersion String   @default("1.0.0")
+  scoringRuleVersion String           @default("1.0.0")
   reason             String
-  periodKey          String   // e.g. 2026-W42, 2026-M10, 2026-S2, ALL_TIME
-  createdAt          DateTime @default(now())
-
+  periodKey          String
+  createdAt          DateTime         @default(now())
   student            User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
   verifiedActivity   VerifiedActivity @relation(fields: [verifiedActivityId], references: [id], onDelete: Cascade)
 
@@ -1191,14 +889,13 @@ model SyncHistory {
   id                   String    @id @default(cuid())
   studentId            String
   sourcePlatform       String
-  status               String    // SUCCESS, FAILED, RATE_LIMITED, NO_PROFILE
+  status               String
   lastAttemptAt        DateTime  @default(now())
   lastSuccessfulSyncAt DateTime?
   recordsProcessed     Int       @default(0)
   errorCode            String?
   errorMessage         String?
   createdAt            DateTime  @default(now())
-
   student              User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([studentId, sourcePlatform])
@@ -1206,26 +903,25 @@ model SyncHistory {
 }
 
 model LeaderboardSnapshot {
-  id             String    @id @default(cuid())
-  studentId      String
-  department     String?
-  year           Int?
-  section        String?
-  college        String?
-  periodType     String    // WEEKLY, MONTHLY, SEMESTER, ALL_TIME
-  periodKey      String    // e.g. 2026-W42, 2026-M10, 2026-S2, ALL_TIME
-  codingScore    Float     @default(0.0)
-  hackathonScore Float     @default(0.0)
-  internshipScore Float    @default(0.0)
-  consistencyScore Float   @default(0.0)
-  totalScore     Float     @default(0.0)
-  rank           Int       @default(0)
-  previousRank   Int?
-  badges         Json?     @default("[]")
-  isProvisional  Boolean   @default(false)
-  calculatedAt   DateTime  @default(now())
-
-  student        User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  id               String   @id @default(cuid())
+  studentId        String
+  department       String?
+  year             Int?
+  section          String?
+  college          String?
+  periodType       String
+  periodKey        String
+  codingScore      Float    @default(0.0)
+  hackathonScore   Float    @default(0.0)
+  internshipScore  Float    @default(0.0)
+  consistencyScore Float    @default(0.0)
+  totalScore       Float    @default(0.0)
+  rank             Int      @default(0)
+  previousRank     Int?
+  badges           Json?    @default("[]")
+  isProvisional    Boolean  @default(false)
+  calculatedAt     DateTime @default(now())
+  student          User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, periodType, periodKey], name: "studentId_periodType_periodKey")
   @@index([department, year, section, periodType, periodKey])
@@ -1233,16 +929,12 @@ model LeaderboardSnapshot {
   @@map("leaderboard_snapshots")
 }
 
-// ============================================================
-// ACHIEVEMENT & BADGE GAMIFICATION MODELS
-// ============================================================
-
 model StudentBadge {
   id                String   @id @default(cuid())
   studentId         String
   badgeId           String
-  category          String   // CODING, CONSISTENCY, SKILL, CAREER, XP
-  tier              String   @default("BRONZE") // BRONZE, SILVER, GOLD, PLATINUM, DIAMOND
+  category          String
+  tier              String   @default("BRONZE")
   title             String
   description       String
   icon              String
@@ -1251,7 +943,6 @@ model StudentBadge {
   unlockedToastSeen Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-
   student           User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, badgeId], name: "studentId_badgeId")
@@ -1262,12 +953,11 @@ model StudentBadge {
 model StudentDailyStreak {
   id              String   @id @default(cuid())
   studentId       String
-  activityDate    String   // YYYY-MM-DD
+  activityDate    String
   activityType    String
   sourceReference String?
   qualifyingScore Float    @default(1.0)
   createdAt       DateTime @default(now())
-
   student         User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, activityDate], name: "studentId_activityDate")
@@ -1284,7 +974,6 @@ model AchievementHistory {
   xpEarned     Float    @default(0.0)
   eventDetails String
   achievedAt   DateTime @default(now())
-
   student      User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([studentId, achievedAt])
@@ -1294,11 +983,10 @@ model AchievementHistory {
 model DailyCheckIn {
   id          String   @id @default(cuid())
   studentId   String
-  checkInDate String   // YYYY-MM-DD in institution timezone (e.g. Asia/Kolkata)
+  checkInDate String
   xpAwarded   Int      @default(5)
   timeZone    String   @default("Asia/Kolkata")
   createdAt   DateTime @default(now())
-
   student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, checkInDate], name: "studentId_checkInDate")
@@ -1306,65 +994,26 @@ model DailyCheckIn {
   @@map("daily_check_ins")
 }
 
-// ============================================================
-// MYSTERY GIFT & REWARD SYSTEM
-// ============================================================
-
-enum RewardType {
-  BONUS_XP
-  BONUS_COINS
-  STREAK_RESCUE_TOKEN
-  LEADERBOARD_BOOST_TOKEN
-  EXCLUSIVE_BADGE
-  PROFILE_FRAME
-  ACHIEVEMENT_REWARD
-}
-
-enum RewardRarity {
-  COMMON
-  RARE
-  EPIC
-  LEGENDARY
-  COMEBACK
-}
-
-enum RewardTriggerType {
-  WEEKLY_SATURDAY
-  CHAMPION_FIRST_PLACE
-  CHAMPION_SECOND_PLACE
-  CHAMPION_THIRD_PLACE
-  ACHIEVEMENT_LESSONS
-  ACHIEVEMENT_COURSE_COMPLETION
-  ACHIEVEMENT_ASSESSMENT_IMPROVEMENT
-  ACHIEVEMENT_CONSISTENCY
-  ACHIEVEMENT_RETURNING_INACTIVE
-  ACHIEVEMENT_STREAK_MILESTONE
-  ACHIEVEMENT_PROJECT_COMPLETION
-  ACHIEVEMENT_LEARNING_MILESTONE
-}
-
-enum RewardStatus {
-  ALLOCATED
-  CLAIMED
-  EXPIRED
-}
-
 model RewardDefinition {
-  id                String           @id @default(cuid())
+  id                String          @id @default(cuid())
   rewardType        RewardType
   rewardRarity      RewardRarity
   name              String
   description       String
-  xpAmount          Int?             // For BONUS_XP
-  coinAmount        Int?             // For BONUS_COINS
-  badgeId           String?          // For EXCLUSIVE_BADGE
-  profileFrameUrl   String?          // For PROFILE_FRAME
-  probabilityWeight Float            @default(1.0) // Higher = more likely
-  enabled           Boolean          @default(true)
-  config            Json?            // Additional configuration
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-
+  xpAmount          Int?
+  coinAmount        Int?
+  badgeId           String?
+  profileFrameUrl   String?
+  probabilityWeight Float           @default(1.0)
+  enabled           Boolean         @default(true)
+  config            Json?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  coinPrice         Int?
+  isShopItem        Boolean         @default(false)
+  purchaseLimit     Int?            @default(1)
+  shopCategory      String?
+  shopPurchases     ShopPurchase[]
   studentRewards    StudentReward[]
 
   @@index([rewardType, rewardRarity])
@@ -1373,45 +1022,34 @@ model RewardDefinition {
 }
 
 model StudentReward {
-  id                String           @id @default(cuid())
-  studentId         String
-  rewardDefinitionId String?
-  rewardType        RewardType
-  rewardRarity      RewardRarity
-  triggerType       RewardTriggerType
-  status            RewardStatus     @default(ALLOCATED)
-  
-  // Reward details (copied from definition at allocation time)
-  xpAmount          Int?
-  coinAmount        Int?
-  badgeId           String?
-  badgeName         String?
-  badgeIcon         String?
-  profileFrameUrl   String?
-  
-  // Performance context
-  weeklyScore       Float?
-  weeklyRank        String?          // LEGENDARY, EPIC, RARE, COMMON, COMEBACK
-  championPosition  Int?             // 1, 2, or 3 for champion rewards
-  performanceMetrics Json?            // Detailed performance breakdown
-  
-  // Personalization
+  id                  String            @id @default(cuid())
+  studentId           String
+  rewardDefinitionId  String?
+  rewardType          RewardType
+  rewardRarity        RewardRarity
+  triggerType         RewardTriggerType
+  status              RewardStatus      @default(ALLOCATED)
+  xpAmount            Int?
+  coinAmount          Int?
+  badgeId             String?
+  badgeName           String?
+  badgeIcon           String?
+  profileFrameUrl     String?
+  weeklyScore         Float?
+  weeklyRank          String?
+  performanceMetrics  Json?
   personalizedMessage String?
-  reasonEarned      String?
-  
-  // Allocation tracking
-  evaluationWeekKey String?          // e.g. "2026-W44" for weekly gifts
-  allocatedAt       DateTime         @default(now())
-  claimedAt         DateTime?
-  expiresAt         DateTime?
-  
-  // Idempotency
-  idempotencyKey    String?          @unique
-  
-  student           User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  rewardDefinition  RewardDefinition? @relation(fields: [rewardDefinitionId], references: [id], onDelete: SetNull)
-  claim             RewardClaim?
-  
+  reasonEarned        String?
+  evaluationWeekKey   String?
+  allocatedAt         DateTime          @default(now())
+  claimedAt           DateTime?
+  expiresAt           DateTime?
+  idempotencyKey      String?           @unique
+  championPosition    Int?
+  claim               RewardClaim?
+  rewardDefinition    RewardDefinition? @relation(fields: [rewardDefinitionId], references: [id])
+  student             User              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
   @@unique([studentId, evaluationWeekKey, triggerType], name: "StudentReward_studentId_weekKey_trigger_unique")
   @@index([studentId, status])
   @@index([evaluationWeekKey, triggerType])
@@ -1420,56 +1058,41 @@ model StudentReward {
 }
 
 model RewardClaim {
-  id                String           @id @default(cuid())
-  studentRewardId   String           @unique
-  studentId         String
-  claimedAt         DateTime         @default(now())
-  ipAddress         String?
-  userAgent         String?
-  
-  // Transaction verification
-  previousXpBalance Float?
+  id                  String        @id @default(cuid())
+  studentRewardId     String        @unique
+  studentId           String
+  claimedAt           DateTime      @default(now())
+  ipAddress           String?
+  userAgent           String?
+  previousXpBalance   Float?
   previousCoinBalance Float?
-  newXpBalance      Float?
-  newCoinBalance    Float?
-  
-  studentReward     StudentReward    @relation(fields: [studentRewardId], references: [id], onDelete: Cascade)
-  
+  newXpBalance        Float?
+  newCoinBalance      Float?
+  studentReward       StudentReward @relation(fields: [studentRewardId], references: [id], onDelete: Cascade)
+
   @@index([studentId, claimedAt])
   @@map("reward_claims")
 }
 
 model WeeklyPerformanceSnapshot {
-  id                String           @id @default(cuid())
+  id                String   @id @default(cuid())
   studentId         String
-  weekKey           String           // e.g. "2026-W44"
+  weekKey           String
   startDate         DateTime
   endDate           DateTime
-  
-  // Performance metrics
-  lessonsCompleted  Int              @default(0)
-  activeDays        Int              @default(0)
-  assessmentScore   Float?           @default(0.0)
-  courseProgress    Float?           @default(0.0)
-  projectCompleted  Boolean          @default(false)
-  streakMaintenance Float?           @default(0.0)
-  achievementsCount Int              @default(0)
-  
-  // Calculated weighted score
-  weightedScore     Float            @default(0.0)
-  rankTier          String?          // LEGENDARY, EPIC, RARE, COMMON, COMEBACK
-
-  // Career growth breakdown (internship applications, hackathons/competitions,
-  // resume strength) captured for this week. Purely additive: existing rows keep
-  // this column null. Also serves as the immutable weekly snapshot used for
-  // deterministic champion ranking and resume-improvement comparison.
+  lessonsCompleted  Int      @default(0)
+  activeDays        Int      @default(0)
+  assessmentScore   Float?   @default(0.0)
+  courseProgress    Float?   @default(0.0)
+  projectCompleted  Boolean  @default(false)
+  streakMaintenance Float?   @default(0.0)
+  achievementsCount Int      @default(0)
+  weightedScore     Float    @default(0.0)
+  rankTier          String?
+  createdAt         DateTime @default(now())
   careerBreakdown   Json?
+  student           User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
-  // Metadata
-  createdAt         DateTime         @default(now())
-  
-  student           User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  
   @@unique([studentId, weekKey], name: "WeeklyPerformanceSnapshot_studentId_weekKey_unique")
   @@index([weekKey])
   @@index([weightedScore])
@@ -1477,93 +1100,73 @@ model WeeklyPerformanceSnapshot {
 }
 
 model WeeklyRewardAllocation {
-  id                String           @id @default(cuid())
-  weekKey           String           @unique // e.g. "2026-W44"
+  id                String    @id @default(cuid())
+  weekKey           String    @unique
   evaluationStart   DateTime
   evaluationEnd     DateTime
   distributionDate  DateTime
-  
-  // Execution stats
-  totalStudents     Int              @default(0)
-  allocatedRewards  Int              @default(0)
-  failedAllocations Int              @default(0)
-  legendaryCount    Int              @default(0)
-  epicCount         Int              @default(0)
-  rareCount         Int              @default(0)
-  commonCount       Int              @default(0)
-  comebackCount     Int              @default(0)
-  
-  // Execution tracking
-  status            String           @default("PENDING") // PENDING, RUNNING, COMPLETED, FAILED
+  totalStudents     Int       @default(0)
+  allocatedRewards  Int       @default(0)
+  failedAllocations Int       @default(0)
+  legendaryCount    Int       @default(0)
+  epicCount         Int       @default(0)
+  rareCount         Int       @default(0)
+  commonCount       Int       @default(0)
+  comebackCount     Int       @default(0)
+  status            String    @default("PENDING")
   startedAt         DateTime?
   completedAt       DateTime?
   errorLog          Json?
-  
+
   @@index([distributionDate])
   @@index([status])
   @@map("weekly_reward_allocations")
 }
 
 model StreakRescueToken {
-  id                String           @id @default(cuid())
-  studentId         String
-  awardedRewardId   String?         // Link to the reward that granted this token
-  missedDate        String          // YYYY-MM-DD of the missed day
-  eligibleDate      String?         // The date this token can recover (previous day in streak)
-  isUsed            Boolean          @default(false)
-  usedAt            DateTime?
-  usedForDate       String?         // YYYY-MM-DD that was recovered
-  
-  awardedAt         DateTime         @default(now())
-  expiresAt         DateTime?
-  
-  student           User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  
+  id              String    @id @default(cuid())
+  studentId       String
+  awardedRewardId String?
+  missedDate      String
+  eligibleDate    String?
+  isUsed          Boolean   @default(false)
+  usedAt          DateTime?
+  usedForDate     String?
+  awardedAt       DateTime  @default(now())
+  expiresAt       DateTime?
+  student         User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
   @@index([studentId, isUsed])
   @@index([expiresAt])
   @@map("streak_rescue_tokens")
 }
 
 model LeaderboardBoostToken {
-  id                String           @id @default(cuid())
-  studentId         String
-  awardedRewardId   String?         // Link to the reward that granted this token
-  boostPercentage   Float            @default(0.0) // e.g., 0.10 for 10% boost
-  isUsed            Boolean          @default(false)
-  usedAt            DateTime?
-  usedForPeriodKey  String?          // e.g., "2026-W44"
-  
-  awardedAt         DateTime         @default(now())
-  expiresAt         DateTime?
-  
-  student           User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  
+  id               String    @id @default(cuid())
+  studentId        String
+  awardedRewardId  String?
+  boostPercentage  Float     @default(0.0)
+  isUsed           Boolean   @default(false)
+  usedAt           DateTime?
+  usedForPeriodKey String?
+  awardedAt        DateTime  @default(now())
+  expiresAt        DateTime?
+  student          User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
   @@index([studentId, isUsed])
   @@index([expiresAt])
   @@map("leaderboard_boost_tokens")
 }
 
 model RewardConfiguration {
-  id                String           @id @default(cuid())
-  key               String           @unique
-  value             Json
-  description       String?
-  updatedAt         DateTime         @updatedAt
-  createdAt         DateTime         @default(now())
-  
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       Json
+  description String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
   @@map("reward_configurations")
-}
-
-// ============================================================
-// COINS LEDGER
-// ============================================================
-
-enum CoinTransactionType {
-  REWARD_CREDIT
-  ADMIN_ADJUSTMENT
-  REWARD_DEBIT
-  REFUND
-  BONUS
 }
 
 model StudentCoinBalance {
@@ -1572,8 +1175,7 @@ model StudentCoinBalance {
   balance   Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  student User @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([studentId])
   @@map("student_coin_balances")
@@ -1590,17 +1192,12 @@ model CoinTransaction {
   previousBalance Int
   newBalance      Int
   createdAt       DateTime            @default(now())
-
-  student User @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student         User                @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([studentId, createdAt])
   @@index([studentId, transactionType])
   @@map("coin_transactions")
 }
-
-// ============================================================
-// REWARD CONFIGURATION AUDIT HISTORY
-// ============================================================
 
 model RewardConfigurationAudit {
   id            String   @id @default(cuid())
@@ -1612,4 +1209,224 @@ model RewardConfigurationAudit {
 
   @@index([key, createdAt])
   @@map("reward_configuration_audits")
+}
+
+model ShopPurchase {
+  id                  String           @id @default(cuid())
+  studentId           String
+  rewardDefId         String
+  itemType            String
+  itemName            String
+  itemValue           String
+  coinPrice           Int
+  idempotencyKey      String           @unique
+  createdAt           DateTime         @default(now())
+  refundTransactionId String?
+  refundedAt          DateTime?
+  refundedById        String?
+  status              String           @default("ACTIVE")
+  rewardDef           RewardDefinition @relation(fields: [rewardDefId], references: [id], onDelete: Cascade)
+  student             User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, rewardDefId], name: "shop_purchases_studentId_rewardDefId_unique")
+  @@index([studentId, itemType])
+  @@index([studentId, rewardDefId])
+  @@index([status])
+  @@map("shop_purchases")
+}
+
+enum Role {
+  STUDENT
+  MENTOR
+  FACULTY
+  HOD
+  PLACEMENT_CELL
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum ApplicationType {
+  INTERNSHIP
+  JOB
+  HACKATHON
+  OTHER
+  COMPETITION
+  WORKSHOP
+  SCHOLARSHIP
+}
+
+enum ApplicationStatus {
+  SAVED
+  APPLIED
+  SHORTLISTED
+  INTERVIEW
+  SELECTED
+  REJECTED
+  WITHDRAWN
+  INITIATED
+  UNDER_REVIEW
+  DISQUALIFIED
+}
+
+enum OpportunityType {
+  INTERNSHIP
+  FULL_TIME
+  HACKATHON
+  JOB
+  COMPETITION
+  SCHOLARSHIP
+  WORKSHOP
+  OTHER
+}
+
+enum OpportunityMode {
+  ONLINE
+  OFFLINE
+  HYBRID
+}
+
+enum OpportunityStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  REGISTRATION_OPEN
+  REGISTRATION_CLOSED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum OpportunityRegistrationStatus {
+  REGISTERED
+  SHORTLISTED
+  SELECTED
+  REJECTED
+  WITHDRAWN
+  INITIATED
+  ONGOING
+  COMPLETED
+  STARTED
+  IN_PROGRESS
+  STUDENT_CONFIRMED
+  VERIFIED
+  FAILED
+  CANCELLED
+  PENDING_VERIFICATION
+  UNDER_REVIEW
+  INTERVIEW
+  DISQUALIFIED
+  PROOF_SUBMITTED
+  VERIFYING
+  PENDING_REVIEW
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskCategory {
+  APPLICATION
+  PREPARATION
+  FOLLOW_UP
+  OTHER
+}
+
+enum InterviewType {
+  TECHNICAL
+  HR
+  MANAGER
+  ONLINE_ASSESSMENT
+  OTHER
+}
+
+enum FormStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum FormAudienceType {
+  HOD_DEPARTMENT
+  MENTOR_ASSIGNED_STUDENTS
+}
+
+enum OpportunityReminderType {
+  THREE_DAY
+  ONE_DAY
+  DEADLINE_CLOSED
+  CUSTOM
+}
+
+enum ReminderExecutionStatus {
+  SCHEDULED
+  SENT
+  FAILED
+  SKIPPED
+}
+
+enum WorkflowStepType {
+  INTERVIEW
+  TECHNICAL_ASSESSMENT
+  DOCUMENT_SUBMISSION
+  EXTERNAL_VERIFICATION
+  JOINING
+  OTHER
+}
+
+enum WorkflowStepStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+  WAIVED
+}
+
+enum RewardType {
+  BONUS_XP
+  BONUS_COINS
+  STREAK_RESCUE_TOKEN
+  LEADERBOARD_BOOST_TOKEN
+  EXCLUSIVE_BADGE
+  PROFILE_FRAME
+  ACHIEVEMENT_REWARD
+  PROFILE_TITLE
+}
+
+enum RewardRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+  COMEBACK
+}
+
+enum RewardTriggerType {
+  WEEKLY_SATURDAY
+  ACHIEVEMENT_LESSONS
+  ACHIEVEMENT_COURSE_COMPLETION
+  ACHIEVEMENT_ASSESSMENT_IMPROVEMENT
+  ACHIEVEMENT_CONSISTENCY
+  ACHIEVEMENT_RETURNING_INACTIVE
+  ACHIEVEMENT_STREAK_MILESTONE
+  ACHIEVEMENT_PROJECT_COMPLETION
+  ACHIEVEMENT_LEARNING_MILESTONE
+  CHAMPION_FIRST_PLACE
+  CHAMPION_SECOND_PLACE
+  CHAMPION_THIRD_PLACE
+}
+
+enum RewardStatus {
+  ALLOCATED
+  CLAIMED
+  EXPIRED
+}
+
+enum CoinTransactionType {
+  REWARD_CREDIT
+  ADMIN_ADJUSTMENT
+  REWARD_DEBIT
+  REFUND
+  BONUS
 }

@@ -3,20 +3,52 @@ import prisma from '@/lib/prisma';
 import bcrypt from 'bcrypt';
 import { signToken } from '@/lib/serverAuth';
 import { sendLoginAlertNotification } from '@/lib/email/notification.service';
+import { applyRateLimit } from '@/lib/security/rateLimit';
+import { validateEmail, validatePayloadSize } from '@/lib/security/validation';
+import { AuthenticationError, ValidationError, handleApiError } from '@/lib/security/errorHandler';
 
 export async function POST(req: Request) {
+  // Apply rate limiting to login endpoint
+  const rateLimitResult = applyRateLimit(req, 'auth');
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { message: rateLimitResult.error },
+      { 
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': '5',
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+        }
+      }
+    );
+  }
+
   try {
     const body = await req.json();
+    
+    // Validate payload size
+    const sizeCheck = validatePayloadSize(body, 1); // 1KB max for login
+    if (!sizeCheck.valid) {
+      throw new ValidationError(sizeCheck.error);
+    }
+
     const { email, password } = body;
+
+    // Validate email
+    const emailCheck = validateEmail(email);
+    if (!emailCheck.valid) {
+      throw new AuthenticationError('Invalid credentials');
+    }
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
+      throw new AuthenticationError('Invalid credentials');
     }
 
     const isMatch = await bcrypt.compare(password, user.password || '');
     if (!isMatch) {
-      return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
+      throw new AuthenticationError('Invalid credentials');
     }
 
     const token = signToken({ sub: user.id, email: user.email, role: user.role });
@@ -33,13 +65,13 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({
+      success: true,
       data: {
         token: token,
         user: userWithoutPassword,
       }
     });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    return handleApiError(error);
   }
 }

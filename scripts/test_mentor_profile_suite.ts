@@ -2,7 +2,16 @@ import 'dotenv/config';
 import prisma from '../lib/prisma';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error(
+    'CRITICAL: JWT_SECRET environment variable is not configured. ' +
+    'Test requires a valid JWT_SECRET to generate authentication tokens.'
+  );
+}
+
+const SECRET: string = JWT_SECRET;
 
 function generateToken(user: { id: string; role: string; email: string }) {
   return jwt.sign(
@@ -12,7 +21,7 @@ function generateToken(user: { id: string; role: string; email: string }) {
       role: user.role,
       email: user.email,
     },
-    JWT_SECRET,
+    SECRET,
     { expiresIn: '1h' }
   );
 }

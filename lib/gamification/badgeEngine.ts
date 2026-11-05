@@ -243,6 +243,8 @@ export class BadgeEngine {
         skills: {
           include: { skill: true },
         },
+        projects: true,
+        experiences: true,
       },
     });
 
@@ -251,6 +253,85 @@ export class BadgeEngine {
     const hasSqlSkill = skillNames.some((s) => s.includes('sql') || s.includes('database') || s.includes('postgres') || s.includes('mysql'));
     const hasDsaSkill = skillNames.some((s) => s.includes('dsa') || s.includes('data structure') || s.includes('algorithm'));
     const hasWebDevSkill = skillNames.some((s) => s.includes('web') || s.includes('react') || s.includes('node') || s.includes('javascript') || s.includes('typescript') || s.includes('next'));
+
+    // Career-specific event tracking
+    const firstShortlist = await prisma.application.findFirst({
+      where: { userId: studentId, status: 'SHORTLISTED' },
+    }) !== null;
+
+    const firstInterviewAttended = await prisma.interview.findFirst({
+      where: { userId: studentId },
+    }) !== null;
+
+    const firstInternshipSelection = await prisma.application.findFirst({
+      where: { 
+        userId: studentId, 
+        status: 'SELECTED',
+        applicationType: 'INTERNSHIP'
+      },
+    }) !== null;
+
+    const firstJobSelection = await prisma.application.findFirst({
+      where: { 
+        userId: studentId, 
+        status: 'SELECTED',
+        applicationType: 'JOB'
+      },
+    }) !== null;
+
+    const hackathonOutcomes = await prisma.opportunityRegistration.findMany({
+      where: {
+        studentId,
+        opportunity: { type: { in: ['HACKATHON', 'COMPETITION'] } },
+      },
+      select: { outcome: true },
+    });
+
+    const firstHackathonProjectSubmission = hackathonOutcomes.some(o => 
+      o.outcome?.toLowerCase().includes('project') || o.outcome?.toLowerCase().includes('submission')
+    );
+
+    const firstHackathonFinalist = hackathonOutcomes.some(o => 
+      o.outcome?.toLowerCase().includes('finalist')
+    );
+
+    const firstHackathonWinner = hackathonOutcomes.some(o => 
+      o.outcome?.toLowerCase().includes('winner') || o.outcome?.toLowerCase().includes('1st') || o.outcome?.toLowerCase().includes('first')
+    );
+
+    const multipleHackathonParticipation = hackathonRegistrations >= 3;
+
+    const profileCompleted = profile ? (
+      (profile.phone || profile.department || profile.year) !== null &&
+      skillNames.length >= 3
+    ) : false;
+
+    const firstProjectAdded = (profile?.projects?.length || 0) >= 1;
+
+    const technicalSkillsMilestone = skillNames.length >= 5;
+
+    const professionalExperienceAdded = (profile?.experiences?.length || 0) >= 1;
+
+    // Check resume improvement from weekly snapshots
+    const latestSnapshot = await prisma.weeklyPerformanceSnapshot.findFirst({
+      where: { studentId },
+      orderBy: { weekKey: 'desc' },
+      select: { careerBreakdown: true },
+    });
+
+    const previousSnapshot = await prisma.weeklyPerformanceSnapshot.findFirst({
+      where: { studentId },
+      orderBy: { weekKey: 'desc' },
+      skip: 1,
+      select: { careerBreakdown: true },
+    });
+
+    let resumeStrengthImproved = false;
+    if (latestSnapshot?.careerBreakdown && previousSnapshot?.careerBreakdown) {
+      const latestResume = (latestSnapshot.careerBreakdown as any)?.resumeStrength || 0;
+      const previousResume = (previousSnapshot.careerBreakdown as any)?.resumeStrength || 0;
+      resumeStrengthImproved = (latestResume - previousResume) >= 10;
+    }
 
     // Check streaks
     const streakStats = await this.calculateStreak(studentId);
@@ -281,6 +362,19 @@ export class BadgeEngine {
       interviewsCount,
       offersCount,
       totalXp,
+      firstShortlist,
+      firstInterviewAttended,
+      firstInternshipSelection,
+      firstJobSelection,
+      firstHackathonProjectSubmission,
+      firstHackathonFinalist,
+      firstHackathonWinner,
+      multipleHackathonParticipation,
+      profileCompleted,
+      firstProjectAdded,
+      technicalSkillsMilestone,
+      resumeStrengthImproved,
+      professionalExperienceAdded,
     };
   }
 

@@ -32,6 +32,20 @@ export interface StudentActivityStats {
   interviewsCount: number;
   offersCount: number;
   totalXp: number;
+  // Career-specific event tracking
+  firstShortlist: boolean;
+  firstInterviewAttended: boolean;
+  firstInternshipSelection: boolean;
+  firstJobSelection: boolean;
+  firstHackathonProjectSubmission: boolean;
+  firstHackathonFinalist: boolean;
+  firstHackathonWinner: boolean;
+  multipleHackathonParticipation: boolean;
+  profileCompleted: boolean;
+  firstProjectAdded: boolean;
+  technicalSkillsMilestone: boolean;
+  resumeStrengthImproved: boolean;
+  professionalExperienceAdded: boolean;
 }
 
 export interface BadgeDefinition {
@@ -521,6 +535,281 @@ export const BADGE_CATALOG: BadgeDefinition[] = [
         currentValue: cur,
         targetValue: target,
         progressPercentage: Math.min(100, Math.round((cur / target) * 100)),
+      };
+    },
+  },
+  // Additional Career-Specific Achievements
+  {
+    id: 'first-shortlist',
+    title: 'First Shortlist',
+    category: 'CAREER',
+    tier: 'BRONZE',
+    description: 'Get shortlisted for your first internship or job application.',
+    criteria: 'Application status updated to SHORTLISTED for the first time.',
+    icon: 'CheckCircle',
+    targetValue: 1,
+    unit: 'shortlist',
+    xpReward: 150,
+    evaluate: (s) => {
+      const cur = s.firstShortlist ? 1 : 0;
+      return {
+        isEligible: cur === 1,
+        currentValue: cur,
+        targetValue: 1,
+        progressPercentage: cur === 1 ? 100 : 0,
+      };
+    },
+  },
+  {
+    id: 'first-interview-attended',
+    title: 'First Interview',
+    category: 'CAREER',
+    tier: 'SILVER',
+    description: 'Attend your first technical or HR interview.',
+    criteria: 'Completed first interview round for an application.',
+    icon: 'UserCheck',
+    targetValue: 1,
+    unit: 'interview',
+    xpReward: 250,
+    evaluate: (s) => {
+      const cur = s.firstInterviewAttended ? 1 : 0;
+      return {
+        isEligible: cur === 1,
+        currentValue: cur,
+        targetValue: 1,
+        progressPercentage: cur === 1 ? 100 : 0,
+      };
+    },
+  },
+  {
+    id: 'first-internship-selection',
+    title: 'Internship Selected',
+    category: 'CAREER',
+    tier: 'GOLD',
+    description: 'Get selected for your first internship.',
+    criteria: 'Application status updated to SELECTED for an internship.',
+    icon: 'Star',
+    targetValue: 1,
+    unit: 'selection',
+    xpReward: 500,
+    evaluate: (s) => {
+      const cur = s.firstInternshipSelection ? 1 : 0;
+      return {
+        isEligible: cur === 1,
+        currentValue: cur,
+        targetValue: 1,
+        progressPercentage: cur === 1 ? 100 : 0,
+      };
+    },
+  },
+  {
+    id: 'first-job-selection',
+    title: 'Job Offer Secured',
+    category: 'CAREER',
+    tier: 'PLATINUM',
+    description: 'Secure your first full-time job offer.',
+    criteria: 'Application status updated to SELECTED for a full-time job.',
+    icon: 'Award',
+    targetValue: 1,
+    unit: 'offer',
+    xpReward: 750,
+    evaluate: (s) => {
+      const cur = s.firstJobSelection ? 1 : 0;
+      return {
+        isEligible: cur === 1,
+        currentValue: cur,
+        targetValue: 1,
+        progressPercentage: cur === 1 ? 100 : 0,
+      };
+    },
+  },
+  {
+    id: 'hackathon-project-submitted',
+    title: 'Project Submitted',
+    category: 'CAREER',
+    tier: 'SILVER',
+    description: 'Submit a project for a hackathon or competition.',
+    criteria: 'Project submission confirmed in a hackathon/competition.',
+    icon: 'FolderOpen',
+    targetValue: 1,
+    unit: 'project',
+    xpReward: 300,
+    evaluate: (s) => {
+      const cur = s.firstHackathonProjectSubmission ? 1 : 0;
+      return {
+        isEligible: cur === 1,
+        currentValue: cur,
+        targetValue: 1,
+        progressPercentage: cur === 1 ? 100 : 0,
+      };
+    },
+  },
+  {
+    id: 'hackathon-finalist',
+    title: 'Hackathon Finalist',
+    category: 'CAREER',
+    tier: 'GOLD',
+    description: 'Reach the finalist stage in a hackathon or competition.',
+    criteria: 'Registration outcome set to FINALIST.',
+    icon: 'Medal',
+    targetValue: 1,
+    unit: 'finalist',
+    xpReward: 500,
+    evaluate: (s) => {
+      const cur = s.firstHackathonFinalist ? 1 : 0;
+      return {
+        isEligible: cur === 1,
+        currentValue: cur,
+        targetValue: 1,
+        progressPercentage: cur === 1 ? 100 : 0,
+      };
+    },
+  },
+  {
+    id: 'hackathon-winner',
+    title: 'Hackathon Winner',
+    category: 'CAREER',
+    tier: 'DIAMOND',
+    description: 'Win a hackathon or competition.',
+    criteria: 'Registration outcome set to WINNER or prize recipient.',
+    icon: 'Crown',
+    targetValue: 1,
+    unit: 'win',
+    xpReward: 1000,
+    evaluate: (s) => {
+      const cur = s.firstHackathonWinner ? 1 : 0;
+      return {
+        isEligible: cur === 1,
+        currentValue: cur,
+        targetValue: 1,
+        progressPercentage: cur === 1 ? 100 : 0,
+      };
+    },
+  },
+  {
+    id: 'multiple-hackathon-participation',
+    title: 'Hackathon Enthusiast',
+    category: 'CAREER',
+    tier: 'SILVER',
+    description: 'Participate in 3+ hackathons or competitions.',
+    criteria: 'Registered and participated in 3+ hackathons/competitions.',
+    icon: 'Sparkles',
+    targetValue: 3,
+    unit: 'hackathons',
+    xpReward: 350,
+    evaluate: (s) => {
+      const cur = s.multipleHackathonParticipation ? 3 : s.hackathonsCount || 0;
+      const target = 3;
+      return {
+        isEligible: cur >= target,
+        currentValue: cur,
+        targetValue: target,
+        progressPercentage: Math.min(100, Math.round((cur / target) * 100)),
+      };
+    },
+  },
+  {
+    id: 'profile-completed',
+    title: 'Profile Complete',
+    category: 'CAREER',
+    tier: 'BRONZE',
+    description: 'Complete your profile with all required information.',
+    criteria: 'Profile completeness >= 80% with all key fields filled.',
+    icon: 'User',
+    targetValue: 1,
+    unit: 'profile',
+    xpReward: 100,
+    evaluate: (s) => {
+      const cur = s.profileCompleted ? 1 : 0;
+      return {
+        isEligible: cur === 1,
+        currentValue: cur,
+        targetValue: 1,
+        progressPercentage: cur === 1 ? 100 : 0,
+      };
+    },
+  },
+  {
+    id: 'first-project-added',
+    title: 'First Project',
+    category: 'CAREER',
+    tier: 'BRONZE',
+    description: 'Add your first project to your profile.',
+    criteria: 'First project entry added to profile.',
+    icon: 'FolderPlus',
+    targetValue: 1,
+    unit: 'project',
+    xpReward: 100,
+    evaluate: (s) => {
+      const cur = s.firstProjectAdded ? 1 : 0;
+      return {
+        isEligible: cur === 1,
+        currentValue: cur,
+        targetValue: 1,
+        progressPercentage: cur === 1 ? 100 : 0,
+      };
+    },
+  },
+  {
+    id: 'technical-skills-milestone',
+    title: 'Skills Builder',
+    category: 'CAREER',
+    tier: 'SILVER',
+    description: 'Add 5+ technical skills to your profile.',
+    criteria: '5+ technical skills verified in profile.',
+    icon: 'Wrench',
+    targetValue: 5,
+    unit: 'skills',
+    xpReward: 200,
+    evaluate: (s) => {
+      const cur = s.technicalSkillsMilestone ? 5 : 0;
+      return {
+        isEligible: cur >= 5,
+        currentValue: cur,
+        targetValue: 5,
+        progressPercentage: cur >= 5 ? 100 : 0,
+      };
+    },
+  },
+  {
+    id: 'resume-strength-improved',
+    title: 'Resume Enhanced',
+    category: 'CAREER',
+    tier: 'BRONZE',
+    description: 'Improve your resume strength score by 10+ points.',
+    criteria: 'Resume strength improved by 10+ points since previous evaluation.',
+    icon: 'FileText',
+    targetValue: 1,
+    unit: 'improvement',
+    xpReward: 150,
+    evaluate: (s) => {
+      const cur = s.resumeStrengthImproved ? 1 : 0;
+      return {
+        isEligible: cur === 1,
+        currentValue: cur,
+        targetValue: 1,
+        progressPercentage: cur === 1 ? 100 : 0,
+      };
+    },
+  },
+  {
+    id: 'professional-experience-added',
+    title: 'Experience Added',
+    category: 'CAREER',
+    tier: 'SILVER',
+    description: 'Add professional experience to your profile.',
+    criteria: 'First experience entry (internship, job, etc.) added to profile.',
+    icon: 'Briefcase',
+    targetValue: 1,
+    unit: 'experience',
+    xpReward: 200,
+    evaluate: (s) => {
+      const cur = s.professionalExperienceAdded ? 1 : 0;
+      return {
+        isEligible: cur === 1,
+        currentValue: cur,
+        targetValue: 1,
+        progressPercentage: cur === 1 ? 100 : 0,
       };
     },
   },

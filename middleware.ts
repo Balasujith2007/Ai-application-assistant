@@ -3,13 +3,38 @@ import type { NextRequest } from 'next/server';
 
 function isAllowedOrigin(origin: string | null): boolean {
   if (!origin) return false;
-  return (
-    origin.startsWith('chrome-extension://') ||
-    origin.startsWith('moz-extension://') ||
-    origin.startsWith('safari-web-extension://') ||
-    origin.startsWith('http://localhost:') ||
-    origin.startsWith('http://127.0.0.1:')
-  );
+  
+  // Check against configured allowed origins
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://127.0.0.1:3000')
+    .split(',')
+    .map(o => o.trim());
+  
+  if (allowedOrigins.includes(origin)) {
+    return true;
+  }
+  
+  // Extension origins with ID whitelist
+  if (origin.startsWith('chrome-extension://') || 
+      origin.startsWith('moz-extension://') ||
+      origin.startsWith('safari-web-extension://')) {
+    const extensionId = origin.replace(/^(chrome-extension|moz-extension|safari-web-extension):\/\//, '');
+    const allowedExtensionIds = (process.env.ALLOWED_EXTENSION_IDS || '').split(',').map(id => id.trim());
+    
+    // If ALLOWED_EXTENSION_IDS is configured, enforce whitelist
+    if (allowedExtensionIds.length > 0 && allowedExtensionIds[0] !== '') {
+      return allowedExtensionIds.includes(extensionId);
+    }
+    
+    // If no whitelist configured, allow all extensions (dev mode only)
+    if (process.env.NODE_ENV === 'development') {
+      return true;
+    }
+    
+    // Production: reject if no whitelist configured
+    return false;
+  }
+  
+  return false;
 }
 
 export function middleware(request: NextRequest) {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
 import prisma from '@/lib/prisma';
+import { applyRateLimit } from '@/lib/security/rateLimit';
 
 /**
  * GET /api/rewards/[rewardId]
@@ -10,6 +11,22 @@ export async function GET(
   req: Request,
   { params }: { params: Promise<{ rewardId: string }> }
 ) {
+  // Apply rate limiting to reward operations
+  const rateLimitResult = applyRateLimit(req, 'api');
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { message: rateLimitResult.error },
+      { 
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': '100',
+          'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+          'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+        }
+      }
+    );
+  }
+
   try {
     const userId = getUserIdFromRequest(req);
     if (!userId) {
