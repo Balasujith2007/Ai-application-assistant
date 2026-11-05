@@ -60,6 +60,14 @@ export async function GET(req: Request) {
       select: { weekKey: true, weightedScore: true, rankTier: true, createdAt: true },
     });
 
+    // Historical immutable weekly snapshots (read-only; reuses the same model).
+    const snapshotHistory = await prisma.weeklyPerformanceSnapshot.findMany({
+      where: { studentId: userId },
+      orderBy: { weekKey: 'desc' },
+      take: 8,
+      select: { weekKey: true, weightedScore: true, rankTier: true, createdAt: true },
+    });
+
     // Latest allocated weekly Mystery Gift (assigned gift tier).
     const latestGift = await prisma.studentReward.findFirst({
       where: { studentId: userId, triggerType: 'WEEKLY_SATURDAY' },
@@ -115,6 +123,12 @@ export async function GET(req: Request) {
             snapshotAt: latestSnapshot.createdAt.toISOString(),
           }
         : null,
+      history: snapshotHistory.map((s) => ({
+        weekKey: s.weekKey,
+        finalScore: s.weightedScore,
+        tier: s.rankTier,
+        snapshotAt: s.createdAt.toISOString(),
+      })),
       latestGift: latestGift
         ? {
             id: latestGift.id,

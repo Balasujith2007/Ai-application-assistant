@@ -1,0 +1,335 @@
+{
+  "results": [
+    {
+      "name": "desktop: welcome banner",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: career readiness",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: application metrics",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: upcoming interviews",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: deadlines",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: compact XP summary kept",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: no Career Growth card in sidebar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: no Coin Shop in sidebar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: no Reward Inventory in sidebar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: no Career Leaderboard in sidebar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: no token management in sidebar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: token tab removed from sidebar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: IRP removed",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: Refer & Earn removed",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: no duplicate sidebar items",
+      "ok": true,
+      "detail": "count=11"
+    },
+    {
+      "name": "desktop: sidebar has \"Career Growth\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: sidebar has \"Rewards & Inventory\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: sidebar has \"Coin Shop\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: sidebar has \"Tokens\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: sidebar has \"Career Leaderboard\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: welcome banner",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: career readiness",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: application metrics",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: upcoming interviews",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: deadlines",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: compact XP summary kept",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: no Career Growth card in sidebar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: no Coin Shop in sidebar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: no Reward Inventory in sidebar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: no Career Leaderboard in sidebar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: no token management in sidebar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: token tab removed from sidebar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: IRP removed",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: Refer & Earn removed",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: no duplicate sidebar items",
+      "ok": true,
+      "detail": "count=11"
+    },
+    {
+      "name": "mobile: sidebar has \"Career Growth\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: sidebar has \"Rewards & Inventory\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: sidebar has \"Coin Shop\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: sidebar has \"Tokens\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: sidebar has \"Career Leaderboard\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "route /dashboard/student/growth: not redirected",
+      "ok": true,
+      "detail": "http://localhost:3210/dashboard/student/growth"
+    },
+    {
+      "name": "route /dashboard/student/growth: renders \"Weekly Career Growth\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "route /dashboard/student/growth: renders \"Weekly Snapshot History\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "route /dashboard/student/growth: no horizontal overflow",
+      "ok": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "name": "route /dashboard/student/shop: not redirected",
+      "ok": true,
+      "detail": "http://localhost:3210/dashboard/student/shop"
+    },
+    {
+      "name": "route /dashboard/student/shop: renders \"Coin Shop\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "route /dashboard/student/shop: renders \"Purchase History\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "route /dashboard/student/shop: renders \"Neon Frame\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "route /dashboard/student/shop: no horizontal overflow",
+      "ok": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "name": "route /dashboard/student/rewards: not redirected",
+      "ok": true,
+      "detail": "http://localhost:3210/dashboard/student/rewards"
+    },
+    {
+      "name": "route /dashboard/student/rewards: renders \"Rewards & Inventory\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "route /dashboard/student/rewards: renders \"Reward Inventory\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "route /dashboard/student/rewards: no horizontal overflow",
+      "ok": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "name": "route /dashboard/student/tokens: not redirected",
+      "ok": true,
+      "detail": "http://localhost:3210/dashboard/student/tokens"
+    },
+    {
+      "name": "route /dashboard/student/tokens: renders \"Tokens\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "route /dashboard/student/tokens: renders \"Streak Rescue Tokens\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "route /dashboard/student/tokens: no horizontal overflow",
+      "ok": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "name": "route /dashboard/student/leaderboard: not redirected",
+      "ok": true,
+      "detail": "http://localhost:3210/dashboard/student/leaderboard"
+    },
+    {
+      "name": "route /dashboard/student/leaderboard: renders \"Career Leaderboard\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "route /dashboard/student/leaderboard: renders \"Top performers by career growth\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "route /dashboard/student/leaderboard: no horizontal overflow",
+      "ok": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "name": "active page highlight follows route",
+      "ok": true,
+      "detail": "/dashboard/student/shop"
+    },
+    {
+      "name": "shop: purchase POST issued",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "shop: purchase success toast",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tokens: streak-rescue POST issued",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tokens: rescue success toast",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "consoleErrors": []
+}

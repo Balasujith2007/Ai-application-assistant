@@ -26,6 +26,10 @@ import {
   Activity,
   Sparkles,
   Trophy,
+  TrendingUp,
+  Gift,
+  ShoppingBag,
+  Shield,
   User as UserIcon,
   ChevronDown,
 } from 'lucide-react';
@@ -68,6 +72,12 @@ const ICON_MAP: Record<string, any> = {
   'System Health': Activity,
   'Reward Configuration': Settings,
   'Gift Distribution': Trophy,
+  // Student gamification sidebar pages
+  'Career Growth': TrendingUp,
+  'Rewards & Inventory': Gift,
+  'Coin Shop': ShoppingBag,
+  'Tokens': Shield,
+  'Career Leaderboard': Trophy,
 };
 
 // Module-level sidebar cache: keyed by role, 5 min TTL

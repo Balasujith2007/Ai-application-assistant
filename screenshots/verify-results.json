@@ -1,0 +1,275 @@
+{
+  "results": [
+    {
+      "name": "desktop: welcome greeting personalised",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: career readiness badge (from API)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: summary cards",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: readiness breakdown",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: upcoming deadlines",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: notifications panel",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: right sidebar widgets intact",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: Career Leaderboard widget removed",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: no Career Leaderboard internals",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: daily check-in widget",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: XP summary rendered",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: coin balance rendered",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: class rank matches API",
+      "ok": true,
+      "detail": "expected #7"
+    },
+    {
+      "name": "desktop: IRP removed",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: Refer & Earn removed",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: dash-grid container restored",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: right sidebar locked to 300px",
+      "ok": true,
+      "detail": "width=300px"
+    },
+    {
+      "name": "desktop: main column wider than sidebar",
+      "ok": true,
+      "detail": "main=998px"
+    },
+    {
+      "name": "desktop: no horizontal overflow",
+      "ok": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "name": "tablet: welcome greeting personalised",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: career readiness badge (from API)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: summary cards",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: readiness breakdown",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: upcoming deadlines",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: notifications panel",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: right sidebar widgets intact",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: Career Leaderboard widget removed",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: no Career Leaderboard internals",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: daily check-in widget",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: XP summary rendered",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: coin balance rendered",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: class rank matches API",
+      "ok": true,
+      "detail": "expected #7"
+    },
+    {
+      "name": "tablet: IRP removed",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: Refer & Earn removed",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: dash-grid container restored",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: no horizontal overflow",
+      "ok": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "name": "mobile: welcome greeting personalised",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: career readiness badge (from API)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: summary cards",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: readiness breakdown",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: upcoming deadlines",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: notifications panel",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: right sidebar widgets intact",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: Career Leaderboard widget removed",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: no Career Leaderboard internals",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: daily check-in widget",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: XP summary rendered",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: coin balance rendered",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: class rank matches API",
+      "ok": true,
+      "detail": "expected #7"
+    },
+    {
+      "name": "mobile: IRP removed",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: Refer & Earn removed",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: dash-grid container restored",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: no horizontal overflow",
+      "ok": true,
+      "detail": "overflow=0px"
+    },
+    {
+      "name": "dedicated leaderboard page: Class Leaderboard renders",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "consoleErrors": []
+}

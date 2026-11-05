@@ -31,7 +31,7 @@ interface RescueToken {
   expiresAt: string | null;
 }
 
-interface TokenInventoryData {
+export interface TokenInventoryData {
   streakRescue: {
     available: RescueToken[];
     usedCount: number;
@@ -432,7 +432,7 @@ function ClaimedGiftCard({ gift }: { gift: any }) {
   );
 }
 
-function TokensTab({
+export function TokensTab({
   data,
   busy,
   onRescue,

@@ -10,6 +10,11 @@ export const CANONICAL_SIDEBARS: Record<Role, Array<{ title: string; path: strin
     { title: 'My Resume', path: '/resume', order: 3, enabled: true },
     { title: 'My Progress', path: '/dashboard/student/progress', order: 4, enabled: true },
     { title: 'Achievements', path: '/dashboard/student/achievements', order: 5, enabled: true },
+    { title: 'Career Growth', path: '/dashboard/student/growth', order: 6, enabled: true },
+    { title: 'Rewards & Inventory', path: '/dashboard/student/rewards', order: 7, enabled: true },
+    { title: 'Coin Shop', path: '/dashboard/student/shop', order: 8, enabled: true },
+    { title: 'Tokens', path: '/dashboard/student/tokens', order: 9, enabled: true },
+    { title: 'Career Leaderboard', path: '/dashboard/student/leaderboard', order: 10, enabled: true },
   ],
   MENTOR: [
     { title: 'Dashboard', path: '/dashboard/mentor', order: 0, enabled: true },

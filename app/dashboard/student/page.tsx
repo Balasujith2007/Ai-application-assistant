@@ -16,7 +16,6 @@ import {
   Sunset,
   Moon,
   ArrowRight,
-  ExternalLink,
 } from 'lucide-react';
 import { StatCard } from '@/components/placement/StatCard';
 import {
@@ -25,10 +24,6 @@ import {
 } from '@/components/opportunities/ApplicationAssistantModal';
 import { MotivationBanner } from '@/components/dashboard/MotivationBanner';
 import { StudentPerformancePanel } from '@/components/dashboard/StudentPerformancePanel';
-import { CareerGrowthSummaryCard } from '@/components/dashboard/CareerGrowthSummaryCard';
-import { RewardInventory } from '@/components/dashboard/RewardInventory';
-import { CoinShop } from '@/components/dashboard/CoinShop';
-import { CareerLeaderboard } from '@/components/dashboard/CareerLeaderboard';
 import Link from 'next/link';
 
 // ─────────────────────────────────────────────
@@ -516,103 +511,11 @@ export default function StudentDashboard() {
         <div className="dash-right-sidebar">
           <div className="dash-right-sticky">
 
-            {/* A. XP / Streak / Rank + Tracker/Leaderboard/Badges tabs */}
+            {/* Compact XP / Streak / Rank / Coins summary + quick tabs.
+                Detailed gamification (Career Growth, Rewards & Inventory,
+                Coin Shop, Tokens, Career Leaderboard) now lives on dedicated
+                sidebar pages. */}
             <StudentPerformancePanel />
-
-            {/* A2. Weekly Career Growth Summary (transparency for the gift tier) */}
-            <CareerGrowthSummaryCard />
-
-            {/* A3. Reward Inventory */}
-            <RewardInventory />
-
-            {/* A4. Coin Shop */}
-            <CoinShop />
-
-            {/* A5. Career Leaderboard */}
-            <CareerLeaderboard />
-
-            {/* B. IRP Card */}
-            <div className="dash-widget-card">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3 min-w-0">
-                  <div className="h-9 w-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                      <path
-                        d="M18.178 8c5.096 0 5.096 8 0 8-3.036 0-4.643-4-6.178-8-1.536-4-3.143-8-6.179-8-5.096 0-5.096 8 0 8 3.036 0 4.643 4 6.179 8 1.535 4 3.142 8 6.178 8z"
-                        stroke="#2563EB"
-                        strokeWidth="2.2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                  <div className="min-w-0">
-                    <h4 className="text-sm font-bold text-gray-900 leading-tight">IRP</h4>
-                    <p className="text-[11px] text-gray-500 leading-snug mt-0.5">
-                      Build industry-ready skills, build projects, and get internship-ready!
-                    </p>
-                  </div>
-                </div>
-                <Link
-                  href="/resume"
-                  className="text-gray-400 hover:text-blue-600 transition-colors shrink-0 p-0.5"
-                  aria-label="Open IRP"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </Link>
-              </div>
-            </div>
-
-            {/* C. Refer & Earn Card */}
-            <div className="dash-widget-card dash-refer-card">
-              <div className="flex items-center justify-between">
-                <div className="min-w-0 pr-2">
-                  <Link
-                    href="/dashboard/student/opportunities"
-                    className="inline-flex items-center gap-1 text-xs font-bold text-gray-900 hover:text-blue-600 transition-colors"
-                  >
-                    Refer &amp; Earn
-                    <span className="text-[11px]">↗</span>
-                  </Link>
-                  <div className="mt-1 flex items-baseline gap-1">
-                    <span className="text-sm sm:text-base font-extrabold text-blue-900 tracking-tight">
-                      ₹8,000 – ₹25,000
-                    </span>
-                    <span className="text-[10px] font-medium text-gray-500">/ Referral</span>
-                  </div>
-                </div>
-                {/* 3D Gift Box SVG */}
-                <div className="shrink-0">
-                  <svg
-                    width="56"
-                    height="56"
-                    viewBox="0 0 64 64"
-                    fill="none"
-                    className="drop-shadow-sm"
-                  >
-                    <rect x="14" y="26" width="36" height="28" rx="4" fill="url(#gbG)" />
-                    <rect x="11" y="20" width="42" height="9" rx="3" fill="url(#glG)" />
-                    <rect x="29" y="20" width="6" height="34" fill="#93C5FD" />
-                    <rect x="14" y="38" width="36" height="5" fill="#93C5FD" />
-                    <ellipse cx="26" cy="16" rx="6" ry="4" transform="rotate(-20 26 16)" fill="#BFDBFE" stroke="#60A5FA" strokeWidth="1.5" />
-                    <ellipse cx="38" cy="16" rx="6" ry="4" transform="rotate(20 38 16)" fill="#BFDBFE" stroke="#60A5FA" strokeWidth="1.5" />
-                    <circle cx="32" cy="18" r="3.5" fill="#3B82F6" />
-                    <circle cx="50" cy="12" r="1.5" fill="#60A5FA" opacity="0.8" />
-                    <circle cx="12" cy="16" r="1.2" fill="#60A5FA" opacity="0.8" />
-                    <defs>
-                      <linearGradient id="gbG" x1="14" y1="26" x2="50" y2="54" gradientUnits="userSpaceOnUse">
-                        <stop stopColor="#60A5FA" />
-                        <stop offset="1" stopColor="#3B82F6" />
-                      </linearGradient>
-                      <linearGradient id="glG" x1="11" y1="20" x2="53" y2="29" gradientUnits="userSpaceOnUse">
-                        <stop stopColor="#93C5FD" />
-                        <stop offset="1" stopColor="#60A5FA" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                </div>
-              </div>
-            </div>
 
           </div>
         </div>
