@@ -4,7 +4,8 @@ import { chromium } from 'playwright';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const BASE = 'http://localhost:3210';
+const BASE = process.env.VERIFY_BASE || 'http://localhost:3210';
+const SHOT_PREFIX = process.env.VERIFY_PREFIX || '';
 const OUT = path.resolve('screenshots');
 fs.mkdirSync(OUT, { recursive: true });
 
@@ -44,20 +45,67 @@ const OPPORTUNITIES = [
   { id: 'o5', companyName: 'Google', organization: 'Google', role: 'STEP Internship', title: 'STEP Internship', type: 'INTERNSHIP', deadline: '2026-12-10', location: 'Hyderabad' },
 ];
 
+// Build a real Monday→Sunday strip for the current week (mirrors the backend).
+function buildWeek() {
+  const labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const now = new Date();
+  const todayIso = now.toISOString().slice(0, 10);
+  const dow = now.getUTCDay();
+  const delta = dow === 0 ? -6 : 1 - dow;
+  const monday = new Date(now);
+  monday.setUTCDate(now.getUTCDate() + delta);
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setUTCDate(monday.getUTCDate() + i);
+    const iso = d.toISOString().slice(0, 10);
+    const isToday = iso === todayIso;
+    const isFuture = iso > todayIso;
+    let status;
+    if (isToday) status = 'TODAY_COMPLETED';
+    else if (isFuture) status = 'FUTURE';
+    else if (i < 3) status = 'COMPLETED';
+    else status = 'MISSED';
+    days.push({ date: iso, dayLabel: labels[d.getUTCDay()], dayNumber: d.getUTCDate(), isToday, status });
+  }
+  return days;
+}
+
 const CHECKIN = {
   success: true,
   checkedInToday: true,
+  checkInDate: new Date().toISOString().slice(0, 10),
   todayXpEarned: 20,
   totalEarnedXp: 1450,
+  dailyCheckInXp: 5,
   secondsUntilNextCheckIn: 3600,
-  streak: { currentStreak: 6, longestStreak: 12, totalActiveDays: 40, progressInCycle: 6, targetInCycle: 7 },
+  streak: {
+    currentStreak: 6,
+    longestStreak: 12,
+    totalActiveDays: 40,
+    progressInCycle: 6,
+    targetInCycle: 7,
+    nextCareerMilestone: { days: 15, remaining: 9 },
+    milestones: [5, 15, 30, 50, 100, 180].map((d) => ({
+      days: d,
+      reached: 6 >= d,
+      remaining: Math.max(0, d - 6),
+    })),
+  },
+  weeklyActivity: buildWeek(),
 };
 
 const CLASS_LB = {
   success: true,
   classInfo: { department: 'CSE', year: 3, section: 'A', displayName: 'CSE Year 3-A' },
   stats: { totalStudents: 42, activeStudents: 30, averageScore: 820, highestScore: 1980, currentUserRank: 7, currentUserScore: 1450 },
-  rankings: [],
+  rankings: [
+    { rank: 1, name: 'Priya Nair', earnedXp: 1980, totalScore: 1980, isCurrentUser: false, streak: 21, profilePhotoUrl: null },
+    { rank: 2, name: 'Rahul Verma', earnedXp: 1720, totalScore: 1720, isCurrentUser: false, streak: 14, profilePhotoUrl: null },
+    { rank: 3, name: 'Ishita Rao', earnedXp: 1605, totalScore: 1605, isCurrentUser: false, streak: 9, profilePhotoUrl: null },
+    { rank: 4, name: 'Karthik Menon', earnedXp: 1510, totalScore: 1510, isCurrentUser: false, streak: 6, profilePhotoUrl: null },
+    { rank: 5, name: 'Aarav Sharma', earnedXp: 1450, totalScore: 1450, isCurrentUser: true, streak: 6, profilePhotoUrl: null },
+  ],
 };
 
 const CAREER_LB = {
@@ -99,6 +147,29 @@ const CAREER_GROWTH = {
 const ACHIEVEMENTS = {
   success: true,
   summary: { totalEarned: 9, totalAvailable: 24, completionPercentage: 38, totalXp: 1450, currentStreak: 6, longestStreak: 12 },
+  nextMilestone: {
+    id: 'streak_7', title: 'Consistency Starter', category: 'CONSISTENCY', tier: 'BRONZE', icon: 'flame',
+    criteria: 'Maintain a 7-day streak', progressAvailable: true, progressPercentage: 86,
+    currentValue: 6, targetValue: 7, remainingToUnlock: 1,
+  },
+  categories: [
+    { category: 'CAREER_EXCELLENCE', total: 6, earned: 3 },
+    { category: 'INNOVATION', total: 5, earned: 1 },
+    { category: 'CONSISTENCY', total: 5, earned: 2 },
+    { category: 'PROFESSIONAL_DEVELOPMENT', total: 5, earned: 2 },
+    { category: 'MONTHLY_EXCELLENCE', total: 3, earned: 1 },
+  ],
+  badgesByStatus: {
+    all: [],
+    earned: [
+      { id: 'b1', title: 'First Application', category: 'CAREER_EXCELLENCE', tier: 'BRONZE', icon: 'briefcase', status: 'EARNED', awardedAt: new Date().toISOString() },
+      { id: 'b2', title: 'Resume Ready', category: 'PROFESSIONAL_DEVELOPMENT', tier: 'SILVER', icon: 'fileText', status: 'EARNED', awardedAt: new Date(Date.now() - 5 * 864e5).toISOString() },
+    ],
+    inProgress: [
+      { id: 'b3', title: 'Consistency Starter', category: 'CONSISTENCY', tier: 'BRONZE', icon: 'flame', status: 'IN_PROGRESS', progressAvailable: true, progressPercentage: 86, currentValue: 6, targetValue: 7, remainingToUnlock: 1 },
+    ],
+    locked: [],
+  },
   badges: [],
 };
 
@@ -209,12 +280,13 @@ async function run() {
     check(`${device.name}: upcoming deadlines`, /Upcoming Deadlines/.test(body));
     check(`${device.name}: notifications panel`, /Notifications & Reminders/.test(body));
 
-    // Right sidebar widgets (Career Leaderboard widget must NOT be present)
+    // Right sidebar = StudentPerformancePanel (summary + mystery gift + tabs).
+    // Detailed gamification widgets (Weekly Career Growth, Reward Inventory,
+    // Coin Shop) intentionally live on dedicated sidebar pages now, so they are
+    // expected to be ABSENT from the overview.
     check(
-      `${device.name}: right sidebar widgets intact`,
-      /Weekly Career Growth/.test(body) &&
-        /Reward Inventory/.test(body) &&
-        /Coin Shop/.test(body)
+      `${device.name}: right sidebar panel renders`,
+      /Open Your Gift/.test(body) && /Tracker/.test(body) && /Leaderboard/.test(body) && /Badges/.test(body)
     );
     check(`${device.name}: Career Leaderboard widget removed`, !/Career Leaderboard/.test(body));
     check(
@@ -223,7 +295,10 @@ async function run() {
     );
 
     // Core gamification widgets still functional
-    check(`${device.name}: daily check-in widget`, /Daily Check-In/.test(body));
+    check(`${device.name}: daily career check-in panel`, /Daily Career Check-In/.test(body));
+    check(`${device.name}: weekly streak strip`, /This Week/.test(body));
+    check(`${device.name}: next streak milestone shown`, /Next milestone/.test(body));
+    check(`${device.name}: monthly engagement removed`, !/Monthly Engagement/.test(body));
     check(`${device.name}: XP summary rendered`, /1,450/.test(body));
     check(`${device.name}: coin balance rendered`, /240/.test(body));
 
@@ -255,7 +330,22 @@ async function run() {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     check(`${device.name}: no horizontal overflow`, overflow <= 1, `overflow=${overflow}px`);
 
-    await page.screenshot({ path: path.join(OUT, `student-overview-${device.name}.png`), fullPage: true });
+    await page.screenshot({ path: path.join(OUT, `${SHOT_PREFIX}student-overview-${device.name}.png`), fullPage: true });
+
+    // Tracker / Leaderboard / Badges tabs must all still render
+    if (device.name === 'desktop') {
+      const tabBtn = (name) => page.locator('button', { hasText: new RegExp(`^${name}$`) }).first();
+      await tabBtn('Leaderboard').click();
+      await page.waitForTimeout(400);
+      check('desktop: Leaderboard tab renders', /Sapphire League/.test((await page.textContent('body')) || ''));
+      await tabBtn('Badges').click();
+      await page.waitForTimeout(400);
+      check('desktop: Badges tab renders', /Achievements|View All Badges/.test((await page.textContent('body')) || ''));
+      await tabBtn('Tracker').click();
+      await page.waitForTimeout(400);
+      check('desktop: Tracker tab restores panel', /Daily Career Check-In/.test((await page.textContent('body')) || ''));
+      await page.screenshot({ path: path.join(OUT, 'student-overview-desktop-tabs.png'), fullPage: true });
+    }
 
     await context.close();
   }

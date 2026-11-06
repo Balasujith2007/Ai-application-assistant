@@ -106,7 +106,6 @@ const STUDENT_SECTION_GROUPS: { label: string; titles: string[] }[] = [
     ],
   },
   { label: 'Rewards', titles: ['Rewards & Inventory', 'Coin Shop', 'Tokens'] },
-  { label: 'Account', titles: ['My Profile', 'Settings'] },
 ];
 
 /** Active-state detection shared by the desktop rail and the mobile drawer. */
@@ -159,14 +158,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const closeProfile = useCallback(() => setProfileOpen(false), []);
 
   const filteredLinks = useMemo(() => {
-    const isStudent = user?.role === 'STUDENT';
     return mainLinks.filter((link) => {
+      // Notifications lives in the top-navbar bell — never in the sidebar
       if (link.title === 'Notifications' || link.path === '/dashboard/notifications') return false;
-      // Students surface Settings + My Profile inside the Account group.
-      if (isStudent) return true;
-      return link.title !== 'Settings' && link.path !== '/dashboard/settings';
+      // Settings and My Profile are accessed via the header dropdown for all roles
+      if (link.title === 'Settings' || link.path === '/dashboard/settings') return false;
+      if (link.title === 'My Profile' || link.path === '/profile') return false;
+      return true;
     });
-  }, [mainLinks, user?.role]);
+  }, [mainLinks]);
 
   // Group the student links into Main Menu / Rewards / Account sections.
   // Non-student roles keep a single "Main Menu" group (unchanged behaviour).

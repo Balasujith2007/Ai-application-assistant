@@ -35,7 +35,8 @@ import {
   CheckCheck,
   ChevronRight,
   TrendingUp,
-  FileText
+  FileText,
+  BookOpen
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
@@ -85,6 +86,89 @@ function LeetCodeIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+// ──────────────────────────────────────────────────
+// Shared profile helpers
+// ──────────────────────────────────────────────────
+
+/**
+ * Tracks unsaved edits across the eight profile sections so the page can warn the
+ * student before they navigate away or switch sections mid-edit.
+ */
+const ProfileDirtyContext = React.createContext<{ setDirty: (value: boolean) => void }>({
+  setDirty: () => {},
+});
+
+function useSectionDirty(isDirty: boolean) {
+  const { setDirty } = React.useContext(ProfileDirtyContext);
+  useEffect(() => {
+    setDirty(isDirty);
+    return () => setDirty(false);
+  }, [isDirty, setDirty]);
+}
+
+/** Consistent heading + description used by every profile section. */
+function SectionHeading({
+  icon: Icon,
+  title,
+  description,
+  right,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+  right?: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-2.5 border-b border-slate-100 pb-3.5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0 space-y-1">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-kit-200/60 bg-kit-50 text-kit-700">
+            <Icon className="h-4.5 w-4.5" />
+          </div>
+          <h2 className="text-lg font-bold tracking-tight text-slate-900 sm:text-xl">{title}</h2>
+        </div>
+        <p className="pl-11 text-xs leading-relaxed text-slate-500">{description}</p>
+      </div>
+      {right}
+    </div>
+  );
+}
+
+/** Inline, non-blocking form feedback banner (replaces browser alert() dialogs). */
+function FormFeedback({ status, message }: { status: 'success' | 'error'; message: string }) {
+  if (!message) return null;
+  const isSuccess = status === 'success';
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className={`flex items-start gap-2.5 rounded-xl border px-3.5 py-2.5 text-xs font-semibold ${
+        isSuccess
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+          : 'border-rose-200 bg-rose-50 text-rose-800'
+      }`}
+    >
+      {isSuccess ? (
+        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+      ) : (
+        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
+      )}
+      <span>{message}</span>
+    </div>
+  );
+}
+
+/** Red asterisk marker for required fields. */
+function RequiredMark() {
+  return <span className="ml-0.5 text-rose-600" aria-hidden="true">*</span>;
+}
+
+/** Small muted caption used for optional / helper hints under a field label. */
+function FieldHint({ children }: { children: React.ReactNode }) {
+  // Inline element (not <p>) so it stays valid when nested inside a <label>.
+  return <span className="ml-1.5 text-[10.5px] font-normal text-slate-400">{children}</span>;
+}
+
 export default function ProfilePage() {
   const { user, refreshUser } = useAuth();
 
@@ -99,19 +183,54 @@ export default function ProfilePage() {
   }
   const [profile, setProfile] = useState<Profile | null>(null);
   const [verifiedList, setVerifiedList] = useState<any[]>([]);
+  // Server-derived verification summary (never fabricated on the client).
+  const [verification, setVerification] = useState<{
+    profileVerified: boolean;
+    placementVerified: boolean;
+    aiResumeSynced: boolean;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('personal');
   const [copiedEmail, setCopiedEmail] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  const setDirty = useCallback((value: boolean) => setHasUnsavedChanges(value), []);
+  const dirtyContextValue = useMemo(() => ({ setDirty }), [setDirty]);
+
+  // Warn on browser refresh / close while a section has unsaved edits.
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  const handleSectionChange = useCallback(
+    (id: string) => {
+      if (id === activeSection) return;
+      if (hasUnsavedChanges && !window.confirm('You have unsaved changes in this section. Discard them and switch sections?')) {
+        return;
+      }
+      setActiveSection(id);
+    },
+    [activeSection, hasUnsavedChanges]
+  );
 
   const fetchProfile = useCallback(async () => {
     try {
       const [resProfile, resVerified] = await Promise.all([
         api.get<{ data: Profile }>('/profiles/me'),
-        api.get('/profiles/verified').catch(() => ({ data: { verifiedProfiles: [] } }))
+        api.get('/profiles/verified').catch(() => ({ data: { verifiedProfiles: [], verification: null } }))
       ]);
       setProfile(resProfile.data.data);
       if (resVerified.data?.verifiedProfiles) {
         setVerifiedList(resVerified.data.verifiedProfiles);
+      }
+      if (resVerified.data?.verification) {
+        setVerification(resVerified.data.verification);
       }
     } catch (err) {
       console.error('Failed to load profile data', err);
@@ -132,34 +251,34 @@ export default function ProfilePage() {
     }
   };
 
-  // Dynamic Profile Completion Calculation
+  // Dynamic Profile Completeness Calculation (derived from existing backend profile data)
   const completionStats = useMemo(() => {
     let score = 0;
-    const checks: { label: string; done: boolean; weight: number }[] = [];
+    const checks: { label: string; done: boolean; weight: number; sectionId: string }[] = [];
 
     // Personal Info (20%)
     const hasPersonalInfo = Boolean(profile?.phone || profile?.department || profile?.college || profile?.location || profile?.dob || profile?.nationality || profile?.gender || profile?.disabilityStatus);
-    checks.push({ label: 'Personal Info', done: hasPersonalInfo, weight: 20 });
+    checks.push({ label: 'Personal Info', done: hasPersonalInfo, weight: 20, sectionId: 'personal' });
     if (hasPersonalInfo) score += 20;
 
     // Education (20%)
     const hasEducation = Boolean((profile?.education && profile.education.length > 0) || (profile as any)?.tenthSchool || (profile as any)?.twelfthSchool || (profile as any)?.collegeName || (profile as any)?.cgpa);
-    checks.push({ label: 'Education', done: hasEducation, weight: 20 });
+    checks.push({ label: 'Education', done: hasEducation, weight: 20, sectionId: 'education' });
     if (hasEducation) score += 20;
 
     // Skills (15%)
     const hasSkills = Boolean(profile?.skills && profile.skills.length > 0);
-    checks.push({ label: 'Skills', done: hasSkills, weight: 15 });
+    checks.push({ label: 'Skills', done: hasSkills, weight: 15, sectionId: 'skills' });
     if (hasSkills) score += 15;
 
     // Projects (15%)
     const hasProjects = Boolean(profile?.projects && profile.projects.length > 0);
-    checks.push({ label: 'Projects', done: hasProjects, weight: 15 });
+    checks.push({ label: 'Projects', done: hasProjects, weight: 15, sectionId: 'projects' });
     if (hasProjects) score += 15;
 
     // Experience (15%)
     const hasExperience = Boolean(profile?.experiences && profile.experiences.length > 0);
-    checks.push({ label: 'Experience', done: hasExperience, weight: 15 });
+    checks.push({ label: 'Experience', done: hasExperience, weight: 15, sectionId: 'experience' });
     if (hasExperience) score += 15;
 
     // Social Links (15%)
@@ -172,7 +291,7 @@ export default function ProfilePage() {
       (profile as any)?.leetcodeUrl ||
       profile?.portfolioUrl
     );
-    checks.push({ label: 'Social Links', done: hasVerifiedLinks, weight: 15 });
+    checks.push({ label: 'Social Links', done: hasVerifiedLinks, weight: 15, sectionId: 'social' });
     if (hasVerifiedLinks) score += 15;
 
     return {
@@ -200,25 +319,58 @@ export default function ProfilePage() {
     { id: 'social', label: 'Social Links', icon: LinkIcon, count: verifiedList.length || [profile?.githubUrl, profile?.linkedinUrl, (profile as any)?.codolioUrl, (profile as any)?.codechefUrl, (profile as any)?.leetcodeUrl, profile?.portfolioUrl].filter(Boolean).length || null, isDone: Boolean(verifiedList.length > 0 || profile?.githubUrl || profile?.linkedinUrl || (profile as any)?.codolioUrl || (profile as any)?.codechefUrl || (profile as any)?.leetcodeUrl || profile?.portfolioUrl) },
   ];
 
+  // Verification indicators are driven exclusively by the server-derived verification
+  // summary. When the summary is unavailable they fall back to a real backend signal
+  // (verified platform records) instead of a fabricated client-side heuristic.
   const isProfileVerified = Boolean(
-    (profile as any)?.isVerified ||
-    (verifiedList && verifiedList.some((v: any) => v.verificationStatus === 'VERIFIED'))
+    verification?.profileVerified ??
+      (verifiedList?.some((v: any) => v.verificationStatus === 'VERIFIED') ?? false)
   );
 
-  const isPlacementVerified = Boolean(
-    (profile as any)?.placementVerified ||
-    (completionStats.score >= 80 && profile?.phone && profile?.department && profile?.college)
-  );
+  const isPlacementVerified = Boolean(verification?.placementVerified);
 
-  const isResumeSynced = Boolean(
-    (profile as any)?.resumeSynced ||
-    (profile as any)?.resumes?.length > 0 ||
-    Boolean(profile?.githubUrl || profile?.linkedinUrl || verifiedList.length > 0)
-  );
+  const isResumeSynced = Boolean(verification?.aiResumeSynced);
+
+  // Genuine, backend-derived highlights. Each entry renders only when the underlying
+  // profile record actually holds data — no placeholder or fabricated values.
+  // Computed inline (not via useMemo) because this sits after the early `loading` return
+  // and adding a hook here would violate the Rules of Hooks.
+  const highlights: { label: string; value: string; icon: React.ComponentType<{ className?: string }> }[] = [];
+  {
+    const skillNames = (profile?.skills ?? [])
+      .map((ps: any) => ps?.skill?.name)
+      .filter(Boolean) as string[];
+    if (skillNames.length > 0) {
+      const shown = skillNames.slice(0, 4).join(', ');
+      highlights.push({
+        label: 'Primary Skills',
+        value: skillNames.length > 4 ? `${shown} +${skillNames.length - 4}` : shown,
+        icon: Code,
+      });
+    }
+
+    if (profile?.careerObjective?.trim()) {
+      highlights.push({ label: 'Career Objective', value: profile.careerObjective.trim(), icon: TrendingUp });
+    }
+
+    if (profile?.preferredRole?.trim()) {
+      highlights.push({ label: 'Preferred Role', value: profile.preferredRole.trim(), icon: Briefcase });
+    }
+
+    const location = profile?.location?.trim() || profile?.preferredLocation?.trim();
+    if (location) {
+      highlights.push({ label: 'Location', value: location, icon: MapPin });
+    }
+
+    if (profile?.collegeGraduationYear) {
+      highlights.push({ label: 'Graduation Year', value: String(profile.collegeGraduationYear), icon: GraduationCap });
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50/60 pb-16 pt-6 font-sans text-slate-800">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
+    <ProfileDirtyContext.Provider value={dirtyContextValue}>
+    <div className="min-h-screen bg-slate-50/60 pb-12 pt-5 font-sans text-slate-800">
+      <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 space-y-5">
         
         {/* Top Breadcrumb & Navigation */}
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -243,7 +395,7 @@ export default function ProfilePage() {
         {/* Executive Hero Banner Card */}
         <div className="overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-sm">
           {/* Premium Burgundy/Crimson Cover — Deep gradient with restrained grain texture */}
-          <div className="h-36 sm:h-48 w-full relative overflow-hidden"
+          <div className="h-28 sm:h-36 w-full relative overflow-hidden"
             style={{
               background: 'linear-gradient(135deg, #1a0208 0%, #4a0815 35%, #7f0b24 70%, #990024 100%)',
             }}
@@ -253,8 +405,8 @@ export default function ProfilePage() {
             <div className="absolute left-1/4 bottom-0 h-48 w-80 rounded-full bg-amber-500/5 blur-3xl pointer-events-none" />
             <div className="absolute right-1/3 top-1/2 h-32 w-32 rounded-full bg-white/3 blur-2xl pointer-events-none" />
 
-            {/* Subtle Architectural Grid */}
-            <svg className="absolute inset-0 h-full w-full opacity-[0.05] stroke-white" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+            {/* Subtle Architectural Grid — restrained intensity for a calmer header */}
+            <svg className="absolute inset-0 h-full w-full opacity-[0.035] stroke-white" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
               <defs>
                 <pattern id="careerai-grid" width="32" height="32" patternUnits="userSpaceOnUse">
                   <path d="M 32 0 L 0 0 0 32" fill="none" strokeWidth="0.75" />
@@ -264,7 +416,7 @@ export default function ProfilePage() {
             </svg>
 
             {/* Diagonal accent stripe */}
-            <div className="absolute inset-0 opacity-[0.04]"
+            <div className="absolute inset-0 opacity-[0.03]"
               style={{
                 backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(255,255,255,0.15) 20px, rgba(255,255,255,0.15) 21px)',
               }}
@@ -292,8 +444,8 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="px-5 pb-6 sm:px-8 sm:pb-7">
-            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
+          <div className="px-5 pb-5 sm:px-8 sm:pb-6">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               
               {/* Avatar + Identity Block */}
               <div className="flex flex-col sm:flex-row sm:items-start gap-5">
@@ -306,11 +458,11 @@ export default function ProfilePage() {
                     setProfile((prev) => (prev ? { ...prev, profilePhotoUrl: newUrl } : null));
                     if (refreshUser) refreshUser();
                   }}
-                  className="-mt-12 sm:-mt-16 z-10 self-start"
+                  className="-mt-12 sm:-mt-14 z-10 self-start"
                 />
 
                 {/* Name, Badges & Contact — carefully layered hierarchy */}
-                <div className="space-y-2.5 pt-0 sm:pt-3">
+                <div className="space-y-2 pt-0 sm:pt-1">
                   {/* Primary Identity Row */}
                   <div className="flex flex-wrap items-center gap-2">
                     <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 leading-tight">
@@ -393,8 +545,8 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Profile Readiness Card — compact, premium, self-contained */}
-              <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shrink-0 lg:w-[296px] w-full shadow-xs space-y-4 mt-1 lg:mt-3">
+              {/* Profile Readiness Card — real completeness score + direct navigation */}
+              <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shrink-0 lg:w-[276px] w-full shadow-xs space-y-3.5 mt-0 lg:mt-1">
                 {/* Score + Status Row */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -407,6 +559,7 @@ export default function ProfilePage() {
                         color: 'white',
                         borderColor: 'rgba(153, 0, 36, 0.25)',
                       }}
+                      aria-label={`Profile completeness ${completionStats.score} percent`}
                     >
                       {completionStats.score}%
                     </div>
@@ -425,7 +578,14 @@ export default function ProfilePage() {
 
                 {/* Progress Bar */}
                 <div className="space-y-1.5">
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className="h-2 w-full overflow-hidden rounded-full bg-slate-100"
+                    role="progressbar"
+                    aria-valuenow={completionStats.score}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label="Profile completeness"
+                  >
                     <div
                       className="h-full rounded-full transition-all duration-700"
                       style={{
@@ -436,30 +596,33 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                {/* Section Completion Chips */}
+                {/* Section Completion — completed (green) vs incomplete (clickable to fix) */}
                 <div className="flex flex-wrap gap-1.5 pt-0.5">
                   {completionStats.checks.map((c) => (
-                    <span
+                    <button
                       key={c.label}
+                      type="button"
+                      onClick={() => handleSectionChange(c.sectionId)}
+                      title={c.done ? `${c.label} complete — open section` : `Go to ${c.label} to complete it`}
                       className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border transition-colors ${
                         c.done
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
-                          : 'bg-slate-50 text-slate-500 border-slate-200/70'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80 hover:bg-emerald-100'
+                          : 'bg-amber-50 text-amber-700 border-amber-200/80 hover:bg-amber-100'
                       }`}
                     >
                       {c.done
                         ? <CheckCircle2 className="h-2.5 w-2.5 text-emerald-500 shrink-0" />
-                        : <span className="h-2.5 w-2.5 rounded-full border border-slate-300 shrink-0" />
+                        : <Plus className="h-2.5 w-2.5 text-amber-600 shrink-0" />
                       }
                       {c.label}
-                    </span>
+                    </button>
                   ))}
                 </div>
 
                 {/* Footer Action Row */}
                 <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-100">
                   <span className="text-slate-500 font-medium">
-                    {completionStats.checks.filter((c) => c.done).length}/{completionStats.checks.length} sections
+                    {completionStats.checks.filter((c) => c.done).length}/{completionStats.checks.length} sections complete
                   </span>
                   <Link
                     href="/resume"
@@ -468,19 +631,41 @@ export default function ProfilePage() {
                     Resume Studio <ChevronRight className="h-3 w-3" />
                   </Link>
                 </div>
+                <p className="text-[10px] leading-snug text-slate-400">
+                  Profile completeness tracks required profile fields only — it is separate from your Resume Strength score.
+                </p>
               </div>
 
             </div>
           </div>
         </div>
 
+        {/* Profile Highlights — compact strip, rendered only when genuine data exists */}
+        {highlights.length > 0 && (
+          <div className="rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-2xs">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+              {highlights.map(({ label, value, icon: Icon }) => (
+                <div key={label} className="flex min-w-0 items-center gap-2.5">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-kit-100 bg-kit-50 text-kit-700">
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{label}</p>
+                    <p className="max-w-[200px] truncate text-xs font-semibold text-slate-800 sm:max-w-[280px]" title={value}>{value}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Main Content Layout with Responsive Navigation */}
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex flex-col lg:flex-row gap-5">
           
           {/* Sidebar Navigation - Desktop/Laptop */}
-          <div className="hidden lg:block w-64 shrink-0 space-y-4">
-            <div className="sticky top-20 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs space-y-1.5">
-              <div className="px-3 py-2 flex items-center justify-between">
+          <div className="hidden lg:block w-56 shrink-0 space-y-3">
+            <div className="sticky top-20 rounded-2xl border border-slate-200/80 bg-white p-2.5 shadow-xs space-y-1">
+              <div className="px-2.5 py-1.5 flex items-center justify-between">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Profile Sections</span>
                 <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{sections.length} Tabs</span>
               </div>
@@ -491,16 +676,21 @@ export default function ProfilePage() {
                   <button
                     key={id}
                     id={`profile-nav-${id}`}
-                    onClick={() => setActiveSection(id)}
-                    className={`group flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold transition-all duration-150 ${
+                    onClick={() => handleSectionChange(id)}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`group relative flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-xs font-semibold transition-all duration-150 ${
                       isActive
-                        ? 'bg-kit-600 text-white font-bold shadow-sm shadow-kit-600/20'
+                        ? 'bg-kit-50 text-kit-900 font-bold ring-1 ring-kit-200/70'
                         : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
+                    {/* Left accent indicator for the active section */}
+                    {isActive && (
+                      <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-kit-600" aria-hidden="true" />
+                    )}
+                    <div className="flex items-center gap-3 pl-1.5">
                       <div className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${
-                        isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200/70 group-hover:text-slate-800'
+                        isActive ? 'bg-kit-100 text-kit-700' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200/70 group-hover:text-slate-800'
                       }`}>
                         <Icon className="h-3.5 w-3.5" />
                       </div>
@@ -510,7 +700,7 @@ export default function ProfilePage() {
                     <div className="flex items-center gap-1.5">
                       {count !== null && count > 0 && (
                         <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                          isActive ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-600'
+                          isActive ? 'bg-kit-100 text-kit-700' : 'bg-slate-100 text-slate-600'
                         }`}>
                           {count}
                         </span>
@@ -525,7 +715,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Quick Placement Tip Card */}
-            <div className="rounded-2xl border border-kit-100 bg-gradient-to-br from-kit-50/70 to-white p-4 shadow-2xs space-y-2">
+            <div className="rounded-2xl border border-kit-100 bg-gradient-to-br from-kit-50/70 to-white p-3.5 shadow-2xs space-y-1.5">
               <div className="flex items-center gap-2 text-xs font-bold text-kit-900">
                 <Lightbulb className="h-4 w-4 text-amber-500 shrink-0" />
                 <span>Placement AI Tip</span>
@@ -544,7 +734,8 @@ export default function ProfilePage() {
                 return (
                   <button
                     key={id}
-                    onClick={() => setActiveSection(id)}
+                    onClick={() => handleSectionChange(id)}
+                    aria-current={isActive ? 'page' : undefined}
                     className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all shrink-0 ${
                       isActive
                         ? 'bg-kit-600 text-white shadow-md shadow-kit-600/20'
@@ -603,6 +794,7 @@ export default function ProfilePage() {
 
       </div>
     </div>
+    </ProfileDirtyContext.Provider>
   );
 }
 
@@ -654,6 +846,7 @@ function PersonalSection({
   });
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     const nameParts = splitFullName(user?.name);
@@ -688,9 +881,64 @@ function PersonalSection({
     }
   }, [profile, user]);
 
+  // Baseline of persisted values — powers unsaved-change detection and "Cancel".
+  const baseline = useMemo(() => {
+    const nameParts = splitFullName(user?.name);
+    return {
+      firstName: nameParts.firstName,
+      lastName: nameParts.lastName,
+      phone: profile?.phone ?? '',
+      department: profile?.department ?? '',
+      year: profile?.year?.toString() ?? '',
+      section: profile?.section ?? '',
+      college: profile?.college ?? '',
+      location: profile?.location ?? '',
+      careerObjective: profile?.careerObjective ?? '',
+      dob: profile?.dob ?? '',
+      gender: profile?.gender ?? '',
+      disabilityStatus: profile?.disabilityStatus ?? '',
+      nationality: profile?.nationality ?? '',
+      country: profile?.country ?? '',
+      state: profile?.state ?? '',
+      preferredLocation: profile?.preferredLocation ?? '',
+      pinCode: profile?.pinCode ?? '',
+      preferredRole: profile?.preferredRole ?? '',
+      expectedSalary: profile?.expectedSalary ?? '',
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile, user]);
+
+  const isDirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(baseline), [form, baseline]);
+  useSectionDirty(isDirty);
+
+  const handleReset = () => {
+    setForm(baseline);
+    setErrorMsg('');
+    setSavedSuccess(false);
+  };
+
+  // Inline validation — returns the first blocking error, or empty string when valid.
+  const validate = (): string => {
+    if (!form.firstName.trim()) return 'First name is required.';
+    if (form.phone.trim() && !/^[+\d][\d\s\-()]{6,19}$/.test(form.phone.trim())) {
+      return 'Please enter a valid phone number (7–20 digits, may start with +).';
+    }
+    if (form.year && (Number(form.year) < 1 || Number(form.year) > 6)) {
+      return 'Year of study must be between 1 and 6.';
+    }
+    return '';
+  };
+
   const handleSave = async () => {
+    const validationError = validate();
+    if (validationError) {
+      setErrorMsg(validationError);
+      setSavedSuccess(false);
+      return;
+    }
     setSaving(true);
     setSavedSuccess(false);
+    setErrorMsg('');
     try {
       const combinedName = [form.firstName.trim(), form.lastName.trim()].filter(Boolean).join(' ');
       const { firstName, lastName, ...restForm } = form;
@@ -708,7 +956,7 @@ function PersonalSection({
       onUpdate();
     } catch (error: any) {
       console.error('Failed to save profile:', error);
-      alert(error?.response?.data?.message || 'Failed to save changes. Please try again.');
+      setErrorMsg(error?.response?.data?.message || 'Failed to save changes. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -730,24 +978,22 @@ function PersonalSection({
   ];
 
   return (
-    <div className="rounded-3xl border border-slate-200/80 bg-white p-6 sm:p-8 shadow-xs space-y-8">
+    <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-5">
       {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-5">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-kit-50 text-kit-700 border border-kit-200/60">
-              <User className="h-4.5 w-4.5" />
-            </div>
-            <h2 className="text-xl font-bold tracking-tight text-slate-900">Personal Information</h2>
-          </div>
-          <p className="text-xs text-slate-500 pl-11">Manage your identity, demographic background, location, and career aspirations.</p>
-        </div>
-        {savedSuccess && (
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3.5 py-1.5 rounded-xl border border-emerald-200 shadow-2xs self-start sm:self-auto animate-in fade-in">
-            <CheckCircle2 className="h-4 w-4" /> Changes saved successfully
-          </span>
-        )}
-      </div>
+      <SectionHeading
+        icon={User}
+        title="Personal Information"
+        description="Manage your identity, demographic background, location, and career aspirations."
+        right={
+          savedSuccess ? (
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3.5 py-1.5 rounded-xl border border-emerald-200 shadow-2xs self-start sm:self-auto animate-in fade-in">
+              <CheckCircle2 className="h-4 w-4" /> Changes saved successfully
+            </span>
+          ) : undefined
+        }
+      />
+
+      {errorMsg && <FormFeedback status="error" message={errorMsg} />}
 
       {/* Profile Photo Management */}
       <PersonalInfoPhotoSection
@@ -772,7 +1018,7 @@ function PersonalSection({
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">First Name</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">First Name<RequiredMark /></label>
             <Input
               value={form.firstName}
               onChange={(e) => setForm({ ...form, firstName: e.target.value })}
@@ -820,7 +1066,7 @@ function PersonalSection({
           <span>2. Demographics & Identity</span>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">Date of Birth</label>
             <Input
@@ -877,7 +1123,7 @@ function PersonalSection({
           <span>3. Geographical Location & Preferences</span>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">Current Location / City</label>
             <Input
@@ -933,8 +1179,8 @@ function PersonalSection({
           <span>4. Campus & Institution Details</span>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="sm:col-span-2 lg:col-span-3">
             <label className="block text-xs font-bold text-slate-700 mb-1.5">College / Institution</label>
             <Input
               value={form.college}
@@ -952,34 +1198,32 @@ function PersonalSection({
               className="h-10.5 text-xs sm:text-sm bg-white rounded-xl border-slate-200 focus:border-kit-600 focus:ring-kit-600/20"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">Year of Study</label>
-              <Input
-                type="number"
-                min={1}
-                max={6}
-                value={form.year}
-                onChange={(e) => setForm({ ...form, year: e.target.value })}
-                placeholder="3"
-                className="h-10.5 text-xs sm:text-sm bg-white rounded-xl border-slate-200 focus:border-kit-600 focus:ring-kit-600/20"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">Section</label>
-              <Input
-                value={form.section}
-                onChange={(e) => setForm({ ...form, section: e.target.value })}
-                placeholder="A"
-                className="h-10.5 text-xs sm:text-sm bg-white rounded-xl border-slate-200 focus:border-kit-600 focus:ring-kit-600/20"
-              />
-            </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">Year of Study</label>
+            <Input
+              type="number"
+              min={1}
+              max={6}
+              value={form.year}
+              onChange={(e) => setForm({ ...form, year: e.target.value })}
+              placeholder="3"
+              className="h-10.5 text-xs sm:text-sm bg-white rounded-xl border-slate-200 focus:border-kit-600 focus:ring-kit-600/20"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">Section</label>
+            <Input
+              value={form.section}
+              onChange={(e) => setForm({ ...form, section: e.target.value })}
+              placeholder="A"
+              className="h-10.5 text-xs sm:text-sm bg-white rounded-xl border-slate-200 focus:border-kit-600 focus:ring-kit-600/20"
+            />
           </div>
         </div>
       </div>
 
       {/* Group 5: Career Targets & Expectations */}
-      <div className="rounded-2xl border border-slate-200/90 bg-slate-50/70 p-5 sm:p-6 space-y-4">
+      <div className="rounded-2xl border border-slate-200/90 bg-slate-50/70 p-4 sm:p-5 space-y-4">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-kit-600" />
           <h3 className="text-sm font-bold text-slate-900 tracking-tight">Career Goals & Compensation Expectation</h3>
@@ -1028,16 +1272,31 @@ function PersonalSection({
       </div>
 
       {/* Action Footer */}
-      <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-        <Button
-          variant="primary"
-          isLoading={saving}
-          onClick={handleSave}
-          className="font-bold px-7 py-2.5 rounded-xl shadow-sm text-xs sm:text-sm"
-        >
-          <Save className="h-4 w-4" />
-          Save Changes
-        </Button>
+      <div className="flex flex-col-reverse items-stretch gap-3 pt-4 border-t border-slate-100 sm:flex-row sm:items-center sm:justify-between">
+        <span className="text-[11px] text-slate-400">
+          {isDirty ? 'You have unsaved changes.' : 'All changes saved.'}
+        </span>
+        <div className="flex items-center justify-end gap-3">
+          <Button
+            variant="outline"
+            onClick={handleReset}
+            disabled={!isDirty || saving}
+            className="font-bold px-5 py-2.5 rounded-xl text-xs sm:text-sm"
+          >
+            <X className="h-4 w-4" />
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            isLoading={saving}
+            onClick={handleSave}
+            disabled={!isDirty && !saving}
+            className="font-bold px-7 py-2.5 rounded-xl shadow-sm text-xs sm:text-sm"
+          >
+            <Save className="h-4 w-4" />
+            Save Changes
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -1067,6 +1326,9 @@ function EducationSection({ education, profile, onUpdate }: { education: Educati
   });
   const [savingAcademics, setSavingAcademics] = useState(false);
   const [academicSuccess, setAcademicSuccess] = useState(false);
+  const [academicError, setAcademicError] = useState('');
+  const [formError, setFormError] = useState('');
+  const [entryErrors, setEntryErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (profile) {
@@ -1085,9 +1347,48 @@ function EducationSection({ education, profile, onUpdate }: { education: Educati
     }
   }, [profile]);
 
+  const academicBaseline = useMemo(
+    () => ({
+      tenthSchool: profile?.tenthSchool ?? '',
+      tenthPercentage: profile?.tenthPercentage ?? '',
+      twelfthSchool: profile?.twelfthSchool ?? '',
+      twelfthPercentage: profile?.twelfthPercentage ?? '',
+      collegeName: profile?.collegeName ?? profile?.college ?? '',
+      cgpa: profile?.cgpa ?? '',
+      collegeJoiningYear: profile?.collegeJoiningYear?.toString() ?? '',
+      collegeGraduationYear: profile?.collegeGraduationYear?.toString() ?? '',
+      major: profile?.major ?? profile?.department ?? '',
+      minor: profile?.minor ?? '',
+    }),
+    [profile]
+  );
+
+  const academicsDirty = useMemo(
+    () => JSON.stringify(academicForm) !== JSON.stringify(academicBaseline),
+    [academicForm, academicBaseline]
+  );
+  useSectionDirty(academicsDirty);
+
+  const handleResetAcademics = () => {
+    setAcademicForm(academicBaseline);
+    setAcademicError('');
+    setAcademicSuccess(false);
+  };
+
   const handleSaveAcademics = async () => {
+    // Inline validation: only block on invalid numeric input (fields are otherwise optional).
+    const yearPattern = /^\d{4}$/;
+    if (academicForm.collegeJoiningYear && !yearPattern.test(academicForm.collegeJoiningYear)) {
+      setAcademicError('College joining year must be a 4-digit year (e.g. 2022).');
+      return;
+    }
+    if (academicForm.collegeGraduationYear && !yearPattern.test(academicForm.collegeGraduationYear)) {
+      setAcademicError('Graduation year must be a 4-digit year (e.g. 2026).');
+      return;
+    }
     setSavingAcademics(true);
     setAcademicSuccess(false);
+    setAcademicError('');
     try {
       await api.put('/profiles/me', {
         ...academicForm,
@@ -1098,7 +1399,7 @@ function EducationSection({ education, profile, onUpdate }: { education: Educati
       setTimeout(() => setAcademicSuccess(false), 3000);
       onUpdate();
     } catch (err: any) {
-      alert(err?.response?.data?.message || 'Failed to save academic details.');
+      setAcademicError(err?.response?.data?.message || 'Failed to save academic details.');
     } finally {
       setSavingAcademics(false);
     }
@@ -1108,13 +1409,32 @@ function EducationSection({ education, profile, onUpdate }: { education: Educati
     setShowForm(false);
     setEditId(null);
     setForm({ institution: '', degree: '', fieldOfStudy: '', startYear: '', endYear: '', grade: '', minor: '' });
+    setEntryErrors({});
+    setFormError('');
+  };
+
+  // Inline validation for the additional-degree entry form.
+  const validateEntry = (): Record<string, string> => {
+    const errors: Record<string, string> = {};
+    if (!form.institution.trim()) errors.institution = 'Institution is required.';
+    if (!form.degree.trim()) errors.degree = 'Degree is required.';
+    if (!form.startYear) errors.startYear = 'Start year is required.';
+    else if (!/^\d{4}$/.test(form.startYear)) errors.startYear = 'Enter a 4-digit year.';
+    if (form.endYear && !/^\d{4}$/.test(form.endYear)) errors.endYear = 'Enter a 4-digit year.';
+    else if (form.endYear && form.startYear && Number(form.endYear) < Number(form.startYear)) {
+      errors.endYear = 'End year cannot be before start year.';
+    }
+    return errors;
   };
 
   const handleSubmit = async () => {
-    if (!form.institution || !form.degree || !form.startYear) {
-      alert('Please fill in required education fields (Institution, Degree, Start Year)');
+    const errors = validateEntry();
+    setEntryErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      setFormError('Please correct the highlighted fields before saving.');
       return;
     }
+    setFormError('');
     setSubmitting(true);
     try {
       const payload = { ...form, startYear: parseInt(form.startYear), endYear: form.endYear ? parseInt(form.endYear) : undefined };
@@ -1126,7 +1446,7 @@ function EducationSection({ education, profile, onUpdate }: { education: Educati
       onUpdate();
       reset();
     } catch (err: any) {
-      alert(err?.response?.data?.message || 'Failed to save education record.');
+      setFormError(err?.response?.data?.message || 'Failed to save education record.');
     } finally {
       setSubmitting(false);
     }
@@ -1138,35 +1458,38 @@ function EducationSection({ education, profile, onUpdate }: { education: Educati
       await api.delete(`/profiles/education/${id}`);
       onUpdate();
     } catch (err: any) {
-      alert(err?.response?.data?.message || 'Failed to delete education record.');
+      setFormError(err?.response?.data?.message || 'Failed to delete education record.');
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* School Education Card (10th & 12th) */}
-      <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-xs space-y-6">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900 tracking-tight">School Education</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Enter your 10th and 12th standard schooling and percentage.</p>
-          </div>
-          {academicSuccess && (
-            <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200">
-              <CheckCircle2 className="h-3.5 w-3.5" /> Saved successfully
-            </span>
-          )}
-        </div>
+      <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-5">
+        <SectionHeading
+          icon={BookOpen}
+          title="School Education"
+          description="Enter your 10th and 12th standard schooling and percentage."
+          right={
+            academicSuccess ? (
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3.5 py-1.5 rounded-xl border border-emerald-200 shadow-2xs self-start sm:self-auto animate-in fade-in">
+                <CheckCircle2 className="h-4 w-4" /> Saved successfully
+              </span>
+            ) : undefined
+          }
+        />
 
-        <div className="space-y-4">
+        <FormFeedback status="error" message={academicError} />
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {/* 10th Standard */}
           <div className="rounded-xl border border-slate-200/80 bg-slate-50/40 p-4 space-y-3">
             <div className="flex items-center gap-2">
               <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-kit-100 text-xs font-bold text-kit-800">10</span>
               <h3 className="text-xs sm:text-sm font-bold text-slate-900">10th Standard (Secondary School)</h3>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="sm:col-span-2">
+            <div className="grid grid-cols-1 gap-3">
+              <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">School Name</label>
                 <Input
                   value={academicForm.tenthSchool}
@@ -1193,8 +1516,8 @@ function EducationSection({ education, profile, onUpdate }: { education: Educati
               <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-kit-100 text-xs font-bold text-kit-800">12</span>
               <h3 className="text-xs sm:text-sm font-bold text-slate-900">12th Standard (Higher Secondary)</h3>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="sm:col-span-2">
+            <div className="grid grid-cols-1 gap-3">
+              <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">School Name</label>
                 <Input
                   value={academicForm.twelfthSchool}
@@ -1216,25 +1539,44 @@ function EducationSection({ education, profile, onUpdate }: { education: Educati
           </div>
         </div>
 
-        <div className="flex justify-end pt-2 border-t border-slate-100">
-          <Button variant="primary" isLoading={savingAcademics} onClick={handleSaveAcademics} className="font-bold px-6 py-2.5 rounded-xl shadow-xs">
-            <Save className="h-4 w-4" />
-            Save School Details
-          </Button>
+        <div className="flex flex-col-reverse items-stretch gap-3 pt-4 border-t border-slate-100 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-[11px] text-slate-400">
+            {academicsDirty ? 'You have unsaved changes.' : 'All changes saved.'}
+          </span>
+          <div className="flex items-center justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={handleResetAcademics}
+              disabled={!academicsDirty || savingAcademics}
+              className="font-bold px-5 py-2.5 rounded-xl text-xs sm:text-sm"
+            >
+              <X className="h-4 w-4" />
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              isLoading={savingAcademics}
+              onClick={handleSaveAcademics}
+              disabled={!academicsDirty && !savingAcademics}
+              className="font-bold px-6 py-2.5 rounded-xl shadow-xs text-xs sm:text-sm"
+            >
+              <Save className="h-4 w-4" />
+              Save School Details
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* College Education Card */}
-      <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-xs space-y-6">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900 tracking-tight">College Education</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Provide your undergraduate / college degree, CGPA, graduation timeline, and specializations.</p>
-          </div>
-        </div>
+      <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-5">
+        <SectionHeading
+          icon={GraduationCap}
+          title="College Education"
+          description="Provide your undergraduate / college degree, CGPA, graduation timeline, and specializations."
+        />
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="sm:col-span-2 lg:col-span-3">
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">College Name / Institution</label>
             <Input
               value={academicForm.collegeName}
@@ -1252,27 +1594,25 @@ function EducationSection({ education, profile, onUpdate }: { education: Educati
               className="h-10 text-xs sm:text-sm bg-white"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">College Joining Year</label>
-              <Input
-                type="number"
-                value={academicForm.collegeJoiningYear}
-                onChange={(e) => setAcademicForm({ ...academicForm, collegeJoiningYear: e.target.value })}
-                placeholder="2022"
-                className="h-10 text-xs sm:text-sm bg-white"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Expected Graduation Year</label>
-              <Input
-                type="number"
-                value={academicForm.collegeGraduationYear}
-                onChange={(e) => setAcademicForm({ ...academicForm, collegeGraduationYear: e.target.value })}
-                placeholder="2026"
-                className="h-10 text-xs sm:text-sm bg-white"
-              />
-            </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">College Joining Year</label>
+            <Input
+              type="number"
+              value={academicForm.collegeJoiningYear}
+              onChange={(e) => setAcademicForm({ ...academicForm, collegeJoiningYear: e.target.value })}
+              placeholder="2022"
+              className="h-10 text-xs sm:text-sm bg-white"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Expected Graduation Year</label>
+            <Input
+              type="number"
+              value={academicForm.collegeGraduationYear}
+              onChange={(e) => setAcademicForm({ ...academicForm, collegeGraduationYear: e.target.value })}
+              placeholder="2026"
+              className="h-10 text-xs sm:text-sm bg-white"
+            />
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">Major / Specialization</label>
@@ -1294,25 +1634,53 @@ function EducationSection({ education, profile, onUpdate }: { education: Educati
           </div>
         </div>
 
-        <div className="flex justify-end pt-2 border-t border-slate-100">
-          <Button variant="primary" isLoading={savingAcademics} onClick={handleSaveAcademics} className="font-bold px-6 py-2.5 rounded-xl shadow-xs">
-            <Save className="h-4 w-4" />
-            Save College Details
-          </Button>
+        <div className="flex flex-col-reverse items-stretch gap-3 pt-4 border-t border-slate-100 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-[11px] text-slate-400">
+            {academicsDirty ? 'You have unsaved changes.' : 'All changes saved.'}
+          </span>
+          <div className="flex items-center justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={handleResetAcademics}
+              disabled={!academicsDirty || savingAcademics}
+              className="font-bold px-5 py-2.5 rounded-xl text-xs sm:text-sm"
+            >
+              <X className="h-4 w-4" />
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              isLoading={savingAcademics}
+              onClick={handleSaveAcademics}
+              disabled={!academicsDirty && !savingAcademics}
+              className="font-bold px-6 py-2.5 rounded-xl shadow-xs text-xs sm:text-sm"
+            >
+              <Save className="h-4 w-4" />
+              Save College Details
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Additional Education Entries & History */}
-      <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-xs space-y-6">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900 tracking-tight">Additional Degrees & Certifications</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Manage any additional degree programs, diplomas, or academic qualifications.</p>
-          </div>
-          <Button variant="primary" size="sm" onClick={() => { reset(); setShowForm(true); }} className="font-bold rounded-xl shadow-2xs">
-            <Plus className="h-3.5 w-3.5" /> Add Degree
-          </Button>
-        </div>
+      <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-5">
+        <SectionHeading
+          icon={Award}
+          title="Additional Degrees & Certifications"
+          description="Manage any additional degree programs, diplomas, or academic qualifications."
+          right={
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => { reset(); setShowForm(true); }}
+              className="font-bold rounded-xl shadow-2xs self-start sm:self-auto"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add Degree
+            </Button>
+          }
+        />
+
+        {formError && <FormFeedback status="error" message={formError} />}
 
         <div className="space-y-3.5">
           {education.map((edu) => (
@@ -1379,34 +1747,34 @@ function EducationSection({ education, profile, onUpdate }: { education: Educati
         {showForm && (
           <div className="rounded-xl border border-kit-200 bg-kit-50/20 p-5 space-y-4">
             <h4 className="text-sm font-bold text-kit-900">{editId ? 'Edit Degree' : 'Add New Degree'}</h4>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Institution / University</label>
-                <Input value={form.institution} onChange={(e) => setForm({ ...form, institution: e.target.value })} placeholder="e.g. KIT - Kalaignarkarunanidhi Institute of Technology" className="h-9.5 text-xs sm:text-sm bg-white" />
+            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="sm:col-span-2 lg:col-span-3">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Institution / University<RequiredMark /></label>
+                <Input value={form.institution} onChange={(e) => setForm({ ...form, institution: e.target.value })} placeholder="e.g. KIT - Kalaignarkarunanidhi Institute of Technology" error={entryErrors.institution} className="h-9.5 text-xs sm:text-sm bg-white" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Degree</label>
-                <Input value={form.degree} onChange={(e) => setForm({ ...form, degree: e.target.value })} placeholder="e.g. B.Tech / B.E." className="h-9.5 text-xs sm:text-sm bg-white" />
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Degree<RequiredMark /></label>
+                <Input value={form.degree} onChange={(e) => setForm({ ...form, degree: e.target.value })} placeholder="e.g. B.Tech / B.E." error={entryErrors.degree} className="h-9.5 text-xs sm:text-sm bg-white" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Field of Study / Major</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Field of Study / Major<FieldHint>Optional</FieldHint></label>
                 <Input value={form.fieldOfStudy} onChange={(e) => setForm({ ...form, fieldOfStudy: e.target.value })} placeholder="e.g. Computer Science / AI & DS" className="h-9.5 text-xs sm:text-sm bg-white" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Minor / Secondary Specialization</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Minor / Secondary Specialization<FieldHint>Optional</FieldHint></label>
                 <Input value={form.minor} onChange={(e) => setForm({ ...form, minor: e.target.value })} placeholder="e.g. Cybersecurity (Optional)" className="h-9.5 text-xs sm:text-sm bg-white" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Grade / CGPA</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Grade / CGPA<FieldHint>Optional</FieldHint></label>
                 <Input value={form.grade} onChange={(e) => setForm({ ...form, grade: e.target.value })} placeholder="e.g. 8.5 CGPA or 85%" className="h-9.5 text-xs sm:text-sm bg-white" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Start Year</label>
-                <Input type="number" value={form.startYear} onChange={(e) => setForm({ ...form, startYear: e.target.value })} placeholder="2022" className="h-9.5 text-xs sm:text-sm bg-white" />
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Start Year<RequiredMark /></label>
+                <Input type="number" value={form.startYear} onChange={(e) => setForm({ ...form, startYear: e.target.value })} placeholder="2022" error={entryErrors.startYear} className="h-9.5 text-xs sm:text-sm bg-white" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">End Year (or Expected)</label>
-                <Input type="number" value={form.endYear} onChange={(e) => setForm({ ...form, endYear: e.target.value })} placeholder="2026" className="h-9.5 text-xs sm:text-sm bg-white" />
+                <label className="block text-xs font-semibold text-slate-700 mb-1">End Year (or Expected)<FieldHint>Optional</FieldHint></label>
+                <Input type="number" value={form.endYear} onChange={(e) => setForm({ ...form, endYear: e.target.value })} placeholder="2026" error={entryErrors.endYear} className="h-9.5 text-xs sm:text-sm bg-white" />
               </div>
             </div>
             <div className="flex gap-2 justify-end pt-2 border-t border-kit-100">
@@ -1428,69 +1796,90 @@ function EducationSection({ education, profile, onUpdate }: { education: Educati
 function SkillsSection({ skills, onUpdate }: { skills: Skill[]; onUpdate: () => void }) {
   const [newSkill, setNewSkill] = useState('');
   const [adding, setAdding] = useState(false);
+  const [error, setError] = useState('');
+  const [inputError, setInputError] = useState('');
 
   const handleAdd = async () => {
-    if (!newSkill.trim()) return;
+    const value = newSkill.trim();
+    if (!value) {
+      setInputError('Please enter a skill name.');
+      return;
+    }
+    if (skills.some((s) => s.name.toLowerCase() === value.toLowerCase())) {
+      setInputError('This skill has already been added.');
+      return;
+    }
+    setInputError('');
+    setError('');
     setAdding(true);
     try {
-      await api.post('/profiles/skills', { name: newSkill.trim() });
+      await api.post('/profiles/skills', { name: value });
       setNewSkill('');
       onUpdate();
     } catch (err: any) {
-      alert(err?.response?.data?.message || 'Failed to add skill.');
+      setError(err?.response?.data?.message || 'Failed to add skill.');
     } finally {
       setAdding(false);
     }
   };
 
   const handleRemove = async (skillId: string) => {
+    setError('');
     try {
       await api.delete(`/profiles/skills/${skillId}`);
       onUpdate();
     } catch (err: any) {
-      alert(err?.response?.data?.message || 'Failed to delete skill.');
+      setError(err?.response?.data?.message || 'Failed to delete skill.');
     }
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-xs space-y-6">
-      <div className="border-b border-slate-100 pb-4">
-        <h2 className="text-lg font-bold text-slate-900 tracking-tight">Technical & Soft Skills</h2>
-        <p className="text-xs text-slate-500 mt-0.5">Skills added here are used by AI algorithms to match relevant job and internship opportunities.</p>
-      </div>
+    <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-5">
+      <SectionHeading
+        icon={Code}
+        title="Technical & Soft Skills"
+        description="Skills added here are used by AI algorithms to match relevant job and internship opportunities."
+      />
 
-      <div className="flex flex-wrap gap-2">
-        {skills.map((skill) => (
-          <span
-            key={skill.id}
-            className="group flex items-center gap-2 rounded-xl border border-kit-200/80 bg-kit-50/60 px-3 py-1.5 text-xs font-bold text-kit-800 transition-all hover:bg-kit-100"
-          >
-            <span>{skill.name}</span>
-            <button
-              onClick={() => handleRemove(skill.id)}
-              className="text-kit-400 group-hover:text-red-600 transition-colors p-0.5"
-              title="Remove skill"
+      {error && <FormFeedback status="error" message={error} />}
+
+      <div>
+        <div className="flex flex-wrap gap-2">
+          {skills.map((skill) => (
+            <span
+              key={skill.id}
+              className="group flex items-center gap-2 rounded-xl border border-kit-200/80 bg-kit-50/60 px-3 py-1.5 text-xs font-bold text-kit-800 transition-all hover:bg-kit-100"
             >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </span>
-        ))}
-        {skills.length === 0 && (
-          <p className="text-xs text-slate-500 italic py-2">No skills added yet. Add your core programming languages, tools, and libraries below.</p>
-        )}
-      </div>
+              <span>{skill.name}</span>
+              <button
+                onClick={() => handleRemove(skill.id)}
+                className="text-kit-400 group-hover:text-red-600 transition-colors p-0.5 rounded focus:outline-none focus:ring-2 focus:ring-kit-500"
+                title={`Remove ${skill.name}`}
+                aria-label={`Remove ${skill.name}`}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </span>
+          ))}
+          {skills.length === 0 && (
+            <p className="text-xs text-slate-500 italic py-2">No skills added yet. Add your core programming languages, tools, and libraries below.</p>
+          )}
+        </div>
 
-      <div className="flex gap-2 max-w-md pt-2">
-        <Input
-          placeholder="e.g. Python, React, Next.js, Machine Learning"
-          value={newSkill}
-          onChange={(e) => setNewSkill(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
-          className="h-10 text-xs sm:text-sm bg-white"
-        />
-        <Button variant="primary" isLoading={adding} onClick={handleAdd} className="font-bold shrink-0 rounded-xl shadow-2xs">
-          <Plus className="h-4 w-4" /> Add Skill
-        </Button>
+        <div className="flex flex-col gap-2 pt-4 sm:flex-row">
+          <Input
+            placeholder="e.g. Python, React, Next.js, Machine Learning"
+            value={newSkill}
+            onChange={(e) => { setNewSkill(e.target.value); if (inputError) setInputError(''); }}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
+            error={inputError}
+            aria-label="Skill name"
+            className="h-10 text-xs sm:text-sm bg-white"
+          />
+          <Button variant="primary" isLoading={adding} onClick={handleAdd} className="font-bold shrink-0 rounded-xl shadow-2xs">
+            <Plus className="h-4 w-4" /> Add Skill
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -1504,18 +1893,42 @@ function ProjectsSection({ projects, onUpdate }: { projects: Project[]; onUpdate
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ title: '', description: '', technologies: '', githubUrl: '', liveUrl: '' });
   const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const reset = () => {
     setShowForm(false);
     setEditId(null);
     setForm({ title: '', description: '', technologies: '', githubUrl: '', liveUrl: '' });
+    setErrors({});
+    setFormError('');
+  };
+
+  const isValidUrl = (value: string) => {
+    try {
+      const u = new URL(value);
+      return u.protocol === 'http:' || u.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
+  const validate = (): Record<string, string> => {
+    const next: Record<string, string> = {};
+    if (!form.title.trim()) next.title = 'Project title is required.';
+    if (form.githubUrl && !isValidUrl(form.githubUrl)) next.githubUrl = 'Enter a valid URL starting with http:// or https://';
+    if (form.liveUrl && !isValidUrl(form.liveUrl)) next.liveUrl = 'Enter a valid URL starting with http:// or https://';
+    return next;
   };
 
   const handleSubmit = async () => {
-    if (!form.title) {
-      alert('Please provide a project title.');
+    const next = validate();
+    setErrors(next);
+    if (Object.keys(next).length > 0) {
+      setFormError('Please correct the highlighted fields before saving.');
       return;
     }
+    setFormError('');
     setSubmitting(true);
     try {
       const payload = {
@@ -1530,23 +1943,37 @@ function ProjectsSection({ projects, onUpdate }: { projects: Project[]; onUpdate
       onUpdate();
       reset();
     } catch (err: any) {
-      alert(err?.response?.data?.message || 'Failed to save project.');
+      setFormError(err?.response?.data?.message || 'Failed to save project.');
     } finally {
       setSubmitting(false);
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this project?')) return;
+    setFormError('');
+    try {
+      await api.delete(`/profiles/projects/${id}`);
+      onUpdate();
+    } catch (err: any) {
+      setFormError(err?.response?.data?.message || 'Failed to delete project.');
+    }
+  };
+
   return (
-    <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-xs space-y-6">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900 tracking-tight">Key Projects</h2>
-          <p className="text-xs text-slate-500 mt-0.5">Showcase your software applications, machine learning models, and engineering projects.</p>
-        </div>
-        <Button variant="primary" size="sm" onClick={() => { reset(); setShowForm(true); }} className="font-bold rounded-xl shadow-2xs">
-          <Plus className="h-3.5 w-3.5" /> Add Project
-        </Button>
-      </div>
+    <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-5">
+      <SectionHeading
+        icon={Briefcase}
+        title="Key Projects"
+        description="Showcase your software applications, machine learning models, and engineering projects."
+        right={
+          <Button variant="primary" size="sm" onClick={() => { reset(); setShowForm(true); }} className="font-bold rounded-xl shadow-2xs self-start sm:self-auto">
+            <Plus className="h-3.5 w-3.5" /> Add Project
+          </Button>
+        }
+      />
+
+      {formError && <FormFeedback status="error" message={formError} />}
 
       <div className="space-y-3.5">
         {projects.map((proj) => (
@@ -1593,20 +2020,17 @@ function ProjectsSection({ projects, onUpdate }: { projects: Project[]; onUpdate
                     });
                     setShowForm(true);
                   }}
-                  className="rounded-lg p-1.5 text-slate-400 hover:bg-kit-50 hover:text-kit-700 transition-colors"
-                  title="Edit"
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-kit-50 hover:text-kit-700 transition-colors focus:outline-none focus:ring-2 focus:ring-kit-500"
+                  title="Edit project"
+                  aria-label={`Edit ${proj.title}`}
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={async () => {
-                    if (confirm('Delete project?')) {
-                      await api.delete(`/profiles/projects/${proj.id}`);
-                      onUpdate();
-                    }
-                  }}
-                  className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
-                  title="Delete"
+                  onClick={() => handleDelete(proj.id)}
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors focus:outline-none focus:ring-2 focus:ring-red-400"
+                  title="Delete project"
+                  aria-label={`Delete ${proj.title}`}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -1615,7 +2039,7 @@ function ProjectsSection({ projects, onUpdate }: { projects: Project[]; onUpdate
           </div>
         ))}
         {projects.length === 0 && !showForm && (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-8 text-center space-y-2">
+          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center space-y-2">
             <Briefcase className="h-8 w-8 text-slate-300 mx-auto" />
             <p className="text-sm font-semibold text-slate-700">No projects added yet</p>
             <p className="text-xs text-slate-500">Showcase your portfolio by clicking &ldquo;Add Project&rdquo; above.</p>
@@ -1628,25 +2052,25 @@ function ProjectsSection({ projects, onUpdate }: { projects: Project[]; onUpdate
           <h4 className="text-sm font-bold text-kit-900">{editId ? 'Edit Project' : 'Add New Project'}</h4>
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Project Title</label>
-              <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g. AI Career Management Platform" className="h-9.5 text-xs sm:text-sm bg-white" />
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Project Title<RequiredMark /></label>
+              <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g. AI Career Management Platform" error={errors.title} className="h-9.5 text-xs sm:text-sm bg-white" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Description</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Description<FieldHint>Optional</FieldHint></label>
               <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Explain problem solved, architecture, and impact..." rows={3} className="text-xs sm:text-sm bg-white rounded-xl" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Technologies (comma separated)</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Technologies (comma separated)<FieldHint>Optional</FieldHint></label>
               <Input value={form.technologies} onChange={(e) => setForm({ ...form, technologies: e.target.value })} placeholder="React, Node.js, PostgreSQL, TailwindCSS" className="h-9.5 text-xs sm:text-sm bg-white" />
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">GitHub / Source Code URL</label>
-                <Input value={form.githubUrl} onChange={(e) => setForm({ ...form, githubUrl: e.target.value })} placeholder="https://github.com/..." className="h-9.5 text-xs sm:text-sm bg-white" />
+                <label className="block text-xs font-semibold text-slate-700 mb-1">GitHub / Source Code URL<FieldHint>Optional</FieldHint></label>
+                <Input value={form.githubUrl} onChange={(e) => setForm({ ...form, githubUrl: e.target.value })} placeholder="https://github.com/..." error={errors.githubUrl} className="h-9.5 text-xs sm:text-sm bg-white" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Live Demo URL</label>
-                <Input value={form.liveUrl} onChange={(e) => setForm({ ...form, liveUrl: e.target.value })} placeholder="https://myproject.app" className="h-9.5 text-xs sm:text-sm bg-white" />
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Live Demo URL<FieldHint>Optional</FieldHint></label>
+                <Input value={form.liveUrl} onChange={(e) => setForm({ ...form, liveUrl: e.target.value })} placeholder="https://myproject.app" error={errors.liveUrl} className="h-9.5 text-xs sm:text-sm bg-white" />
               </div>
             </div>
           </div>
@@ -1670,18 +2094,36 @@ function ExperienceSection({ experiences, onUpdate }: { experiences: Experience[
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ company: '', role: '', duration: '', description: '', startDate: '', endDate: '', currentlyWorking: false });
   const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const reset = () => {
     setShowForm(false);
     setEditId(null);
     setForm({ company: '', role: '', duration: '', description: '', startDate: '', endDate: '', currentlyWorking: false });
+    setErrors({});
+    setFormError('');
+  };
+
+  const validate = (): Record<string, string> => {
+    const next: Record<string, string> = {};
+    if (!form.company.trim()) next.company = 'Company / organization is required.';
+    if (!form.role.trim()) next.role = 'Role / designation is required.';
+    if (!form.startDate) next.startDate = 'Start date is required.';
+    if (!form.currentlyWorking && form.endDate && form.startDate && form.endDate < form.startDate) {
+      next.endDate = 'End date cannot be before start date.';
+    }
+    return next;
   };
 
   const handleSubmit = async () => {
-    if (!form.company || !form.role || !form.startDate) {
-      alert('Please provide company name, role, and start date.');
+    const next = validate();
+    setErrors(next);
+    if (Object.keys(next).length > 0) {
+      setFormError('Please correct the highlighted fields before saving.');
       return;
     }
+    setFormError('');
     setSubmitting(true);
     try {
       const payload = { ...form, endDate: form.currentlyWorking ? undefined : form.endDate || undefined };
@@ -1690,23 +2132,37 @@ function ExperienceSection({ experiences, onUpdate }: { experiences: Experience[
       onUpdate();
       reset();
     } catch (err: any) {
-      alert(err?.response?.data?.message || 'Failed to save experience.');
+      setFormError(err?.response?.data?.message || 'Failed to save experience.');
     } finally {
       setSubmitting(false);
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this experience record?')) return;
+    setFormError('');
+    try {
+      await api.delete(`/profiles/experience/${id}`);
+      onUpdate();
+    } catch (err: any) {
+      setFormError(err?.response?.data?.message || 'Failed to delete experience record.');
+    }
+  };
+
   return (
-    <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-xs space-y-6">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900 tracking-tight">Work Experience & Internships</h2>
-          <p className="text-xs text-slate-500 mt-0.5">List your internship roles, part-time positions, or professional training.</p>
-        </div>
-        <Button variant="primary" size="sm" onClick={() => { reset(); setShowForm(true); }} className="font-bold rounded-xl shadow-2xs">
-          <Plus className="h-3.5 w-3.5" /> Add Experience
-        </Button>
-      </div>
+    <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-5">
+      <SectionHeading
+        icon={Building2}
+        title="Work Experience & Internships"
+        description="List your internship roles, part-time positions, or professional training."
+        right={
+          <Button variant="primary" size="sm" onClick={() => { reset(); setShowForm(true); }} className="font-bold rounded-xl shadow-2xs self-start sm:self-auto">
+            <Plus className="h-3.5 w-3.5" /> Add Experience
+          </Button>
+        }
+      />
+
+      {formError && <FormFeedback status="error" message={formError} />}
 
       <div className="space-y-3.5">
         {experiences.map((exp) => (
@@ -1748,20 +2204,17 @@ function ExperienceSection({ experiences, onUpdate }: { experiences: Experience[
                     });
                     setShowForm(true);
                   }}
-                  className="rounded-lg p-1.5 text-slate-400 hover:bg-kit-50 hover:text-kit-700 transition-colors"
-                  title="Edit"
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-kit-50 hover:text-kit-700 transition-colors focus:outline-none focus:ring-2 focus:ring-kit-500"
+                  title="Edit experience"
+                  aria-label={`Edit ${exp.role} at ${exp.company}`}
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={async () => {
-                    if (confirm('Delete experience record?')) {
-                      await api.delete(`/profiles/experience/${exp.id}`);
-                      onUpdate();
-                    }
-                  }}
-                  className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
-                  title="Delete"
+                  onClick={() => handleDelete(exp.id)}
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors focus:outline-none focus:ring-2 focus:ring-red-400"
+                  title="Delete experience"
+                  aria-label={`Delete ${exp.role} at ${exp.company}`}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -1770,7 +2223,7 @@ function ExperienceSection({ experiences, onUpdate }: { experiences: Experience[
           </div>
         ))}
         {experiences.length === 0 && !showForm && (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-8 text-center space-y-2">
+          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center space-y-2">
             <Briefcase className="h-8 w-8 text-slate-300 mx-auto" />
             <p className="text-sm font-semibold text-slate-700">No experience records added yet</p>
             <p className="text-xs text-slate-500">Include your past internships, positions, or training programs.</p>
@@ -1781,40 +2234,40 @@ function ExperienceSection({ experiences, onUpdate }: { experiences: Experience[
       {showForm && (
         <div className="rounded-xl border border-kit-200 bg-kit-50/20 p-5 space-y-4">
           <h4 className="text-sm font-bold text-kit-900">{editId ? 'Edit Experience' : 'Add New Experience'}</h4>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Company / Organization</label>
-              <Input value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} placeholder="e.g. Infosys, TCS, Startup" className="h-9.5 text-xs sm:text-sm bg-white" />
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Company / Organization<RequiredMark /></label>
+              <Input value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} placeholder="e.g. Infosys, TCS, Startup" error={errors.company} className="h-9.5 text-xs sm:text-sm bg-white" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Role / Designation</label>
-              <Input value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} placeholder="e.g. AI / ML Intern" className="h-9.5 text-xs sm:text-sm bg-white" />
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Role / Designation<RequiredMark /></label>
+              <Input value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} placeholder="e.g. AI / ML Intern" error={errors.role} className="h-9.5 text-xs sm:text-sm bg-white" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Total Experience / Duration</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Total Experience / Duration<FieldHint>Optional</FieldHint></label>
               <Input value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} placeholder="e.g. 6 Months, 1 Year, Summer Internship" className="h-9.5 text-xs sm:text-sm bg-white" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Start Date</label>
-              <Input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} className="h-9.5 text-xs sm:text-sm bg-white" />
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Start Date<RequiredMark /></label>
+              <Input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} error={errors.startDate} className="h-9.5 text-xs sm:text-sm bg-white" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">End Date</label>
-              <Input type="date" disabled={form.currentlyWorking} value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} className={`h-9.5 text-xs sm:text-sm ${form.currentlyWorking ? 'bg-slate-100 text-slate-400' : 'bg-white'}`} />
+              <label className="block text-xs font-semibold text-slate-700 mb-1">End Date<FieldHint>Optional — disabled if currently working</FieldHint></label>
+              <Input type="date" disabled={form.currentlyWorking} value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} error={errors.endDate} className={`h-9.5 text-xs sm:text-sm ${form.currentlyWorking ? 'bg-slate-100 text-slate-400' : 'bg-white'}`} />
             </div>
             <div className="flex items-center sm:pt-6">
               <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={form.currentlyWorking}
-                  onChange={(e) => setForm({ ...form, currentlyWorking: e.target.checked })}
+                  onChange={(e) => setForm({ ...form, currentlyWorking: e.target.checked, endDate: e.target.checked ? '' : form.endDate })}
                   className="rounded border-slate-300 text-kit-600 focus:ring-kit-500"
                 />
                 <span>I currently work here</span>
               </label>
             </div>
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Responsibilities & Learnings</label>
+            <div className="sm:col-span-2 lg:col-span-3">
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Responsibilities & Learnings<FieldHint>Optional</FieldHint></label>
               <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Describe tasks performed, technologies used, and key achievements..." rows={3} className="text-xs sm:text-sm bg-white rounded-xl" />
             </div>
           </div>
@@ -1840,6 +2293,7 @@ function WorkPreferencesSection({ profile, onUpdate }: { profile: Profile | null
   });
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     if (profile) {
@@ -1850,17 +2304,36 @@ function WorkPreferencesSection({ profile, onUpdate }: { profile: Profile | null
     }
   }, [profile]);
 
+  const baseline = useMemo(
+    () => ({
+      previousWorkMode: profile?.previousWorkMode ?? '',
+      preferredWorkMode: profile?.preferredWorkMode ?? '',
+    }),
+    [profile]
+  );
+  const isDirty = useMemo(
+    () => JSON.stringify(form) !== JSON.stringify(baseline),
+    [form, baseline]
+  );
+  useSectionDirty(isDirty);
+
+  const handleReset = () => {
+    setForm(baseline);
+    setErrorMsg('');
+    setSavedSuccess(false);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setSavedSuccess(false);
+    setErrorMsg('');
     try {
       await api.put('/profiles/me', form);
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3000);
       onUpdate();
     } catch (error: any) {
-      console.error('Failed to save work preferences:', error);
-      alert(error?.response?.data?.message || 'Failed to save work preferences. Please try again.');
+      setErrorMsg(error?.response?.data?.message || 'Failed to save work preferences. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -1881,22 +2354,23 @@ function WorkPreferencesSection({ profile, onUpdate }: { profile: Profile | null
   ];
 
   return (
-    <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-xs space-y-6">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900 tracking-tight">Work Preferences</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Configure your past work environment and desired work arrangement for upcoming placements and internships.
-          </p>
-        </div>
-        {savedSuccess && (
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200">
-            <CheckCircle2 className="h-3.5 w-3.5" /> Saved successfully
-          </span>
-        )}
-      </div>
+    <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-5">
+      <SectionHeading
+        icon={SlidersHorizontal}
+        title="Work Preferences"
+        description="Configure your past work environment and desired work arrangement for upcoming placements and internships."
+        right={
+          savedSuccess ? (
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3.5 py-1.5 rounded-xl border border-emerald-200 shadow-2xs self-start sm:self-auto animate-in fade-in">
+              <CheckCircle2 className="h-4 w-4" /> Saved successfully
+            </span>
+          ) : undefined
+        }
+      />
 
-      <div className="space-y-6">
+      {errorMsg && <FormFeedback status="error" message={errorMsg} />}
+
+      <div className="space-y-5">
         {/* Previous / Current Work Mode */}
         <div className="space-y-3">
           <div>
@@ -1906,7 +2380,7 @@ function WorkPreferencesSection({ profile, onUpdate }: { profile: Profile | null
             <p className="text-xs text-slate-500 mt-0.5">Specify how you worked in your past or current roles.</p>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {previousOptions.map((opt) => {
               const isSelected = form.previousWorkMode === opt.value;
               return (
@@ -1914,6 +2388,7 @@ function WorkPreferencesSection({ profile, onUpdate }: { profile: Profile | null
                   key={opt.value}
                   type="button"
                   onClick={() => setForm({ ...form, previousWorkMode: opt.value })}
+                  aria-pressed={isSelected}
                   className={`flex flex-col items-start p-4 rounded-xl border text-left transition-all ${
                     isSelected
                       ? 'border-kit-600 bg-kit-50/60 ring-2 ring-kit-600/20 shadow-xs'
@@ -1948,7 +2423,7 @@ function WorkPreferencesSection({ profile, onUpdate }: { profile: Profile | null
             <p className="text-xs text-slate-500 mt-0.5">Select your preferred work arrangement for future employment opportunities.</p>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {preferredOptions.map((opt) => {
               const isSelected = form.preferredWorkMode === opt.value;
               return (
@@ -1956,6 +2431,7 @@ function WorkPreferencesSection({ profile, onUpdate }: { profile: Profile | null
                   key={opt.value}
                   type="button"
                   onClick={() => setForm({ ...form, preferredWorkMode: opt.value })}
+                  aria-pressed={isSelected}
                   className={`flex flex-col items-start p-4 rounded-xl border text-left transition-all ${
                     isSelected
                       ? 'border-kit-600 bg-kit-50/60 ring-2 ring-kit-600/20 shadow-xs'
@@ -1982,11 +2458,31 @@ function WorkPreferencesSection({ profile, onUpdate }: { profile: Profile | null
         </div>
       </div>
 
-      <div className="flex justify-end pt-2 border-t border-slate-100">
-        <Button variant="primary" isLoading={saving} onClick={handleSave} className="font-bold px-6 py-2.5 rounded-xl shadow-xs">
-          <Save className="h-4 w-4" />
-          Save Work Preferences
-        </Button>
+      <div className="flex flex-col-reverse items-stretch gap-3 pt-4 border-t border-slate-100 sm:flex-row sm:items-center sm:justify-between">
+        <span className="text-[11px] text-slate-400">
+          {isDirty ? 'You have unsaved changes.' : 'All changes saved.'}
+        </span>
+        <div className="flex items-center justify-end gap-3">
+          <Button
+            variant="outline"
+            onClick={handleReset}
+            disabled={!isDirty || saving}
+            className="font-bold px-5 py-2.5 rounded-xl text-xs sm:text-sm"
+          >
+            <X className="h-4 w-4" />
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            isLoading={saving}
+            onClick={handleSave}
+            disabled={!isDirty && !saving}
+            className="font-bold px-6 py-2.5 rounded-xl shadow-xs text-xs sm:text-sm"
+          >
+            <Save className="h-4 w-4" />
+            Save Work Preferences
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -2054,6 +2550,10 @@ function SocialSection({ profile, onUpdate }: { profile: Profile | null; onUpdat
 
     if (!inputUrl || !inputUrl.trim()) {
       setErrorMsg((prev) => ({ ...prev, [platform]: `Please enter your ${platform.toLowerCase().replace(/^\w/, (c) => c.toUpperCase())} URL first.` }));
+      return;
+    }
+    if (!/^https?:\/\/.+\..+/i.test(inputUrl.trim())) {
+      setErrorMsg((prev) => ({ ...prev, [platform]: 'Enter a valid URL starting with http:// or https://' }));
       return;
     }
 
@@ -2149,15 +2649,14 @@ function SocialSection({ profile, onUpdate }: { profile: Profile | null; onUpdat
   ];
 
   return (
-    <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-xs space-y-6">
-      <div className="border-b border-slate-100 pb-4">
-        <h2 className="text-lg font-bold text-slate-900 tracking-tight">Verified Social & Coding Links</h2>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Connect and verify your GitHub, LinkedIn, Codolio, CodeChef, LeetCode, and Portfolio website. Verified links are verified live and attached to your application resume.
-        </p>
-      </div>
+    <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-5">
+      <SectionHeading
+        icon={LinkIcon}
+        title="Verified Social & Coding Links"
+        description="Connect and verify your GitHub, LinkedIn, Codolio, CodeChef, LeetCode, and Portfolio website. Verified links are verified live and attached to your application resume."
+      />
 
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-3.5 xl:grid-cols-2">
         {platforms.map((p) => {
           const verified = verifiedMap[p.key];
           const isVerifying = verifying[p.key];
@@ -2189,7 +2688,11 @@ function SocialSection({ profile, onUpdate }: { profile: Profile | null; onUpdat
                   type="url"
                   placeholder={p.placeholder}
                   value={urls[p.urlKey]}
-                  onChange={(e) => setUrls({ ...urls, [p.urlKey]: e.target.value })}
+                  onChange={(e) => {
+                    setUrls({ ...urls, [p.urlKey]: e.target.value });
+                    if (err) setErrorMsg((prev) => ({ ...prev, [p.key]: '' }));
+                  }}
+                  aria-label={p.label}
                   className="flex-1 bg-white h-9.5 text-xs sm:text-sm"
                 />
                 <Button
@@ -2259,6 +2762,7 @@ function SocialSection({ profile, onUpdate }: { profile: Profile | null; onUpdat
 function CareerActivitiesSection() {
   const [completedActivities, setCompletedActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     async function loadCompletedActivities() {
@@ -2267,8 +2771,8 @@ function CareerActivitiesSection() {
         if (res.data.success) {
           setCompletedActivities(res.data.history || []);
         }
-      } catch (err) {
-        console.error('Failed to load completed activities:', err);
+      } catch (err: any) {
+        setError(err?.response?.data?.message || 'Failed to load completed career activities.');
       } finally {
         setLoading(false);
       }
@@ -2277,26 +2781,29 @@ function CareerActivitiesSection() {
   }, []);
 
   return (
-    <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-xs space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-4">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900 tracking-tight">Career Activities & Hackathons</h2>
-          <p className="text-xs text-slate-500 mt-0.5">Showcase your completed hackathons, internships, competitions, and workshops.</p>
-        </div>
-        <Link
-          href="/dashboard/student/opportunity-history"
-          className="inline-flex items-center gap-1.5 rounded-xl bg-kit-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-kit-700 transition-colors shadow-2xs self-start sm:self-auto"
-        >
-          View Full History →
-        </Link>
-      </div>
+    <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-5">
+      <SectionHeading
+        icon={Trophy}
+        title="Career Activities & Hackathons"
+        description="Showcase your completed hackathons, internships, competitions, and workshops."
+        right={
+          <Link
+            href="/dashboard/student/opportunity-history"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-kit-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-kit-700 transition-colors shadow-2xs self-start sm:self-auto"
+          >
+            View Full History →
+          </Link>
+        }
+      />
+
+      {error && <FormFeedback status="error" message={error} />}
 
       {loading ? (
         <div className="flex h-32 items-center justify-center">
           <LoadingSpinner size="md" />
         </div>
       ) : completedActivities.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-8 text-center space-y-2">
+        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center space-y-2">
           <Trophy className="h-8 w-8 text-slate-300 mx-auto" />
           <p className="text-sm font-semibold text-slate-700">No completed career activities yet</p>
           <p className="text-xs text-slate-500">Activities marked as completed in your Placement Tracker will automatically appear here.</p>

@@ -14,6 +14,7 @@ import {
 } from './badgeCatalogService';
 import { buildCredentialId, buildVerificationPath, ISSUING_ORGANIZATION } from './badgeCredentials';
 import { verificationLedger } from '../leaderboard/verificationLedger';
+import { computeStreakCore } from './streakCalculator';
 
 /**
  * Timezone-aware date helper for consistent daily streak tracking.
@@ -144,45 +145,15 @@ export class BadgeEngine {
     }
 
     const uniqueDates = Array.from(new Set(rawStreaks.map((r) => r.activityDate))).sort().reverse();
-    const totalActiveDays = uniqueDates.length;
 
     const todayStr = getFormattedDateInTz();
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = getFormattedDateInTz(yesterday);
 
-    let currentStreak = 0;
-    const pointerDate =
-      uniqueDates[0] === todayStr ? todayStr : uniqueDates[0] === yesterdayStr ? yesterdayStr : null;
-
-    if (pointerDate) {
-      currentStreak = 1;
-      let cur = new Date(pointerDate);
-      for (let i = 1; i < uniqueDates.length; i++) {
-        const expectedPrev = new Date(cur);
-        expectedPrev.setDate(expectedPrev.getDate() - 1);
-        if (uniqueDates[i] === getFormattedDateInTz(expectedPrev)) {
-          currentStreak++;
-          cur = expectedPrev;
-        } else {
-          break;
-        }
-      }
-    }
-
-    let longestStreak = currentStreak;
-    let tempStreak = 1;
-    for (let i = 0; i < uniqueDates.length - 1; i++) {
-      const cur = new Date(uniqueDates[i]);
-      const prev = new Date(uniqueDates[i + 1]);
-      const diffDays = Math.round((cur.getTime() - prev.getTime()) / (1000 * 3600 * 24));
-      if (diffDays === 1) {
-        tempStreak++;
-        if (tempStreak > longestStreak) longestStreak = tempStreak;
-      } else {
-        tempStreak = 1;
-      }
-    }
+    // Shared strict consecutive-day logic — identical to the daily check-in
+    // service so badges and the dashboard never disagree on the streak value.
+    const core = computeStreakCore(uniqueDates, todayStr, yesterdayStr);
 
     const curYearMonth = todayStr.slice(0, 7);
     const weeksSet = new Set<number>();
@@ -192,19 +163,19 @@ export class BadgeEngine {
     const activeWeeksInMonth = weeksSet.size;
 
     let comebackDays = 0;
-    if (currentStreak >= 3 && uniqueDates.length > currentStreak) {
-      const lastActiveBeforeStreak = new Date(uniqueDates[currentStreak]);
-      const firstActiveOfStreak = new Date(uniqueDates[currentStreak - 1]);
+    if (core.currentStreak >= 3 && uniqueDates.length > core.currentStreak) {
+      const lastActiveBeforeStreak = new Date(uniqueDates[core.currentStreak]);
+      const firstActiveOfStreak = new Date(uniqueDates[core.currentStreak - 1]);
       const gap = Math.round(
         (firstActiveOfStreak.getTime() - lastActiveBeforeStreak.getTime()) / (1000 * 3600 * 24)
       );
-      if (gap >= 2) comebackDays = currentStreak;
+      if (gap >= 2) comebackDays = core.currentStreak;
     }
 
     return {
-      currentStreak,
-      longestStreak: Math.max(longestStreak, currentStreak),
-      totalActiveDays,
+      currentStreak: core.currentStreak,
+      longestStreak: core.longestStreak,
+      totalActiveDays: core.totalActiveDays,
       activeWeeksInMonth,
       comebackDays,
     };

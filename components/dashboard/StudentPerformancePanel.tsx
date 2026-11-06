@@ -14,23 +14,51 @@ import {
   ChevronRight,
   BarChart2,
   Award,
+  Lock,
   ListOrdered,
-  CalendarDays,
   Target,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { getCleanProfilePhotoUrl } from '@/lib/avatar';
 import { RankMedalBadge } from '@/components/leaderboard/StudentClassLeaderboard';
 import { MysteryGiftCard } from './MysteryGiftCard';
 import { Crown } from 'lucide-react';
+import { BadgeEmblem, resolveBadgeIcon } from '@/components/badges/BadgeEmblem';
+import { BADGE_CATEGORIES } from '@/lib/gamification/badgeConfig';
+import type { BadgeCategory, BadgeTier } from '@/lib/gamification/badgeConfig';
 
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
+interface CareerMilestoneProgress {
+  days: number;
+  reached: boolean;
+  remaining: number;
+}
+
+type WeeklyDayStatus =
+  | 'COMPLETED'
+  | 'MISSED'
+  | 'TODAY_COMPLETED'
+  | 'TODAY_PENDING'
+  | 'FUTURE'
+  | 'NEUTRAL';
+
+interface WeeklyActivityDay {
+  date: string;
+  dayLabel: string;
+  dayNumber: number;
+  isToday: boolean;
+  status: WeeklyDayStatus;
+}
+
 interface CheckInState {
   checkedInToday: boolean;
+  checkInDate?: string;
   todayXpEarned: number;
   totalEarnedXp: number;
+  dailyCheckInXp?: number;
   secondsUntilNextCheckIn: number;
   streak: {
     currentStreak: number;
@@ -38,7 +66,10 @@ interface CheckInState {
     totalActiveDays: number;
     progressInCycle: number;
     targetInCycle: number;
+    milestones?: CareerMilestoneProgress[];
+    nextCareerMilestone?: { days: number; remaining: number } | null;
   };
+  weeklyActivity?: WeeklyActivityDay[];
 }
 
 interface LeaderboardEntry {
@@ -58,6 +89,41 @@ interface AchievementSummary {
   totalXp: number;
   currentStreak: number;
   longestStreak: number;
+}
+
+/** Shape of a single badge as returned by /api/achievements (badgeEngine overview). */
+interface BadgeItem {
+  id: string;
+  title: string;
+  category: string;
+  tier: string;
+  rarity?: string;
+  description?: string;
+  criteria?: string;
+  icon?: string;
+  unit?: string;
+  status: 'EARNED' | 'IN_PROGRESS' | 'LOCKED';
+  xpReward?: number;
+  awardedAt?: string | null;
+  currentValue?: number;
+  targetValue?: number;
+  threshold?: number;
+  progressAvailable?: boolean;
+  progressPercentage?: number;
+  remainingToUnlock?: number | null;
+}
+
+interface BadgeCategorySummary {
+  category: string;
+  total: number;
+  earned: number;
+}
+
+interface BadgeCollection {
+  all: BadgeItem[];
+  earned: BadgeItem[];
+  inProgress: BadgeItem[];
+  locked: BadgeItem[];
 }
 
 type TabId = 'tracker' | 'leaderboard' | 'badges';
@@ -277,134 +343,272 @@ function TrophyRankIcon({ size = 26 }: { size?: number }) {
 }
 
 // ─────────────────────────────────────────────
-// Tab 1: Monthly Tracker (Fits inside fixed viewport)
+// Tab 1: Daily Career Check-In (strict streak)
 // ─────────────────────────────────────────────
-function MonthlyTrackerTab({
+const WEEKLY_DAY_STYLE: Record<
+  WeeklyDayStatus,
+  { cell: string; chip: string; mark: string }
+> = {
+  COMPLETED: {
+    cell: 'border-amber-200/80 bg-gradient-to-b from-amber-50 to-amber-100/60',
+    chip: 'text-amber-800',
+    mark: 'bg-gradient-to-br from-amber-400 to-amber-600 text-white',
+  },
+  TODAY_COMPLETED: {
+    cell: 'border-amber-300 bg-gradient-to-b from-amber-50 to-amber-100/70 ring-1 ring-amber-300/70',
+    chip: 'text-amber-900',
+    mark: 'bg-gradient-to-br from-amber-400 to-amber-600 text-white',
+  },
+  TODAY_PENDING: {
+    cell: 'border-[#990024]/40 bg-rose-50/70 ring-1 ring-[#990024]/20',
+    chip: 'text-[#990024]',
+    mark: 'bg-white text-[#990024] border border-[#990024]/40',
+  },
+  MISSED: {
+    cell: 'border-gray-200 bg-gray-50/80',
+    chip: 'text-gray-400',
+    mark: 'bg-gray-200 text-gray-500',
+  },
+  FUTURE: {
+    cell: 'border-gray-100 bg-white',
+    chip: 'text-gray-300',
+    mark: 'bg-gray-100 text-gray-300',
+  },
+  NEUTRAL: {
+    cell: 'border-gray-100 bg-white',
+    chip: 'text-gray-300',
+    mark: 'bg-gray-100/70 text-gray-300',
+  },
+};
+
+function DayCell({ day }: { day: WeeklyActivityDay }) {
+  const s = WEEKLY_DAY_STYLE[day.status] || WEEKLY_DAY_STYLE.NEUTRAL;
+  const isDone = day.status === 'COMPLETED' || day.status === 'TODAY_COMPLETED';
+  return (
+    <div className={`flex flex-col items-center gap-1 rounded-lg border py-1.5 ${s.cell}`}>
+      <span className={`text-[8.5px] font-bold uppercase tracking-wide ${s.chip}`}>
+        {day.dayLabel[0]}
+      </span>
+      <span
+        className={`flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-black tabular-nums ${s.mark}`}
+      >
+        {isDone ? <Check className="h-2.5 w-2.5" /> : day.dayNumber}
+      </span>
+    </div>
+  );
+}
+
+function DailyCheckInTab({
   checkIn,
   checkInLoading,
   checkInMsg,
   onCheckIn,
-  achieveSummary,
 }: {
   checkIn: CheckInState | null;
   checkInLoading: boolean;
   checkInMsg: { text: string; type: 'success' | 'error' } | null;
   onCheckIn: () => void;
-  achieveSummary: AchievementSummary | null;
 }) {
-  const currentStreak = checkIn?.streak?.currentStreak ?? achieveSummary?.currentStreak ?? 0;
-  const totalXp = checkIn?.totalEarnedXp ?? achieveSummary?.totalXp ?? 0;
-  const progressInCycle = checkIn?.streak?.progressInCycle ?? (currentStreak % 7);
-  const weekDots = Array.from({ length: 7 }, (_, i) => i < progressInCycle);
-  const totalActiveDays = checkIn?.streak?.totalActiveDays ?? 0;
+  if (!checkIn) {
+    return (
+      <div className="h-full w-full space-y-2.5 animate-pulse py-1">
+        <div className="h-9 rounded-xl bg-gray-100" />
+        <div className="h-16 rounded-xl bg-gray-100" />
+        <div className="h-14 rounded-xl bg-gray-100" />
+        <div className="h-14 rounded-xl bg-gray-100" />
+      </div>
+    );
+  }
+
+  const currentStreak = checkIn.streak?.currentStreak ?? 0;
+  const longestStreak = checkIn.streak?.longestStreak ?? 0;
+  const totalActiveDays = checkIn.streak?.totalActiveDays ?? 0;
+  const checkedIn = Boolean(checkIn.checkedInToday);
+  const dailyXp = checkIn.dailyCheckInXp ?? 0;
+  const todayXp = checkIn.todayXpEarned ?? 0;
+  const nextMilestone = checkIn.streak?.nextCareerMilestone ?? null;
+  const milestones = checkIn.streak?.milestones ?? [];
+  const weekly = checkIn.weeklyActivity ?? [];
+
+  const milestonePct = nextMilestone
+    ? Math.min(100, Math.round((currentStreak / nextMilestone.days) * 100))
+    : 100;
 
   return (
-    <div className="h-full w-full min-w-0 flex flex-col justify-between space-y-2 overflow-hidden">
-      {/* Daily Check-In Box */}
-      <div className="rounded-xl border border-amber-200/80 bg-gradient-to-br from-[#fffdf7] via-amber-50/25 to-amber-50/50 p-2.5 shadow-2xs">
-        <div className="flex items-center justify-between mb-1.5">
-          <div className="flex items-center gap-2">
-            <div
-              className="h-7 w-7 rounded-lg flex items-center justify-center text-sm shadow-2xs"
-              style={{ background: 'linear-gradient(135deg, #FBBF24, #D97706)' }}
-            >
-              🪙
-            </div>
-            <div>
-              <h4 className="text-[11px] font-bold text-gray-900 leading-tight">Daily Check-In</h4>
-              <span className="text-[9px] font-bold text-amber-700 bg-amber-100/80 border border-amber-200/70 px-1.5 py-0.2 rounded">
-                +5 XP Daily
-              </span>
-            </div>
+    <div className="flex h-full w-full min-w-0 flex-col gap-2.5">
+      {/* Header */}
+      <div className="flex shrink-0 items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <FlameStreakIcon size={22} />
+          <div className="min-w-0">
+            <h4 className="truncate text-[12px] font-bold leading-tight text-gray-900">
+              Daily Career Check-In
+            </h4>
+            <p className="truncate text-[9px] font-medium text-gray-400">
+              Resets at midnight · Asia/Kolkata
+            </p>
           </div>
-          {checkIn?.checkedInToday ? (
-            <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-lg border border-emerald-200">
-              <Check className="h-3 w-3" /> Done
-            </span>
-          ) : (
-            <button
-              type="button"
-              onClick={onCheckIn}
-              disabled={checkInLoading}
-              className="rounded-lg px-2.5 py-1 text-[10px] font-bold text-white disabled:opacity-60 active:scale-95 transition-all shadow-2xs cursor-pointer"
-              style={{ background: 'linear-gradient(135deg, #F59E0B, #D97706)' }}
-            >
-              {checkInLoading ? (
-                <span className="inline-block h-2.5 w-2.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              ) : (
-                'Claim XP 🪙'
-              )}
-            </button>
-          )}
         </div>
-
-        {/* Weekly Dots */}
-        <div className="flex items-center gap-1 mb-1 pt-1">
-          {weekDots.map((filled, i) => (
-            <div
-              key={i}
-              className="flex-1 h-1.5 rounded-full transition-all"
-              style={{
-                background: filled
-                  ? 'linear-gradient(90deg, #F59E0B, #D97706)'
-                  : 'rgba(217, 119, 6, 0.15)',
-              }}
-            />
-          ))}
-        </div>
-        <div className="flex justify-between items-center text-[10px]">
-          <span className="text-amber-800 font-medium">
-            🔥 {currentStreak}d streak · {progressInCycle}/7 days
-          </span>
-          {checkIn?.checkedInToday && checkIn.secondsUntilNextCheckIn > 0 ? (
-            <span className="text-gray-400 flex items-center gap-0.5 text-[9px]">
-              <Clock className="h-2.5 w-2.5" /> {formatSecondsToHM(checkIn.secondsUntilNextCheckIn)}
-            </span>
-          ) : !checkIn?.checkedInToday ? (
-            <span className="text-amber-700 font-bold text-[10px]">Ready!</span>
-          ) : null}
-        </div>
-
-        {checkInMsg && (
-          <div
-            className={`mt-1.5 rounded-lg px-2 py-0.5 text-[9px] font-semibold flex items-center gap-1.5 ${
-              checkInMsg.type === 'success'
-                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                : 'bg-rose-50 text-rose-800 border border-rose-200'
-            }`}
-          >
-            {checkInMsg.type === 'success' ? (
-              <CheckCircle2 className="h-3 w-3 text-emerald-600 shrink-0" />
-            ) : (
-              <AlertCircle className="h-3 w-3 text-rose-600 shrink-0" />
-            )}
-            <span className="truncate">{checkInMsg.text}</span>
-          </div>
-        )}
+        <span
+          className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-bold ${
+            checkedIn
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+              : 'border-amber-200 bg-amber-50 text-amber-700'
+          }`}
+        >
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${checkedIn ? 'bg-emerald-500' : 'animate-pulse bg-amber-500'}`}
+          />
+          {checkedIn ? 'Completed' : 'Pending'}
+        </span>
       </div>
 
-      {/* Monthly Activity Box */}
-      <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-2 space-y-1.5">
-        <h4 className="text-[10px] font-bold text-gray-700 flex items-center gap-1.5 uppercase tracking-wider">
-          <CalendarDays className="h-3.5 w-3.5 text-[#990024]" />
-          Monthly Engagement
-        </h4>
-        <div className="grid grid-cols-3 gap-1.5">
-          <div className="text-center rounded-lg bg-white border border-gray-100 py-1.5 px-1 shadow-2xs">
-            <span className="text-xs font-black text-gray-900 block tabular-nums">{totalActiveDays}</span>
-            <span className="text-[8px] font-semibold text-gray-400 uppercase tracking-wide">Days</span>
+      {/* Hero streak */}
+      <div className="shrink-0 rounded-xl border border-amber-100/90 bg-gradient-to-br from-[#fffdf7] to-amber-50/40 p-3">
+        <div className="flex items-center gap-3">
+          <div className="animate-flame-pulse">
+            <FlameStreakIcon size={40} />
           </div>
-          <div className="text-center rounded-lg bg-amber-50/60 border border-amber-100/80 py-1.5 px-1 shadow-2xs">
-            <span className="text-xs font-black text-amber-800 block tabular-nums">{currentStreak}</span>
-            <span className="text-[8px] font-semibold text-amber-600 uppercase tracking-wide">Streak</span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline gap-1">
+              <span className="text-3xl font-black leading-none tabular-nums text-gray-900">
+                {currentStreak}
+              </span>
+              <span className="text-[11px] font-bold text-gray-500">
+                day{currentStreak === 1 ? '' : 's'} streak
+              </span>
+            </div>
+            <p className="mt-0.5 text-[10px] font-medium text-gray-500">
+              {checkedIn
+                ? `Today's check-in logged · +${todayXp || dailyXp} XP earned`
+                : `Check in today to reach ${currentStreak + 1}`}
+            </p>
           </div>
-          <div className="text-center rounded-lg bg-rose-50/60 border border-rose-100/80 py-1.5 px-1 shadow-2xs">
-            <span className="text-xs font-black text-[#990024] block tabular-nums truncate">
-              {Number(totalXp).toLocaleString()}
+          <div className="shrink-0 text-right">
+            <span className="block text-base font-black leading-none tabular-nums text-amber-700">
+              {longestStreak}
             </span>
-            <span className="text-[8px] font-semibold text-[#990024] uppercase tracking-wide">XP</span>
+            <span className="text-[8px] font-bold uppercase tracking-wide text-gray-400">Best</span>
           </div>
         </div>
+      </div>
+
+      {/* Weekly progress */}
+      <div className="shrink-0">
+        <div className="mb-1.5 flex items-center justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">This Week</span>
+          <span className="text-[9px] font-medium text-gray-400">{totalActiveDays} active days total</span>
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {weekly.length > 0 ? (
+            weekly.map((day) => <DayCell key={day.date} day={day} />)
+          ) : (
+            <span className="col-span-7 py-2 text-center text-[9px] text-gray-400">
+              No activity recorded yet
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Next milestone */}
+      {nextMilestone ? (
+        <div className="shrink-0 rounded-xl border border-gray-100 bg-gray-50/70 p-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="flex items-center gap-1 text-[10px] font-bold text-gray-700">
+              <Target className="h-3 w-3 text-[#990024]" />
+              Next milestone · {nextMilestone.days}-day streak
+            </span>
+            <span className="shrink-0 text-[9px] font-bold tabular-nums text-gray-500">
+              {currentStreak}/{nextMilestone.days}
+            </span>
+          </div>
+          <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-200/70">
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{ width: `${milestonePct}%`, background: 'linear-gradient(90deg, #990024, #c71f47)' }}
+            />
+          </div>
+          <div className="mt-1.5 flex items-center justify-between text-[9px]">
+            <span className="font-medium text-gray-500">
+              {nextMilestone.remaining} consecutive day{nextMilestone.remaining === 1 ? '' : 's'} to go
+            </span>
+            <span className="flex items-center gap-1">
+              {milestones.map((m) => (
+                <span
+                  key={m.days}
+                  title={`${m.days}-day streak${m.reached ? ' · reached' : ''}`}
+                  className={`h-1.5 w-1.5 rounded-full ${m.reached ? 'bg-amber-500' : 'bg-gray-200'}`}
+                />
+              ))}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="shrink-0 rounded-xl border border-emerald-100 bg-emerald-50/60 p-2.5 text-center text-[10px] font-bold text-emerald-700">
+          All streak milestones reached — remarkable consistency.
+        </div>
+      )}
+
+      {/* Inline feedback */}
+      {checkInMsg && (
+        <div
+          aria-live="polite"
+          className={`flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[9.5px] font-semibold ${
+            checkInMsg.type === 'success'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+              : 'border-rose-200 bg-rose-50 text-rose-800'
+          }`}
+        >
+          {checkInMsg.type === 'success' ? (
+            <CheckCircle2 className="h-3 w-3 shrink-0 text-emerald-600" />
+          ) : (
+            <AlertCircle className="h-3 w-3 shrink-0 text-rose-600" />
+          )}
+          <span className="truncate">{checkInMsg.text}</span>
+        </div>
+      )}
+
+      {/* Action */}
+      <div className="mt-auto shrink-0 pt-0.5">
+        {checkedIn ? (
+          <div
+            className={`flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50/70 px-3 py-2 ${
+              checkInMsg?.type === 'success' ? 'animate-checkin-pop' : ''
+            }`}
+          >
+            <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700">
+              <CheckCircle2 className="h-4 w-4" /> Checked in today
+            </span>
+            <span className="text-[10px] font-bold tabular-nums text-emerald-600">
+              +{todayXp || dailyXp} XP
+            </span>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onCheckIn}
+            disabled={checkInLoading}
+            className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-[12px] font-bold text-white shadow-sm transition-all active:scale-[0.98] disabled:opacity-60"
+            style={{ background: 'linear-gradient(135deg, #990024, #c71f47)' }}
+          >
+            {checkInLoading ? (
+              <>
+                <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                Checking in…
+              </>
+            ) : (
+              <>
+                <Check className="h-3.5 w-3.5" /> Check In · +{dailyXp} XP
+              </>
+            )}
+          </button>
+        )}
+        {checkedIn && checkIn.secondsUntilNextCheckIn > 0 && (
+          <p className="mt-1 flex items-center justify-center gap-1 text-[9px] font-medium text-gray-400">
+            <Clock className="h-2.5 w-2.5" /> Next check-in in{' '}
+            {formatSecondsToHM(checkIn.secondsUntilNextCheckIn)}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -550,99 +754,318 @@ function LeaderboardTab({
 }
 
 // ─────────────────────────────────────────────
-// Tab 3: Badges (Fits inside fixed viewport)
+// Tab 3: Achievement Gallery (premium badge preview)
 // ─────────────────────────────────────────────
+const TIER_LABEL: Record<string, string> = {
+  BRONZE: 'Bronze',
+  SILVER: 'Silver',
+  GOLD: 'Gold',
+  PLATINUM: 'Platinum',
+  DIAMOND: 'Diamond',
+};
+
+const TIER_PILL: Record<string, string> = {
+  BRONZE: 'bg-amber-50 text-amber-700 border-amber-200/80',
+  SILVER: 'bg-slate-100 text-slate-600 border-slate-200',
+  GOLD: 'bg-yellow-50 text-yellow-800 border-yellow-300/80',
+  PLATINUM: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+  DIAMOND: 'bg-violet-50 text-violet-700 border-violet-200',
+};
+
+function categoryLabel(key: string): string {
+  return BADGE_CATEGORIES.find((c) => c.key === key)?.label || key.replace(/_/g, ' ');
+}
+
+function BadgePreviewCard({ badge, onOpen }: { badge: BadgeItem; onOpen: () => void }) {
+  const isEarned = badge.status === 'EARNED';
+  const tier = (badge.tier || 'BRONZE').toUpperCase();
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      title={`${badge.title} · ${categoryLabel(badge.category)}${isEarned ? ' · Earned' : ' · Locked'}`}
+      className={`group relative flex w-full min-w-0 flex-col items-center gap-1 rounded-xl border p-1.5 text-center transition-all cursor-pointer ${
+        isEarned
+          ? 'border-amber-200/80 bg-gradient-to-b from-amber-50/70 to-white hover:border-amber-300 hover:shadow-xs'
+          : 'border-gray-200/70 bg-gray-50/70 hover:border-gray-300 hover:bg-gray-50'
+      }`}
+    >
+      <span className="absolute right-1 top-1 leading-none" aria-hidden>
+        {isEarned ? (
+          <CheckCircle2 className="h-2.5 w-2.5 text-emerald-500" />
+        ) : (
+          <Lock className="h-2.5 w-2.5 text-gray-300" />
+        )}
+      </span>
+      <BadgeEmblem
+        icon={badge.icon}
+        tier={tier as BadgeTier}
+        category={badge.category as BadgeCategory}
+        size={40}
+        locked={!isEarned}
+      />
+      <span
+        className={`block w-full text-[9px] font-bold leading-tight break-words ${
+          isEarned ? 'text-gray-900' : 'text-gray-500'
+        }`}
+      >
+        {badge.title}
+      </span>
+      <span className="block w-full text-[7.5px] font-medium leading-tight text-gray-400 break-words">
+        {categoryLabel(badge.category)}
+      </span>
+      <span
+        className={`inline-flex items-center rounded-full border px-1 py-px text-[7px] font-bold uppercase tracking-wide ${
+          TIER_PILL[tier] || TIER_PILL.BRONZE
+        }`}
+      >
+        {TIER_LABEL[tier] || tier}
+      </span>
+    </button>
+  );
+}
+
 function BadgesTab({
   achieveSummary,
-  recentBadges,
+  badgeCollection,
+  badgeCategories,
+  nextMilestone,
   router,
 }: {
   achieveSummary: AchievementSummary | null;
-  recentBadges: any[];
+  badgeCollection: BadgeCollection | null;
+  badgeCategories: BadgeCategorySummary[];
+  nextMilestone: BadgeItem | null;
   router: any;
 }) {
   if (!achieveSummary) {
     return (
-      <div className="space-y-2 animate-pulse py-2">
-        <div className="h-2.5 bg-gray-100 rounded w-3/4" />
-        <div className="h-1.5 bg-gray-100 rounded-full w-full" />
-        <div className="grid grid-cols-4 gap-1 pt-2">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-11 bg-gray-100 rounded-xl" />
+      <div className="h-full w-full space-y-2 animate-pulse py-2">
+        <div className="h-14 bg-gray-100 rounded-xl" />
+        <div className="grid grid-cols-3 gap-1.5">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-10 bg-gray-100 rounded-xl" />
+          ))}
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-1.5">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-[76px] bg-gray-100 rounded-xl" />
           ))}
         </div>
       </div>
     );
   }
 
+  const earnPct = Math.min(100, Math.max(0, achieveSummary.completionPercentage ?? 0));
+
+  // Recently earned first, then the closest-to-unlock "next achievable" badges.
+  const earnedList = [...(badgeCollection?.earned || [])].sort(
+    (a, b) => new Date(b.awardedAt || 0).getTime() - new Date(a.awardedAt || 0).getTime()
+  );
+  const inProgressList = [...(badgeCollection?.inProgress || [])].sort(
+    (a, b) => (b.progressPercentage || 0) - (a.progressPercentage || 0)
+  );
+  const preview = [...earnedList, ...inProgressList].slice(0, 6);
+
+  const lockedCount =
+    badgeCollection?.locked?.length ??
+    Math.max(0, achieveSummary.totalAvailable - achieveSummary.totalEarned);
+
+  const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+  const recentCount = earnedList.filter((b) => {
+    if (!b.awardedAt) return false;
+    const t = new Date(b.awardedAt).getTime();
+    return !Number.isNaN(t) && Date.now() - t <= thirtyDaysMs;
+  }).length;
+
+  const openGallery = () => router.push('/dashboard/student/achievements');
+
+  const summaryTiles: { label: string; value: number; cls: string; icon: React.ElementType }[] = [
+    { label: 'Earned', value: achieveSummary.totalEarned, cls: 'border-emerald-100/80 bg-emerald-50/70 text-emerald-700', icon: Award },
+    { label: 'Locked', value: lockedCount, cls: 'border-gray-100 bg-gray-50 text-gray-500', icon: Lock },
+    { label: 'Recent', value: recentCount, cls: 'border-amber-100/80 bg-amber-50/70 text-amber-700', icon: Sparkles },
+  ];
+
   return (
-    <div className="h-full w-full min-w-0 flex flex-col justify-between overflow-hidden">
-      <div className="space-y-2 w-full min-w-0">
-        {/* Progress Summary */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-baseline gap-1">
-            <span className="text-sm font-black text-gray-900">{achieveSummary.totalEarned}</span>
-            <span className="text-[10px] font-semibold text-gray-400">
-              / {achieveSummary.totalAvailable} unlocked
-            </span>
+    <div className="h-full w-full min-w-0 flex flex-col overflow-hidden">
+      <div className="flex-1 min-h-0 w-full min-w-0 space-y-2 overflow-y-auto overflow-x-hidden pr-0.5 scrollbar-thin">
+        {/* Header */}
+        <div className="rounded-xl border border-amber-100/80 bg-gradient-to-br from-[#fffdf7] to-amber-50/40 p-2.5">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <div
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg"
+                style={{ background: 'linear-gradient(135deg, #FBBF24, #D97706)' }}
+              >
+                <Award className="h-3.5 w-3.5 text-white" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-[11px] font-bold leading-tight text-gray-900">Achievements</h4>
+                <p className="truncate text-[9px] font-medium leading-tight text-gray-400">
+                  Professional badge gallery
+                </p>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-baseline gap-0.5">
+              <span className="text-sm font-black tabular-nums text-gray-900">
+                {achieveSummary.totalEarned}
+              </span>
+              <span className="text-[10px] font-bold tabular-nums text-gray-400">
+                /{achieveSummary.totalAvailable}
+              </span>
+            </div>
           </div>
-          <span
-            className="text-[10px] font-extrabold px-1.5 py-0.2 rounded text-white"
-            style={{ background: 'linear-gradient(135deg, #990024, #c71f47)' }}
-          >
-            {achieveSummary.completionPercentage}%
-          </span>
-        </div>
-        <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{
-              width: `${achieveSummary.completionPercentage}%`,
-              background: 'linear-gradient(90deg, #990024, #c71f47)',
-            }}
-          />
+          <div className="mt-1.5 flex items-center gap-2">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-amber-100/70">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${earnPct}%`, background: 'linear-gradient(90deg, #990024, #c71f47)' }}
+              />
+            </div>
+            <span className="shrink-0 text-[9px] font-extrabold tabular-nums text-[#990024]">{earnPct}%</span>
+          </div>
         </div>
 
-        {/* Badge Grid */}
-        {recentBadges.length > 0 ? (
-          <div className="grid grid-cols-4 gap-1 pt-0.5 w-full min-w-0">
-            {recentBadges.map((b) => (
-              <button
-                key={b.id}
-                title={b.title}
-                className="flex flex-col items-center gap-0.5 rounded-xl border border-amber-100 bg-gradient-to-b from-amber-50/80 to-amber-50/20 p-1.5 cursor-pointer hover:border-amber-300 hover:shadow-2xs transition-all min-w-0 w-full"
-                onClick={() => router.push('/dashboard/student/achievements')}
+        {/* Achievement summary */}
+        <div className="grid grid-cols-3 gap-1.5">
+          {summaryTiles.map((tile) => {
+            const TileIcon = tile.icon;
+            return (
+              <div
+                key={tile.label}
+                className={`flex flex-col items-center rounded-xl border px-1 py-1.5 ${tile.cls}`}
               >
-                <span className="text-base leading-none">{b.icon || '🎖️'}</span>
-                <span className="text-[8px] font-bold text-gray-700 text-center truncate w-full block leading-tight">
-                  {b.title}
+                <span className="flex items-center gap-0.5">
+                  <TileIcon className="h-2.5 w-2.5" />
+                  <span className="text-xs font-black tabular-nums">{tile.value}</span>
                 </span>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/50 py-2.5 text-center w-full min-w-0">
-            <span className="text-lg block mb-0.5">🎖️</span>
-            <p className="text-[10px] text-gray-400">Complete activities to earn badges!</p>
+                <span className="text-[8px] font-semibold uppercase tracking-wide opacity-80">
+                  {tile.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Category progress (existing five categories) */}
+        {badgeCategories.length > 0 && (
+          <div className="grid grid-cols-5 gap-1">
+            {badgeCategories.map((c) => {
+              const done = c.total > 0 && c.earned >= c.total;
+              const partial = c.earned > 0 && !done;
+              const CatIcon = resolveBadgeIcon(
+                BADGE_CATEGORIES.find((x) => x.key === c.category)?.icon || null
+              );
+              return (
+                <div
+                  key={c.category}
+                  title={`${categoryLabel(c.category)} — ${c.earned}/${c.total}`}
+                  className={`flex flex-col items-center gap-0.5 rounded-lg border py-1 ${
+                    done
+                      ? 'border-emerald-200/80 bg-emerald-50/60'
+                      : partial
+                        ? 'border-amber-200/80 bg-amber-50/50'
+                        : 'border-gray-100 bg-gray-50/60'
+                  }`}
+                >
+                  <CatIcon
+                    className={`h-3 w-3 ${
+                      done ? 'text-emerald-600' : partial ? 'text-amber-600' : 'text-gray-300'
+                    }`}
+                  />
+                  <span className="text-[7.5px] font-bold tabular-nums text-gray-600">
+                    {c.earned}/{c.total}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
 
-        {/* Milestone Goal Box */}
-        <div className="rounded-xl border border-purple-100/80 bg-purple-50/40 p-2 flex items-center gap-2 w-full min-w-0">
-          <div className="h-6 w-6 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
-            <Target className="h-3 w-3 text-purple-600" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[9px] font-bold text-purple-950 truncate">Next Goal: +50 XP</p>
-            <p className="text-[8px] text-purple-800/80 truncate">Complete next profile milestone</p>
-          </div>
+        {/* Badge preview grid */}
+        <div className="flex items-center justify-between">
+          <span className="text-[8.5px] font-bold uppercase tracking-wider text-gray-400">
+            Recent &amp; Next Up
+          </span>
+          <span className="text-[8.5px] font-semibold tabular-nums text-gray-400">
+            {preview.length} of {achieveSummary.totalAvailable}
+          </span>
         </div>
+
+        {preview.length > 0 ? (
+          <div className="grid grid-cols-2 gap-1.5 lg:grid-cols-3">
+            {preview.map((b) => (
+              <BadgePreviewCard key={b.id} badge={b} onOpen={openGallery} />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/50 py-3 text-center">
+            <Award className="mx-auto mb-1 h-4 w-4 text-gray-300" />
+            <p className="text-[9.5px] text-gray-400">
+              Earn your first badge by completing career milestones.
+            </p>
+          </div>
+        )}
+
+        {/* Next achievement (real backend milestone only) */}
+        {nextMilestone && (
+          <div className="rounded-xl border border-purple-100/80 bg-purple-50/40 p-2">
+            <div className="mb-1 flex items-center gap-1">
+              <Target className="h-3 w-3 text-purple-600" />
+              <span className="text-[8.5px] font-bold uppercase tracking-wider text-purple-700">
+                Next Achievement
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <BadgeEmblem
+                icon={nextMilestone.icon}
+                tier={(nextMilestone.tier || 'BRONZE') as BadgeTier}
+                category={nextMilestone.category as BadgeCategory}
+                size={32}
+                locked
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-bold leading-tight break-words text-gray-900">
+                  {nextMilestone.title}
+                </p>
+                <p className="text-[8.5px] leading-tight break-words text-gray-500">
+                  {nextMilestone.criteria || nextMilestone.description}
+                </p>
+              </div>
+            </div>
+            {nextMilestone.progressAvailable && (
+              <div className="mt-1.5">
+                <div className="h-1 w-full overflow-hidden rounded-full bg-purple-100">
+                  <div
+                    className="h-full rounded-full bg-purple-500 transition-all duration-500"
+                    style={{
+                      width: `${Math.min(100, Math.max(0, nextMilestone.progressPercentage || 0))}%`,
+                    }}
+                  />
+                </div>
+                <div className="mt-0.5 flex items-center justify-between">
+                  <span className="text-[8px] font-semibold tabular-nums text-purple-700">
+                    {nextMilestone.currentValue ?? 0} / {nextMilestone.targetValue ?? nextMilestone.threshold ?? 0}
+                    {nextMilestone.unit ? ` ${nextMilestone.unit}` : ''}
+                  </span>
+                  {typeof nextMilestone.remainingToUnlock === 'number' &&
+                    nextMilestone.remainingToUnlock > 0 && (
+                      <span className="text-[8px] font-semibold tabular-nums text-purple-700">
+                        {nextMilestone.remainingToUnlock} to go
+                      </span>
+                    )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
+      {/* View All Badges — always visible outside the scroll area */}
       <button
         type="button"
-        onClick={() => router.push('/dashboard/student/achievements')}
-        className="w-full mt-1 flex items-center justify-center gap-1 text-[10px] font-bold text-[#990024] hover:text-[#7a001c] py-1 rounded-lg hover:bg-rose-50/70 transition-colors border border-transparent hover:border-rose-100 shrink-0"
+        onClick={openGallery}
+        className="mt-1 flex w-full shrink-0 items-center justify-center gap-1 rounded-lg border border-rose-100 py-1.5 text-[10px] font-bold text-[#990024] transition-colors hover:bg-rose-50/70 hover:text-[#7a001c]"
       >
         View All Badges <ChevronRight className="h-3 w-3" />
       </button>
@@ -670,7 +1093,9 @@ export function StudentPerformancePanel() {
   const [lbLoading, setLbLoading] = useState(true);
 
   const [achieveSummary, setAchieveSummary] = useState<AchievementSummary | null>(null);
-  const [recentBadges, setRecentBadges] = useState<any[]>([]);
+  const [badgeCollection, setBadgeCollection] = useState<BadgeCollection | null>(null);
+  const [badgeCategories, setBadgeCategories] = useState<BadgeCategorySummary[]>([]);
+  const [nextMilestone, setNextMilestone] = useState<BadgeItem | null>(null);
   const [coinBalance, setCoinBalance] = useState<number>(0);
 
   const fetchCheckIn = useCallback(async () => {
@@ -708,7 +1133,9 @@ export function StudentPerformancePanel() {
       const json = await res.json();
       if (json.success) {
         setAchieveSummary(json.summary);
-        setRecentBadges((json.badges || []).filter((b: any) => b.status === 'EARNED').slice(0, 4));
+        setBadgeCollection(json.badgesByStatus || null);
+        setBadgeCategories(json.categories || []);
+        setNextMilestone(json.nextMilestone || null);
       }
     } catch {
       /* silent */
@@ -826,7 +1253,7 @@ export function StudentPerformancePanel() {
       <MysteryGiftCard />
 
       {/* ── Card B: Segmented Pill Tab Card (Exact Image 3 Layout) ── */}
-      <div className="rounded-2xl bg-white border border-gray-100 shadow-2xs overflow-hidden h-[330px] flex flex-col shrink-0 w-full min-w-0 box-border p-3.5">
+      <div className="rounded-2xl bg-white border border-gray-100 shadow-2xs overflow-hidden h-[400px] flex flex-col shrink-0 w-full min-w-0 box-border p-3.5">
         {/* Segmented Pill Tabs Header */}
         <div className="p-1 bg-gray-100/80 rounded-xl flex items-center gap-1 mb-2.5 shrink-0 w-full">
           {tabs.map((tab) => {
@@ -850,12 +1277,11 @@ export function StudentPerformancePanel() {
         {/* STRICT FIXED VIEWPORT: fills remaining flex space; parent h-[330px] provides the height cap */}
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden min-w-0 w-full box-border pt-1">
           {activeTab === 'tracker' && (
-            <MonthlyTrackerTab
+            <DailyCheckInTab
               checkIn={checkIn}
               checkInLoading={checkInLoading}
               checkInMsg={checkInMsg}
               onCheckIn={handleCheckIn}
-              achieveSummary={achieveSummary}
             />
           )}
           {activeTab === 'leaderboard' && (
@@ -869,7 +1295,9 @@ export function StudentPerformancePanel() {
           {activeTab === 'badges' && (
             <BadgesTab
               achieveSummary={achieveSummary}
-              recentBadges={recentBadges}
+              badgeCollection={badgeCollection}
+              badgeCategories={badgeCategories}
+              nextMilestone={nextMilestone}
               router={router}
             />
           )}

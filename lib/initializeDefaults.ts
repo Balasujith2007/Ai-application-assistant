@@ -3,14 +3,11 @@ import prisma from './prisma';
 import { Role } from '@prisma/client';
 
 export const CANONICAL_SIDEBARS: Record<Role, Array<{ title: string; path: string; order: number; enabled: boolean }>> = {
-  // Student navigation is grouped in the UI as:
+  // Student navigation items (main sidebar only — profile and settings are
+  // accessible via the header dropdown, not the sidebar):
   //   Main Menu -> Overview, Explore Opportunities, My Applications, My Resume,
   //                Career Progress, Achievements
   //   Rewards   -> Rewards & Inventory, Coin Shop, Tokens
-  //   Account   -> My Profile, Settings
-  // "Career Growth" is merged into "Career Progress" (its content renders there),
-  // and "Career Leaderboard" is no longer surfaced in the sidebar (its dedicated
-  // route, APIs, ranking engine and Champion Gift logic are preserved).
   STUDENT: [
     { title: 'Overview', path: '/dashboard/student', order: 0, enabled: true },
     { title: 'Explore Opportunities', path: '/dashboard/student/opportunities', order: 1, enabled: true },
@@ -21,8 +18,6 @@ export const CANONICAL_SIDEBARS: Record<Role, Array<{ title: string; path: strin
     { title: 'Rewards & Inventory', path: '/dashboard/student/rewards', order: 6, enabled: true },
     { title: 'Coin Shop', path: '/dashboard/student/shop', order: 7, enabled: true },
     { title: 'Tokens', path: '/dashboard/student/tokens', order: 8, enabled: true },
-    { title: 'My Profile', path: '/profile', order: 9, enabled: true },
-    { title: 'Settings', path: '/dashboard/settings', order: 10, enabled: true },
   ],
   MENTOR: [
     { title: 'Dashboard', path: '/dashboard/mentor', order: 0, enabled: true },
@@ -162,13 +157,13 @@ export async function ensureRoleSidebarDefaults(role: Role) {
   // Skip if already initialized in this process instance
   if (initializedRoles.has(role)) return;
 
-  // Clean up any redundant Preferences items from main sidebar table.
-  // Students now surface "Settings" inside the Account sidebar group, so only
-  // Notifications is removed for STUDENT; other roles keep both removed.
+  // Remove Notifications, Settings, and My Profile from all roles' sidebar DB rows
+  // so they are never rendered in the main navigation. Profile is accessible via
+  // the header dropdown; Settings is not surfaced in the sidebar at all.
   await prisma.roleSidebarItem.deleteMany({
     where: {
       role,
-      title: { in: role === Role.STUDENT ? ['Notifications'] : ['Notifications', 'Settings'] }
+      title: { in: ['Notifications', 'Settings', 'My Profile'] }
     }
   });
 
@@ -191,6 +186,8 @@ export async function ensureRoleSidebarDefaults(role: Role) {
             'My Progress',
             'Career Growth',
             'Career Leaderboard',
+            'Settings',
+            'My Profile',
           ],
         },
       },

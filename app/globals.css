@@ -76,6 +76,26 @@
     to   { opacity: 1; transform: translateY(0)    scale(1);    }
   }
 
+  /* Daily check-in — subtle success pop played once when the state mounts */
+  .animate-checkin-pop {
+    animation: checkInPop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes checkInPop {
+    0%   { transform: scale(0.94); opacity: 0; }
+    60%  { transform: scale(1.015); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* Restrained flame breathing used by the streak indicator */
+  .animate-flame-pulse {
+    animation: flamePulse 2.6s ease-in-out infinite;
+    transform-origin: center;
+  }
+  @keyframes flamePulse {
+    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(217, 119, 6, 0)); }
+    50%      { transform: scale(1.05); filter: drop-shadow(0 2px 6px rgba(217, 119, 6, 0.28)); }
+  }
+
   /* ══════════════════════════════════════════════════════════════
      STUDENT DASHBOARD — LAYOUT SYSTEM
      Architecture:

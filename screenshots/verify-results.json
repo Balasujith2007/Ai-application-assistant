@@ -31,7 +31,7 @@
       "detail": ""
     },
     {
-      "name": "desktop: right sidebar widgets intact",
+      "name": "desktop: right sidebar panel renders",
       "ok": true,
       "detail": ""
     },
@@ -46,7 +46,22 @@
       "detail": ""
     },
     {
-      "name": "desktop: daily check-in widget",
+      "name": "desktop: daily career check-in panel",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: weekly streak strip",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: next streak milestone shown",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: monthly engagement removed",
       "ok": true,
       "detail": ""
     },
@@ -96,6 +111,21 @@
       "detail": "overflow=0px"
     },
     {
+      "name": "desktop: Leaderboard tab renders",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: Badges tab renders",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "desktop: Tracker tab restores panel",
+      "ok": true,
+      "detail": ""
+    },
+    {
       "name": "tablet: welcome greeting personalised",
       "ok": true,
       "detail": ""
@@ -126,7 +156,7 @@
       "detail": ""
     },
     {
-      "name": "tablet: right sidebar widgets intact",
+      "name": "tablet: right sidebar panel renders",
       "ok": true,
       "detail": ""
     },
@@ -141,7 +171,22 @@
       "detail": ""
     },
     {
-      "name": "tablet: daily check-in widget",
+      "name": "tablet: daily career check-in panel",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: weekly streak strip",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: next streak milestone shown",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tablet: monthly engagement removed",
       "ok": true,
       "detail": ""
     },
@@ -211,7 +256,7 @@
       "detail": ""
     },
     {
-      "name": "mobile: right sidebar widgets intact",
+      "name": "mobile: right sidebar panel renders",
       "ok": true,
       "detail": ""
     },
@@ -226,7 +271,22 @@
       "detail": ""
     },
     {
-      "name": "mobile: daily check-in widget",
+      "name": "mobile: daily career check-in panel",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: weekly streak strip",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: next streak milestone shown",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mobile: monthly engagement removed",
       "ok": true,
       "detail": ""
     },

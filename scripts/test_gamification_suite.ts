@@ -414,12 +414,13 @@ async function runDatabaseSuite() {
 
   let testStudentId = '';
   const monthlyFixtureIds: string[] = [];
+  const streakFixtureIds: string[] = [];
   // A synthetic month key keeps the run completely separate from any real
   // recognition period, and `scopeStudentIds` keeps it away from real learners.
   const monthlyMonthKey = '2977-07';
 
-  /** Removes every artifact the isolated monthly-recognition run could create. */
-  const cleanupMonthlyFixtures = async (ids: string[], monthKey: string) => {
+  /** Removes every artifact an isolated student fixture could create. */
+  const cleanupStudentFixtures = async (ids: string[], monthKey: string) => {
     if (ids.length) {
       await prisma.studentReward.deleteMany({ where: { studentId: { in: ids } } }).catch(() => {});
       await prisma.notification.deleteMany({ where: { userId: { in: ids } } }).catch(() => {});
@@ -638,8 +639,68 @@ async function runDatabaseSuite() {
     const notificationCount = await prisma.notification.count({ where: { userId: { in: monthlyIds } } });
     assert(notificationCount >= 3, 'Monthly award notifications are delivered to recipients');
 
+    console.log('\n--- Test Group 16: All Six Streak Milestones (DB, isolated) ---');
+    const STREAK_MILESTONE_IDS = [
+      { id: 'streak-consistency-starter', days: 5 },
+      { id: 'streak-consistency-pro', days: 15 },
+      { id: 'streak-consistency-master', days: 30 },
+      { id: 'streak-consistency-elite', days: 50 },
+      { id: 'streak-century-achiever', days: 100 },
+      { id: 'streak-unstoppable', days: 180 },
+    ];
+    const streakSuffix = `${Date.now().toString(36)}s`;
+
+    // (a) A streak one day short of the first milestone must award nothing.
+    const belowStudent = await prisma.user.create({
+      data: { name: 'Streak Below Test', email: `badge.streak.below.${streakSuffix}@aicareerplatform.test`, role: 'STUDENT', active: true },
+    });
+    streakFixtureIds.push(belowStudent.id);
+    const belowSeed: Array<{ id: string; studentId: string; activityDate: string; activityType: string }> = [];
+    for (let i = 0; i < 4; i++) {
+      const d = new Date(Date.UTC(2400, 0, 10));
+      d.setUTCDate(d.getUTCDate() - i);
+      const ds = d.toISOString().slice(0, 10);
+      belowSeed.push({ id: `streak_${belowStudent.id}_${ds}`, studentId: belowStudent.id, activityDate: ds, activityType: 'APPLICATION_SUBMITTED' });
+    }
+    await prisma.studentDailyStreak.createMany({ data: belowSeed, skipDuplicates: true });
+    const belowAward = await evaluateAndAwardBadges(belowStudent.id);
+    assert(
+      !belowAward.newlyAwarded.some((b) => STREAK_MILESTONE_IDS.some((m) => m.id === b.id)),
+      'A 4-day streak awards no streak milestone (boundary respected)'
+    );
+
+    // (b) A 180-day contiguous IST streak must award every milestone exactly once.
+    const fullStudent = await prisma.user.create({
+      data: { name: 'Streak Full Test', email: `badge.streak.full.${streakSuffix}@aicareerplatform.test`, role: 'STUDENT', active: true },
+    });
+    streakFixtureIds.push(fullStudent.id);
+    const fullSeed: Array<{ id: string; studentId: string; activityDate: string; activityType: string }> = [];
+    const baseDay = new Date(Date.UTC(2400, 5, 1));
+    for (let i = 0; i < 180; i++) {
+      const d = new Date(baseDay);
+      d.setUTCDate(d.getUTCDate() - i);
+      const ds = d.toISOString().slice(0, 10);
+      fullSeed.push({ id: `streak_${fullStudent.id}_${ds}`, studentId: fullStudent.id, activityDate: ds, activityType: 'APPLICATION_SUBMITTED' });
+    }
+    await prisma.studentDailyStreak.createMany({ data: fullSeed, skipDuplicates: true });
+    const computed = await badgeEngine.calculateStreak(fullStudent.id);
+    assert(computed.longestStreak === 180, 'Streak engine reports a 180-day longest streak', `Got ${computed.longestStreak}`);
+
+    const fullAward = await evaluateAndAwardBadges(fullStudent.id);
+    const awardedIds = new Set(fullAward.newlyAwarded.map((b) => b.id));
+    for (const milestone of STREAK_MILESTONE_IDS) {
+      assert(awardedIds.has(milestone.id), `${milestone.days}-day milestone awards ${milestone.id}`);
+    }
+    const milestoneRows = await prisma.studentBadge.count({
+      where: { studentId: fullStudent.id, badgeId: { in: STREAK_MILESTONE_IDS.map((m) => m.id) } },
+    });
+    assert(milestoneRows === 6, 'Exactly six streak badges are stored for the 180-day streak', `Rows: ${milestoneRows}`);
+    const repeatAward = await evaluateAndAwardBadges(fullStudent.id);
+    assert(repeatAward.newlyAwarded.length === 0, 'Re-evaluating a 180-day streak awards no duplicate milestones');
+
     console.log('\n--- DB Integration Cleanup ---');
-    await cleanupMonthlyFixtures(monthlyIds, monthlyMonthKey);
+    await cleanupStudentFixtures(streakFixtureIds, '');
+    await cleanupStudentFixtures(monthlyIds, monthlyMonthKey);
     await prisma.studentBadge.deleteMany({ where: { studentId: testStudentId } });
     await prisma.studentDailyStreak.deleteMany({ where: { studentId: testStudentId } });
     await prisma.achievementHistory.deleteMany({ where: { studentId: testStudentId } });
@@ -648,8 +709,11 @@ async function runDatabaseSuite() {
   } catch (error) {
     console.error('  ❌ DB integration error:', error);
     totalTests++;
+    if (streakFixtureIds.length) {
+      await cleanupStudentFixtures(streakFixtureIds, '').catch(() => {});
+    }
     if (monthlyFixtureIds.length) {
-      await cleanupMonthlyFixtures(monthlyFixtureIds, monthlyMonthKey).catch(() => {});
+      await cleanupStudentFixtures(monthlyFixtureIds, monthlyMonthKey).catch(() => {});
     }
     if (testStudentId) {
       try {

@@ -3,6 +3,12 @@ import { XP_CONFIG } from './xpConfig';
 import { verificationLedger } from '../leaderboard/verificationLedger';
 import { badgeEngine } from './badgeEngine';
 import { invalidateLeaderboardCache } from '../leaderboard/scoringEngine';
+import {
+  buildMilestoneProgress,
+  buildWeeklyActivity,
+  computeStreakCore,
+  getNextStreakMilestone,
+} from './streakCalculator';
 
 /**
  * Returns the current date in YYYY-MM-DD formatted according to the configured timezone.
@@ -161,8 +167,28 @@ export class CheckInService {
       ).catch(() => []);
     }
 
-    // 6. Check eligibility for 7-day streak milestone bonus
-    // Bonus is eligible if currentStreak >= 7 and no bonus has been awarded for this streak cycle
+    // 6. Earliest recorded qualifying activity — used to avoid flagging days
+    // that predate the student's account as "missed" in the weekly strip.
+    let firstActivityDate: string | null = null;
+    try {
+      const minRows = await prisma.$queryRawUnsafe<Array<{ min: string | null }>>(
+        `SELECT MIN("activityDate") AS min FROM student_daily_streaks WHERE "studentId" = $1`,
+        studentId
+      );
+      firstActivityDate = minRows?.[0]?.min ?? null;
+    } catch {
+      firstActivityDate = null;
+    }
+
+    // 7. Weekly (Monday→Sunday) strip sourced purely from real activity records.
+    const activeDateSet = new Set<string>(recentStreaks.map((s: any) => s.activityDate));
+    const weeklyActivity = buildWeeklyActivity(activeDateSet, todayStr, firstActivityDate);
+
+    // 8. Career streak milestone ladder (5 / 15 / 30 / 50 / 100 / 180 days).
+    const careerMilestones = buildMilestoneProgress(streakInfo.currentStreak);
+    const nextCareerMilestone = getNextStreakMilestone(streakInfo.currentStreak);
+
+    // 9. Legacy 7-day cycle milestone — preserved for the class leaderboard bonus.
     const nextMilestone = Math.ceil((streakInfo.currentStreak + 1) / 7) * 7;
     const progressToNextMilestone = streakInfo.currentStreak % 7;
 
@@ -173,6 +199,7 @@ export class CheckInService {
       checkInDate: todayCheckIn?.checkInDate || todayStr,
       todayXpEarned: todayPointsResult._sum.pointsAwarded || 0,
       totalEarnedXp: totalPointsResult._sum.pointsAwarded || 0,
+      dailyCheckInXp: XP_CONFIG.DAILY_CHECKIN,
       nextEligibleCheckIn: nextCheckInIso,
       secondsUntilNextCheckIn: secondsRemaining,
       streak: {
@@ -183,7 +210,10 @@ export class CheckInService {
         nextMilestone: nextMilestone === streakInfo.currentStreak ? nextMilestone + 7 : nextMilestone,
         progressInCycle: progressToNextMilestone,
         targetInCycle: 7,
+        milestones: careerMilestones,
+        nextCareerMilestone,
       },
+      weeklyActivity,
       recentActivity: recentStreaks.map((s) => ({
         date: s.activityDate,
         type: s.activityType,
@@ -369,7 +399,8 @@ export class CheckInService {
     await badgeEngine.evaluateAndAwardBadges(studentId);
     invalidateLeaderboardCache();
 
-    // 9. Fetch updated status
+    // 9. Drop the cached status so the response reflects the fresh streak/XP.
+    studentStatusCache.delete(studentId);
     const status = await this.getStudentCheckInStatus(studentId);
 
     return {
@@ -462,6 +493,8 @@ export class CheckInService {
     // Recalculate badges
     await badgeEngine.evaluateAndAwardBadges(studentId);
     invalidateLeaderboardCache();
+    // A qualifying event may have extended today's streak — drop cached status.
+    if (streakExtended) studentStatusCache.delete(studentId);
 
     return {
       success: true,
@@ -570,70 +603,29 @@ export class CheckInService {
       studentId
     );
 
-    if (!rawStreaks || rawStreaks.length === 0) {
-      return {
-        currentStreak: 0,
-        longestStreak: 0,
-        totalActiveDays: 0,
-        lastQualifyingDate: null,
-      };
-    }
-
-    const uniqueDates = rawStreaks.map((r) => r.activityDate);
-    const lastQualifyingDate = uniqueDates[0] || null;
-    const totalActiveDays = uniqueDates.length;
-
     const todayStr = getFormattedDateInTz();
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = getFormattedDateInTz(yesterday);
 
-    let currentStreak = 0;
+    // Strict consecutive-day logic lives in the shared, pure calculator so the
+    // dashboard, badges, and reward ledger all report an identical streak value.
+    return computeStreakCore(
+      (rawStreaks || []).map((r) => r.activityDate),
+      todayStr,
+      yesterdayStr
+    );
+  }
 
-    // Check if the student was active either today or yesterday (streak active)
-    let pointerDate = uniqueDates[0] === todayStr ? todayStr : uniqueDates[0] === yesterdayStr ? yesterdayStr : null;
-
-    if (pointerDate) {
-      currentStreak = 1;
-      let cur = new Date(pointerDate);
-
-      for (let i = 1; i < uniqueDates.length; i++) {
-        const expectedPrev = new Date(cur);
-        expectedPrev.setDate(expectedPrev.getDate() - 1);
-        const expectedPrevStr = getFormattedDateInTz(expectedPrev);
-
-        if (uniqueDates[i] === expectedPrevStr) {
-          currentStreak++;
-          cur = expectedPrev;
-        } else {
-          break;
-        }
-      }
-    }
-
-    // Calculate historical longest streak
-    let longestStreak = currentStreak;
-    let tempStreak = 1;
-
-    for (let i = 0; i < uniqueDates.length - 1; i++) {
-      const cur = new Date(uniqueDates[i]);
-      const prev = new Date(uniqueDates[i + 1]);
-      const diffDays = Math.round((cur.getTime() - prev.getTime()) / (1000 * 3600 * 24));
-
-      if (diffDays === 1) {
-        tempStreak++;
-        if (tempStreak > longestStreak) longestStreak = tempStreak;
-      } else {
-        tempStreak = 1;
-      }
-    }
-
-    return {
-      currentStreak,
-      longestStreak: Math.max(longestStreak, currentStreak),
-      totalActiveDays,
-      lastQualifyingDate,
-    };
+  /**
+   * Resolves the boundary date strings (today / yesterday) in Asia/Kolkata.
+   * Exposed so callers can reuse the authoritative timezone without re-deriving it.
+   */
+  getStreakBoundaries(): { todayStr: string; yesterdayStr: string } {
+    const todayStr = getFormattedDateInTz();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    return { todayStr, yesterdayStr: getFormattedDateInTz(yesterday) };
   }
 }
 

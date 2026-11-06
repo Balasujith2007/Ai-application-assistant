@@ -59,18 +59,17 @@ export async function GET(req: Request) {
       }));
     }
 
-    // Filter out Preferences items (Notifications and Settings) so they are not
-    // duplicated in Main Menu. Students surface "Settings" (and "My Profile")
-    // inside the Account sidebar group, so those are kept for STUDENT only.
+    // Filter out Preferences items (Notifications and Settings) and My Profile
+    // from the main sidebar for all roles. Students access profile via the
+    // top-right header dropdown; Settings is not surfaced in the sidebar at all.
     dbItems = dbItems.filter((item) => {
-      if (user.role === 'STUDENT') {
-        return item.title !== 'Notifications' && item.path !== '/dashboard/notifications';
-      }
       return (
         item.title !== 'Notifications' &&
         item.title !== 'Settings' &&
+        item.title !== 'My Profile' &&
         item.path !== '/dashboard/notifications' &&
-        item.path !== '/dashboard/settings'
+        item.path !== '/dashboard/settings' &&
+        item.path !== '/profile'
       );
     });
 
