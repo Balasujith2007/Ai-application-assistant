@@ -10,6 +10,10 @@ import {
 import { getAllTimePeriodKey, getPeriodDetails, getPeriodKey, getPreviousPeriodKey } from './periodUtils';
 import { verificationLedger } from './verificationLedger';
 import { XP_CONFIG } from '../gamification/xpConfig';
+import { STREAK_ACTIVITY_TYPES } from '../gamification/streakCalculator';
+
+/** Activity types that may contribute to the Career Activity Streak (career applications only). */
+const CAREER_STREAK_ACTIVITY_TYPES_SQL = [...STREAK_ACTIVITY_TYPES];
 
 export function getDepartmentVariants(dept: string): string[] {
   if (!dept) return [];
@@ -189,6 +193,24 @@ export class ScoringEngine {
       });
     }
 
+    // 2b. Fetch verified Career Activity Streak days (qualifying applications only).
+    // Daily check-ins are legacy history and never contribute to the career streak.
+    let careerActivityDays = 0;
+    try {
+      const careerRows = await prisma.$queryRawUnsafe<Array<{ activityDate: string }>>(
+        `SELECT DISTINCT "activityDate" FROM student_daily_streaks
+         WHERE "studentId" = $1 AND "activityType" = ANY($2)
+           AND ($3 = '' OR ("activityDate" >= $3 AND "activityDate" <= $4))`,
+        studentId,
+        CAREER_STREAK_ACTIVITY_TYPES_SQL,
+        isAllTime ? '' : periodStartDay,
+        isAllTime ? '' : periodEndDay
+      );
+      careerActivityDays = careerRows.length;
+    } catch {
+      careerActivityDays = 0;
+    }
+
     // 3. Fetch or use preloaded Points Ledger entries
     let pointsEntries: any[];
     if (preloadedPoints !== undefined) {
@@ -335,29 +357,15 @@ export class ScoringEngine {
     }
 
     // -------------------------------------------------------------
-    // CATEGORY 3: VALID DAILY CHECK-IN XP
+    // CATEGORY 3: CAREER ACTIVITY DAYS (was: VALID DAILY CHECK-IN XP)
     // -------------------------------------------------------------
-    // Exactly one valid check-in per student per calendar day (5 XP each)
-    const uniqueCheckInDays = new Set<string>();
-    for (const ci of checkIns) {
-      if (ci.checkInDate) {
-        uniqueCheckInDays.add(ci.checkInDate);
-      }
-    }
-    for (const act of verifiedActivities) {
-      if (act.activityType === 'DAILY_CHECKIN') {
-        const metaDate = act.rawMetadata?.checkInDate;
-        if (metaDate) {
-          uniqueCheckInDays.add(metaDate);
-        } else {
-          const d = act.occurredAt || act.createdAt;
-          if (d) uniqueCheckInDays.add(new Date(d).toISOString().slice(0, 10));
-        }
-      }
-    }
-
-    const checkInCount = uniqueCheckInDays.size;
-    const checkInScore = checkInCount * XP_CONFIG.DAILY_CHECKIN;
+    // Daily check-ins no longer award streak days or XP. Only verified career
+    // activities (internship / job / hackathon / competition applications) count.
+    // `checkInCount` now mirrors the number of distinct qualifying career
+    // activity days (display only); no per-day XP is granted here because the
+    // career XP is already awarded in the internship/hackathon categories.
+    const checkInCount = careerActivityDays;
+    const checkInScore = 0;
 
     // -------------------------------------------------------------
     // CATEGORY 4: EARNED CONSISTENCY XP
@@ -672,11 +680,11 @@ export class ScoringEngine {
     }
 
     if (breakdown.consistency.score < 6) {
-      recs.push('Maintain your daily check-in streak to unlock the 7-day Streak Bonus (+25 XP).');
+      recs.push('Submit internship, job or hackathon applications on consecutive days to build your Career Activity Streak.');
     }
 
     if (recs.length === 0) {
-      recs.push('Outstanding performance! Keep checking in and participating to defend your class rank.');
+      recs.push('Outstanding performance! Keep submitting applications and participating to defend your class rank.');
     }
 
     return recs;
@@ -816,9 +824,10 @@ export class ScoringEngine {
             prisma.$queryRawUnsafe<Array<{ studentId: string; streakDays: number }>>(
               `SELECT "studentId", COUNT(DISTINCT "activityDate")::int AS "streakDays"
                FROM student_daily_streaks
-               WHERE "studentId" = ANY($1)
+               WHERE "studentId" = ANY($1) AND "activityType" = ANY($2)
                GROUP BY "studentId"`,
-              studentIds
+              studentIds,
+              CAREER_STREAK_ACTIVITY_TYPES_SQL
             ).catch(() => []),
             prisma.dailyCheckIn.findMany({
               where: {

@@ -65,6 +65,7 @@ const ICON_MAP: Record<string, any> = {
   'Auto-Fill Agent': Zap,
   'AI Features': Sparkles,
   'System Health': Activity,
+  'External Verification': ShieldCheck,
 };
 
 interface SidebarProps {

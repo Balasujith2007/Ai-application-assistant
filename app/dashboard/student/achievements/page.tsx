@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import {
+  AlertCircle,
   Award,
   BadgeCheck,
   CheckCircle2,
@@ -60,6 +61,169 @@ function formatDate(value: string | null): string {
   return d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+// ── Phase 2: platform-specific coding streaks ──────────────────────────────
+
+const PLATFORM_LABELS: Record<string, string> = {
+  LEETCODE: 'LeetCode',
+  CODECHEF: 'CodeChef',
+  ATCODER: 'AtCoder',
+  CODEFORCES: 'Codeforces',
+};
+
+interface CodingStreakPlatform {
+  platform: string;
+  connected: boolean;
+  supported: boolean;
+  unsupportedReason: string | null;
+  coverage: 'FULL' | 'PARTIAL' | 'UNAVAILABLE';
+  partialHistory: boolean;
+  currentStreak: number;
+  longestStreak: number;
+  acceptedActivityCount: number;
+  observedDays: number;
+  lastActivityDate: string | null;
+  nextMilestone: number | null;
+  nextMilestoneRemaining: number | null;
+  progressPercent: number;
+  ownershipStatus: 'PROFILE_EXISTS' | 'OWNERSHIP_UNVERIFIED' | 'OWNERSHIP_VERIFIED';
+  ownershipVerified: boolean;
+  eligibleForStreakBadges: boolean;
+  ineligibilityReason: string | null;
+  latestSyncStatus: string | null;
+  providerAvailable: boolean | null;
+  lastSuccessfulSyncAt: string | null;
+}
+
+interface EarnedCodingStreakBadge {
+  badgeId: string;
+  title: string;
+  platform: string | null;
+  awardedAt: string;
+  credentialId: string | null;
+}
+
+interface CodingStreaksPayload {
+  platforms: CodingStreakPlatform[];
+  earnedBadges: EarnedCodingStreakBadge[];
+  partialHistory: boolean;
+  combinedLongestStreak: number;
+  timeZone: string;
+}
+
+// ── Phase 3: verified contest participation ────────────────────────────────
+
+const CONTEST_COVERAGE_STYLES: Record<string, string> = {
+  FULL: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  PARTIAL: 'border-amber-200 bg-amber-50 text-amber-700',
+  UNAVAILABLE: 'border-slate-200 bg-slate-100 text-slate-600',
+};
+
+const EVIDENCE_SOURCE_LABELS: Record<string, string> = {
+  OFFICIAL_API: 'Official API',
+  PUBLIC_PROFILE: 'Public profile',
+  COMMUNITY_API: 'Community API',
+  SCRAPED_PUBLIC_DATA: 'Scraped public data',
+  MANUAL_REVIEW: 'Manual review',
+};
+
+interface ContestPlatformView {
+  platform: string;
+  connected: boolean;
+  ownershipStatus: string;
+  ownershipVerified: boolean;
+  available: boolean;
+  coverage: 'FULL' | 'PARTIAL' | 'UNAVAILABLE';
+  evidenceSource: string;
+  evidenceSourceLabel: string;
+  apiKind: string;
+  contestCount: number;
+  ratedContestsCount: number;
+  personalBestRating: number | null;
+  cumulativeRatingImprovement: number;
+  top10PercentFinishes: number;
+  top5PercentFinishes: number;
+  lastSuccessfulSyncAt: string | null;
+  lastAttemptAt: string | null;
+  latestSyncStatus: string | null;
+  unavailableReason: string | null;
+  eligibleForAutomatedContestBadges: boolean;
+  ineligibilityReason: string | null;
+  supportsRank: boolean;
+  supportsTotalParticipants: boolean;
+  supportsRatingChange: boolean;
+  notes: string[];
+}
+
+interface ContestRecordView {
+  platform: string;
+  externalContestId: string;
+  contestName: string;
+  participatedAt: string;
+  rank: number | null;
+  totalParticipants: number | null;
+  oldRating: number | null;
+  newRating: number | null;
+  ratingChange: number | null;
+  finishPercentile: number | null;
+  personalBest: boolean;
+  status: string;
+  evidenceSource: string;
+  evidenceReference: string | null;
+  reviewedById: string | null;
+  reviewedAt: string | null;
+}
+
+interface PendingContestReviewView {
+  id: string;
+  platform: string;
+  externalContestId: string;
+  contestName: string | null;
+  status: string;
+  evidenceUrl: string | null;
+  evidenceNote: string | null;
+  reviewReason: string | null;
+  createdAt: string;
+}
+
+interface ContestsPayload {
+  platforms: ContestPlatformView[];
+  records: ContestRecordView[];
+  pendingReviews: PendingContestReviewView[];
+  earnedBadges: EarnedCodingStreakBadge[];
+  partialHistory: boolean;
+  timeZone: string;
+  stats: {
+    totalVerifiedParticipations: number;
+    platformsWithParticipation: number;
+    ratedContestsCount: number;
+    personalBestRating: number | null;
+    personalBestPlatform: string | null;
+    bestCumulativeRatingImprovement: number;
+    top10PercentFinishes: number;
+    top5PercentFinishes: number;
+  };
+}
+
+function contestCoverageBadge(coverage: string) {
+  const cls = CONTEST_COVERAGE_STYLES[coverage] || CONTEST_COVERAGE_STYLES.UNAVAILABLE;
+  return <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${cls}`}>{coverage}</span>;
+}
+
+/** YYYY-MM-DD calendar keys are already timezone-normalized (Asia/Kolkata). */
+function formatDay(value: string | null): string {
+  if (!value) return '—';
+  const d = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+}
+
+function syncLabel(p: CodingStreakPlatform): string {
+  if (p.providerAvailable === false) return 'Provider unavailable — showing last known verified data';
+  if (p.latestSyncStatus === 'SUCCESS') return 'Up to date';
+  if (!p.latestSyncStatus) return 'Not synced yet';
+  return `Latest sync: ${p.latestSyncStatus.toLowerCase()}`;
+}
+
 export default function AchievementsPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
@@ -69,6 +233,17 @@ export default function AchievementsPage() {
   const [selectedBadge, setSelectedBadge] = useState<any>(null);
   const [copied, setCopied] = useState(false);
   const [toast, setToast] = useState<any>(null);
+  const [reviewFormOpen, setReviewFormOpen] = useState(false);
+  const [reviewForm, setReviewForm] = useState({
+    platform: 'CODEFORCES',
+    externalContestId: '',
+    contestName: '',
+    rank: '',
+    evidenceUrl: '',
+    evidenceNote: '',
+  });
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewMessage, setReviewMessage] = useState<{ tone: 'ok' | 'err'; text: string } | null>(null);
 
   const fetchAchievements = useCallback(async () => {
     try {
@@ -102,7 +277,7 @@ export default function AchievementsPage() {
 
   const summary = data?.summary || {
     totalEarned: 0,
-    totalAvailable: 30,
+    totalAvailable: 36,
     completionPercentage: 0,
     totalXp: 0,
     currentStreak: 0,
@@ -111,6 +286,8 @@ export default function AchievementsPage() {
     activeWeeksInMonth: 0,
   };
   const nextMilestone = data?.nextMilestone;
+  const codingStreaks: CodingStreaksPayload | null = data?.codingStreaks || null;
+  const contests: ContestsPayload | null = data?.contests || null;
   const allBadges: any[] = data?.badgesByStatus?.all || [];
   const monthlyAwards: any[] = data?.monthlyAwards || [];
   const history: any[] = data?.history || [];
@@ -152,6 +329,45 @@ export default function AchievementsPage() {
       issueDate: new Date(badge.awardedAt),
     });
   };
+
+  // Phase 3 — submit a manual contest-evidence review request. A provider that
+  // cannot publish contest history leaves the student a path to be reviewed
+  // rather than silently treated as a non-participant.
+  const submitReviewRequest = useCallback(async () => {
+    if (!reviewForm.externalContestId.trim()) {
+      setReviewMessage({ tone: 'err', text: 'A provider contest ID is required.' });
+      return;
+    }
+    setReviewSubmitting(true);
+    setReviewMessage(null);
+    try {
+      const res = await fetch('/api/achievements/contests/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+        body: JSON.stringify({
+          platform: reviewForm.platform,
+          externalContestId: reviewForm.externalContestId.trim(),
+          contestName: reviewForm.contestName.trim() || null,
+          rank: reviewForm.rank.trim() || null,
+          evidenceUrl: reviewForm.evidenceUrl.trim() || null,
+          evidenceNote: reviewForm.evidenceNote.trim() || null,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setReviewMessage({ tone: 'ok', text: json.message || 'Review request submitted.' });
+        setReviewForm({ platform: reviewForm.platform, externalContestId: '', contestName: '', rank: '', evidenceUrl: '', evidenceNote: '' });
+        setReviewFormOpen(false);
+        fetchAchievements();
+      } else {
+        setReviewMessage({ tone: 'err', text: json.message || 'Could not submit review request.' });
+      }
+    } catch {
+      setReviewMessage({ tone: 'err', text: 'Could not submit review request.' });
+    } finally {
+      setReviewSubmitting(false);
+    }
+  }, [reviewForm, fetchAchievements]);
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 pb-16">
@@ -249,6 +465,475 @@ export default function AchievementsPage() {
           </div>
         </div>
       </div>
+
+      {/* Platform coding streaks (Phase 2) */}
+      {codingStreaks && codingStreaks.platforms.some((p) => p.connected) && (
+        <div className="rounded-2xl border border-gray-200 bg-white p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Flame className="h-4 w-4 text-orange-500" />
+              <h2 className="text-base font-bold text-gray-900">Platform coding streaks</h2>
+            </div>
+            <span className="text-[11px] font-semibold text-gray-500">
+              Calendar days with at least one verified accepted submission · {codingStreaks.timeZone}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-gray-500">
+            Each platform is tracked independently. A day only counts when a verified accepted submission exists on
+            that platform — logins, profile views and unaccepted submissions never count.
+          </p>
+
+          {codingStreaks.partialHistory && (
+            <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] text-amber-800">
+              <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>
+                <strong>PARTIAL HISTORY</strong> — some platform history is incomplete or a provider sync was delayed.
+                Unverifiable days are never counted as missed days, but this streak is not yet badge-eligible.
+              </span>
+            </div>
+          )}
+
+          <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {codingStreaks.platforms
+              .filter((p) => p.connected)
+              .map((p) => {
+                const earnedHere = codingStreaks.earnedBadges.filter((b) => b.platform === p.platform);
+                return (
+                  <div key={p.platform} className="rounded-xl border border-gray-200/80 bg-gray-50/40 p-4 space-y-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-sm font-bold text-gray-900">{PLATFORM_LABELS[p.platform] || p.platform}</span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {p.ownershipVerified ? (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                            <ShieldCheck className="h-3 w-3" /> Ownership verified
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                            Linked · ownership not proven
+                          </span>
+                        )}
+                        {!p.supported ? (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-600">
+                            Streak not supported
+                          </span>
+                        ) : p.partialHistory ? (
+                          <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                            PARTIAL HISTORY
+                          </span>
+                        ) : (
+                          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                            FULL HISTORY
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {p.supported ? (
+                      <>
+                        <div className="flex items-baseline gap-4">
+                          <div>
+                            <span className="text-xl font-black text-gray-900">{p.currentStreak}</span>
+                            <span className="ml-1 text-[11px] font-semibold text-gray-500">current</span>
+                          </div>
+                          <div>
+                            <span className="text-xl font-black text-gray-900">{p.longestStreak}</span>
+                            <span className="ml-1 text-[11px] font-semibold text-gray-500">longest</span>
+                          </div>
+                          <div>
+                            <span className="text-xl font-black text-gray-900">{p.acceptedActivityCount}</span>
+                            <span className="ml-1 text-[11px] font-semibold text-gray-500">accepted days</span>
+                          </div>
+                        </div>
+
+                        <div className="text-[11px] text-gray-600">
+                          Last verified activity: <strong>{formatDay(p.lastActivityDate)}</strong>
+                          {p.nextMilestone !== null && (
+                            <>
+                              {' · '}Next milestone: <strong>{p.nextMilestone} days</strong> (
+                              {p.nextMilestoneRemaining} to go)
+                            </>
+                          )}
+                        </div>
+
+                        {p.nextMilestone !== null && (
+                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
+                            <div
+                              className="h-full rounded-full bg-[#990024] transition-all duration-500"
+                              style={{ width: `${p.progressPercent}%` }}
+                            />
+                          </div>
+                        )}
+
+                        {!p.ownershipVerified && (
+                          <p className="text-[10.5px] text-amber-700">
+                            Linked but not eligible for automatic streak badges until ownership is proven. A Super Admin
+                            can review it manually through the audit system.
+                          </p>
+                        )}
+                        {p.ownershipVerified && p.partialHistory && p.ineligibilityReason && (
+                          <p className="text-[10.5px] text-amber-700">{p.ineligibilityReason}</p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-[11px] text-gray-600">
+                        {p.unsupportedReason ||
+                          'This platform cannot expose accepted submissions with reliable timestamps yet.'}
+                      </p>
+                    )}
+
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] text-gray-500">
+                      <span>{syncLabel(p)}</span>
+                      {p.lastSuccessfulSyncAt && (
+                        <span>· last success {formatDate(p.lastSuccessfulSyncAt)}</span>
+                      )}
+                    </div>
+
+                    {earnedHere.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                        {earnedHere.map((b) => (
+                          <span
+                            key={b.badgeId}
+                            className="inline-flex items-center gap-1 rounded-full border border-[#990024]/20 bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-[#990024]"
+                          >
+                            <Award className="h-3 w-3" /> {b.title}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
+      {/* Verified contest participation (Phase 3) */}
+      {contests &&
+        (contests.platforms.some((p) => p.connected) ||
+          contests.records.length > 0 ||
+          contests.pendingReviews.length > 0) && (
+          <div className="rounded-2xl border border-gray-200 bg-white p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Trophy className="h-4 w-4 text-[#990024]" />
+                <h2 className="text-base font-bold text-gray-900">Contest participation</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-semibold text-gray-500">
+                  Provider-verified attendance only · ranks &amp; ratings shown exactly as published
+                </span>
+                <button
+                  onClick={() => setReviewFormOpen((v) => !v)}
+                  className="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-bold text-gray-700 transition hover:bg-gray-50"
+                >
+                  {reviewFormOpen ? 'Close' : 'Request manual review'}
+                </button>
+              </div>
+            </div>
+
+            <p className="mt-1 text-xs text-gray-500">
+              Registering for a contest does not count. Only contests a provider can evidence as actually attended
+              appear here. A provider that cannot publish contest history marks that platform{' '}
+              <strong>PARTIAL</strong> or <strong>UNAVAILABLE</strong> — that is never treated as non-participation.
+            </p>
+
+            {contests.partialHistory && (
+              <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] text-amber-800">
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>
+                  <strong>PARTIAL HISTORY</strong> — at least one provider cannot supply complete contest history
+                  (community mirror caps, scraping limits or missing endpoints). Badges depending on percentile or
+                  rating movement may stay locked even if you competed more.
+                </span>
+              </div>
+            )}
+
+            {/* Summary strip */}
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-xl border border-gray-200/80 bg-gray-50/40 p-3">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                  Verified participations
+                </span>
+                <span className="mt-0.5 block text-xl font-black text-gray-900">
+                  {contests.stats.totalVerifiedParticipations}
+                </span>
+              </div>
+              <div className="rounded-xl border border-gray-200/80 bg-gray-50/40 p-3">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-500">Platforms</span>
+                <span className="mt-0.5 block text-xl font-black text-gray-900">
+                  {contests.stats.platformsWithParticipation}
+                </span>
+              </div>
+              <div className="rounded-xl border border-gray-200/80 bg-gray-50/40 p-3">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                  Rated contests
+                </span>
+                <span className="mt-0.5 block text-xl font-black text-gray-900">{contests.stats.ratedContestsCount}</span>
+              </div>
+              <div className="rounded-xl border border-gray-200/80 bg-gray-50/40 p-3">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                  Personal best
+                </span>
+                <span className="mt-0.5 block text-xl font-black text-gray-900">
+                  {contests.stats.personalBestRating ?? '—'}
+                </span>
+                {contests.stats.personalBestPlatform && (
+                  <span className="text-[10px] font-semibold text-gray-500">
+                    {PLATFORM_LABELS[contests.stats.personalBestPlatform] || contests.stats.personalBestPlatform}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Per-platform cards */}
+            <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
+              {contests.platforms
+                .filter((p) => p.connected)
+                .map((p) => {
+                  const earnedHere = contests.earnedBadges.filter((b) => b.platform === p.platform);
+                  return (
+                    <div key={p.platform} className="space-y-2 rounded-xl border border-gray-200/80 bg-gray-50/40 p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-sm font-bold text-gray-900">{PLATFORM_LABELS[p.platform] || p.platform}</span>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {contestCoverageBadge(p.coverage)}
+                          <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-600">
+                            {EVIDENCE_SOURCE_LABELS[p.evidenceSource] || p.evidenceSource}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[11px] text-gray-600">
+                        <span>
+                          <strong className="text-base font-black text-gray-900">{p.contestCount}</strong> contests
+                        </span>
+                        <span>
+                          <strong className="font-bold text-gray-900">{p.ratedContestsCount}</strong> rated
+                        </span>
+                        <span>
+                          Best rating <strong className="font-bold text-gray-900">{p.personalBestRating ?? '—'}</strong>
+                        </span>
+                        <span>
+                          Rating gain{' '}
+                          <strong className="font-bold text-gray-900">
+                            {p.cumulativeRatingImprovement > 0 ? `+${p.cumulativeRatingImprovement}` : '—'}
+                          </strong>
+                        </span>
+                      </div>
+
+                      {!p.eligibleForAutomatedContestBadges && p.ineligibilityReason && (
+                        <p className="text-[10.5px] text-amber-700">{p.ineligibilityReason}</p>
+                      )}
+                      {p.available && p.coverage !== 'UNAVAILABLE' && p.top10PercentFinishes > 0 && (
+                        <p className="text-[10.5px] text-gray-500">
+                          Verified top-10% finishes: {p.top10PercentFinishes}
+                          {p.top5PercentFinishes > 0 ? ` · top-5%: ${p.top5PercentFinishes}` : ''}
+                        </p>
+                      )}
+
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] text-gray-500">
+                        <span>
+                          {p.latestSyncStatus === 'FAILED'
+                            ? 'Last contest read failed — showing previously verified evidence'
+                            : p.lastSuccessfulSyncAt
+                              ? `Last contest sync ${formatDate(p.lastSuccessfulSyncAt)}`
+                              : 'Not synced yet'}
+                        </span>
+                        <span>· Asia/Kolkata</span>
+                      </div>
+
+                      {earnedHere.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 pt-0.5">
+                          {earnedHere.map((b) => (
+                            <span
+                              key={b.badgeId}
+                              className="inline-flex items-center gap-1 rounded-full border border-[#990024]/20 bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-[#990024]"
+                            >
+                              <Award className="h-3 w-3" /> {b.title}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+
+            {/* Pending manual reviews */}
+            {contests.pendingReviews.length > 0 && (
+              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/60 p-3">
+                <div className="flex items-center gap-2 text-[11px] font-bold text-amber-800">
+                  <ShieldCheck className="h-3.5 w-3.5" /> Pending manual reviews ({contests.pendingReviews.length})
+                </div>
+                <div className="mt-2 space-y-1.5">
+                  {contests.pendingReviews.map((r) => (
+                    <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-amber-900">
+                      <span>
+                        <strong>{r.contestName || `${r.platform} contest`}</strong> · {r.platform} · id {r.externalContestId}
+                      </span>
+                      <span className="rounded-full border border-amber-300 bg-white px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                        {r.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-2 text-[10px] text-amber-700">
+                  A Super Admin reviews the evidence and records a reason. Approval verifies participation only — it does
+                  not prove account ownership.
+                </p>
+              </div>
+            )}
+
+            {/* Manual review request form */}
+            {reviewFormOpen && (
+              <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+                <p className="text-[11px] font-bold text-gray-800">Request a manual contest review</p>
+                <p className="mt-0.5 text-[10.5px] text-gray-500">
+                  Use this when a provider cannot publish the contest. Never share passwords, session cookies or tokens —
+                  provide a public evidence link only.
+                </p>
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <select
+                    value={reviewForm.platform}
+                    onChange={(e) => setReviewForm((f) => ({ ...f, platform: e.target.value }))}
+                    className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-700 focus:border-[#990024] focus:outline-none"
+                  >
+                    {['CODEFORCES', 'LEETCODE', 'ATCODER', 'CODECHEF'].map((p) => (
+                      <option key={p} value={p}>
+                        {PLATFORM_LABELS[p]}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Provider contest ID (required)"
+                    value={reviewForm.externalContestId}
+                    onChange={(e) => setReviewForm((f) => ({ ...f, externalContestId: e.target.value }))}
+                    className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-800 focus:border-[#990024] focus:outline-none"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Contest name (optional)"
+                    value={reviewForm.contestName}
+                    onChange={(e) => setReviewForm((f) => ({ ...f, contestName: e.target.value }))}
+                    className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-800 focus:border-[#990024] focus:outline-none"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Rank (optional)"
+                    value={reviewForm.rank}
+                    onChange={(e) => setReviewForm((f) => ({ ...f, rank: e.target.value }))}
+                    className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-800 focus:border-[#990024] focus:outline-none"
+                  />
+                  <input
+                    type="url"
+                    placeholder="Public evidence URL (optional)"
+                    value={reviewForm.evidenceUrl}
+                    onChange={(e) => setReviewForm((f) => ({ ...f, evidenceUrl: e.target.value }))}
+                    className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-800 focus:border-[#990024] focus:outline-none sm:col-span-2"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Note (optional)"
+                    value={reviewForm.evidenceNote}
+                    onChange={(e) => setReviewForm((f) => ({ ...f, evidenceNote: e.target.value }))}
+                    className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-800 focus:border-[#990024] focus:outline-none sm:col-span-3"
+                  />
+                </div>
+                {reviewMessage && (
+                  <p className={`mt-2 text-[11px] font-semibold ${reviewMessage.tone === 'ok' ? 'text-emerald-700' : 'text-rose-700'}`}>
+                    {reviewMessage.text}
+                  </p>
+                )}
+                <div className="mt-3 flex items-center gap-2">
+                  <button
+                    onClick={submitReviewRequest}
+                    disabled={reviewSubmitting}
+                    className="rounded-lg bg-[#990024] px-3 py-1.5 text-[11px] font-bold text-white transition hover:bg-[#7d001e] disabled:opacity-50"
+                  >
+                    {reviewSubmitting ? 'Submitting…' : 'Submit for review'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Contest history */}
+            {contests.records.length > 0 && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500">Contest history</h3>
+                  <span className="text-[10px] text-gray-400">Times in {contests.timeZone}</span>
+                </div>
+                <div className="mt-2 overflow-x-auto rounded-xl border border-gray-200">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-gray-50/70 text-left text-[10px] uppercase tracking-wider text-gray-500">
+                        <th className="px-3 py-2 font-semibold">Date</th>
+                        <th className="px-3 py-2 font-semibold">Platform</th>
+                        <th className="px-3 py-2 font-semibold">Contest</th>
+                        <th className="px-3 py-2 font-semibold">Rank</th>
+                        <th className="px-3 py-2 font-semibold">Rating</th>
+                        <th className="px-3 py-2 font-semibold">Evidence</th>
+                        <th className="px-3 py-2 font-semibold">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {contests.records.slice(0, 25).map((r) => (
+                        <tr key={`${r.platform}-${r.externalContestId}`} className="hover:bg-gray-50/60">
+                          <td className="whitespace-nowrap px-3 py-2 text-gray-600">{formatDate(r.participatedAt)}</td>
+                          <td className="px-3 py-2 font-semibold text-gray-800">
+                            {PLATFORM_LABELS[r.platform] || r.platform}
+                          </td>
+                          <td className="px-3 py-2 text-gray-700">
+                            <span className="inline-flex items-center gap-1">
+                              {r.contestName}
+                              {r.personalBest && (
+                                <span className="rounded bg-amber-100 px-1 py-0.5 text-[9px] font-bold text-amber-700">
+                                  PB
+                                </span>
+                              )}
+                            </span>
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2 text-gray-600">
+                            {r.rank != null ? `${r.rank}${r.totalParticipants != null ? ` / ${r.totalParticipants}` : ''}` : '—'}
+                            {r.finishPercentile != null && (
+                              <span className="ml-1 text-[10px] text-gray-400">top {r.finishPercentile.toFixed(0)}%</span>
+                            )}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2 text-gray-600">
+                            {r.newRating ?? '—'}
+                            {r.ratingChange != null && (
+                              <span className={r.ratingChange >= 0 ? 'ml-1 text-emerald-600' : 'ml-1 text-rose-600'}>
+                                ({r.ratingChange >= 0 ? '+' : ''}
+                                {r.ratingChange})
+                              </span>
+                            )}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2 text-[10px] text-gray-500">
+                            {EVIDENCE_SOURCE_LABELS[r.evidenceSource] || r.evidenceSource}
+                          </td>
+                          <td className="px-3 py-2">
+                            <span
+                              className={`rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${
+                                r.status === 'VERIFIED'
+                                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                  : r.status === 'PARTIAL'
+                                    ? 'border-amber-200 bg-amber-50 text-amber-700'
+                                    : 'border-slate-200 bg-slate-100 text-slate-600'
+                              }`}
+                            >
+                              {r.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
       {/* Monthly recognition */}
       {monthlyAwards.length > 0 && (

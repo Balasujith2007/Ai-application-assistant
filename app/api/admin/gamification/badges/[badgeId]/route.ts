@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireSuperAdmin } from '@/lib/gamification/adminGuard';
 import { updateBadgeCatalogEntry, type BadgeCatalogPatch } from '@/lib/gamification/badgeCatalogService';
-import { BADGE_CATALOG } from '@/lib/gamification/badgeConfig';
+import { ALL_BADGE_DEFINITIONS } from '@/lib/gamification/badgeConfig';
 
 /**
  * PUT /api/admin/gamification/badges/[badgeId]
@@ -16,7 +16,7 @@ export async function PUT(req: Request, ctx: { params: Promise<{ badgeId: string
   if (!auth.ok) return auth.response;
 
   const { badgeId } = await ctx.params;
-  const def = BADGE_CATALOG.find((b) => b.id === badgeId);
+  const def = ALL_BADGE_DEFINITIONS.find((b) => b.id === badgeId);
   if (!def) {
     return NextResponse.json({ success: false, message: `Unknown badge id: ${badgeId}` }, { status: 404 });
   }
@@ -44,6 +44,18 @@ export async function PUT(req: Request, ctx: { params: Promise<{ badgeId: string
   if (body.monthlyRule !== undefined) {
     patch.monthlyRule =
       body.monthlyRule && typeof body.monthlyRule === 'object' ? (body.monthlyRule as Record<string, unknown>) : null;
+  }
+  // Phase 2 §7 — Super-Admin-owned streak-badge policy.
+  if (body.requireOwnershipVerification !== undefined) {
+    patch.requireOwnershipVerification = Boolean(body.requireOwnershipVerification);
+  }
+  if (body.eligibleProviders !== undefined) {
+    patch.eligibleProviders = Array.isArray(body.eligibleProviders)
+      ? body.eligibleProviders.map((p: unknown) => String(p))
+      : null;
+  }
+  if (body.evidenceRequirement !== undefined) {
+    patch.evidenceRequirement = body.evidenceRequirement;
   }
 
   if (Object.keys(patch).length === 0) {

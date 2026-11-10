@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/serverAuth';
 import { badgeEngine } from '@/lib/gamification/badgeEngine';
+import { platformStreakService } from '@/lib/external-verification/platformStreakService';
+import { contestVerificationService } from '@/lib/external-verification/contestService';
 import prisma from '@/lib/prisma';
 
 export async function GET(req: Request) {
@@ -29,6 +31,26 @@ export async function GET(req: Request) {
 
     const overview = await badgeEngine.getStudentBadgesOverview(userId);
 
+    // Phase 2 — per-platform coding streaks for the External Coding Achievements
+    // area. Degrades gracefully: if the streak view cannot be computed the badge
+    // data above is still returned.
+    let codingStreaks: Awaited<ReturnType<typeof platformStreakService.getStudentCodingStreakView>> | null = null;
+    try {
+      codingStreaks = await platformStreakService.getStudentCodingStreakView(userId);
+    } catch (err) {
+      console.error('Coding streak view unavailable:', err);
+    }
+
+    // Phase 3 — verified contest participation for the External Coding
+    // Achievements area. Degrades gracefully: badges + streaks are still
+    // returned if the additive contest tables are not yet present.
+    let contests: Awaited<ReturnType<typeof contestVerificationService.getStudentContestView>> | null = null;
+    try {
+      contests = await contestVerificationService.getStudentContestView(userId);
+    } catch (err) {
+      console.error('Contest view unavailable:', err);
+    }
+
     // Filter badges if requested
     let filteredBadges = overview.badges.all;
     if (categoryFilter !== 'ALL') {
@@ -48,6 +70,8 @@ export async function GET(req: Request) {
       badges: filteredBadges,
       badgesByStatus: overview.badges,
       history: overview.history,
+      codingStreaks,
+      contests,
     });
   } catch (err: any) {
     console.error('Error fetching achievements:', err);
@@ -68,19 +92,10 @@ export async function POST(req: Request) {
       );
     }
 
-    let body: any = {};
-    try {
-      body = await req.json();
-    } catch {
-      // Body is optional
-    }
-
-    // Optional daily activity recording
-    if (body.activityType) {
-      await badgeEngine.recordDailyActivity(userId, body.activityType, body.sourceReference);
-    }
-
-    // Evaluate badges
+    // NOTE: Client-supplied activity claims are intentionally NOT processed here.
+    // A Career Activity Streak day (and any associated reward) is awarded only
+    // by a verified server-side career submission event, never by a frontend
+    // claim. This endpoint only (re)evaluates badges for the authenticated user.
     const result = await badgeEngine.evaluateAndAwardBadges(userId);
 
     return NextResponse.json({

@@ -295,7 +295,7 @@ async function run() {
     );
 
     // Core gamification widgets still functional
-    check(`${device.name}: daily career check-in panel`, /Daily Career Check-In/.test(body));
+    check(`${device.name}: career activity streak panel`, /Career Activity Streak/.test(body));
     check(`${device.name}: weekly streak strip`, /This Week/.test(body));
     check(`${device.name}: next streak milestone shown`, /Next milestone/.test(body));
     check(`${device.name}: monthly engagement removed`, !/Monthly Engagement/.test(body));
@@ -343,7 +343,7 @@ async function run() {
       check('desktop: Badges tab renders', /Achievements|View All Badges/.test((await page.textContent('body')) || ''));
       await tabBtn('Tracker').click();
       await page.waitForTimeout(400);
-      check('desktop: Tracker tab restores panel', /Daily Career Check-In/.test((await page.textContent('body')) || ''));
+      check('desktop: Tracker tab restores panel', /Career Activity Streak/.test((await page.textContent('body')) || ''));
       await page.screenshot({ path: path.join(OUT, 'student-overview-desktop-tabs.png'), fullPage: true });
     }
 

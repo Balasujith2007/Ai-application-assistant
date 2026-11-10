@@ -1,10 +1,10 @@
 import prisma from '@/lib/prisma';
 import {
-  BADGE_CATALOG,
   BadgeCategory,
   BadgeDefinition,
   BadgeStatus,
   StudentActivityStats,
+  getBadgeById,
 } from './badgeConfig';
 import {
   EffectiveBadge,
@@ -14,7 +14,14 @@ import {
 } from './badgeCatalogService';
 import { buildCredentialId, buildVerificationPath, ISSUING_ORGANIZATION } from './badgeCredentials';
 import { verificationLedger } from '../leaderboard/verificationLedger';
-import { computeStreakCore } from './streakCalculator';
+import {
+  CAREER_ACTIVITY_STREAK_TYPES,
+  STREAK_ACTIVITY_TYPES,
+  computeStreakCore,
+  isCareerActivityType,
+} from './streakCalculator';
+import { platformStreakService } from '../external-verification/platformStreakService';
+import { contestVerificationService } from '../external-verification/contestService';
 
 /**
  * Timezone-aware date helper for consistent daily streak tracking.
@@ -35,34 +42,23 @@ export function getFormattedDateInTz(date: Date = new Date(), timeZone: string =
 }
 
 /**
- * Activity types that count as *qualifying career activity* for streaks and
- * badges. Page visits, logins, scrolling and other meaningless actions are
- * deliberately excluded, as is any LMS/course activity.
+ * Activity types that count as *qualifying career activity* for the Career
+ * Activity Streak and its badges. Only server-verified career *submissions*
+ * qualify; page visits, logins, check-in button clicks, profile edits, resume
+ * uploads, skills/projects/experience, LMS/course activity and legacy
+ * `CHECKIN` / `DAILY_CHECKIN` records are deliberately excluded.
+ *
+ * This is the single source of truth, shared with the pure streak calculator
+ * so the calendar-day streak, the dashboard and the badges can never disagree.
  */
-export const QUALIFYING_ACTIVITY_TYPES = [
-  'APPLICATION_SUBMITTED',
-  'APPLICATION_STATUS_CHANGE',
-  'INTERVIEW_SCHEDULED',
-  'INTERVIEW_ATTENDED',
-  'HACKATHON_REGISTERED',
-  'COMPETITION_REGISTERED',
-  'PROJECT_SUBMITTED',
-  'COMPETITION_OUTCOME',
-  'RESUME_UPLOADED',
-  'RESUME_REVIEWED',
-  'PROFILE_UPDATED',
-  'SKILL_ADDED',
-  'PROJECT_ADDED',
-  'EXPERIENCE_ADDED',
-  // Legacy/higher-level buckets written by the daily check-in service.
-  'CHECKIN',
-  'DAILY_CHECKIN',
-  'CODING',
-  'INTERNSHIP',
-  'HACKATHON',
-] as const;
+export const QUALIFYING_ACTIVITY_TYPES = [...CAREER_ACTIVITY_STREAK_TYPES] as const;
 
-const QUALIFYING_ACTIVITY_SET = new Set<string>(QUALIFYING_ACTIVITY_TYPES);
+/**
+ * SQL fragment listing the activity types allowed to contribute to the streak
+ * (verified career submissions plus the explicit, student-initiated
+ * `STREAK_RESCUE` restoration day). Passed as the `$2` parameter.
+ */
+const STREAK_ACTIVITY_TYPES_SQL = [...STREAK_ACTIVITY_TYPES];
 
 /** Career-application types counted for the Career Excellence badges. */
 const CAREER_APPLICATION_TYPES = ['INTERNSHIP', 'JOB'];
@@ -73,6 +69,13 @@ const COMPETITION_TYPES = ['HACKATHON', 'COMPETITION'];
 
 /** Rank ordering used to de-duplicate competition outcomes (best wins). */
 const OUTCOME_RANK: Record<string, number> = { submitted: 1, finalist: 2, podium: 3, winner: 4 };
+
+/**
+ * Phase 4 — statuses that void a hackathon/competition participation. A
+ * registration in one of these states can never evidence participation even if
+ * it previously carried a verification timestamp.
+ */
+const VOID_PARTICIPATION_STATUSES = ['REJECTED', 'WITHDRAWN', 'CANCELLED', 'DISQUALIFIED', 'FAILED'];
 
 interface BadgeInsertResult {
   inserted: boolean;
@@ -96,7 +99,7 @@ export class BadgeEngine {
     recorded: boolean;
   }> {
     const normalized = (activityType || '').toUpperCase();
-    if (!QUALIFYING_ACTIVITY_SET.has(normalized)) {
+    if (!isCareerActivityType(normalized)) {
       const streak = await this.calculateStreak(studentId);
       return { ...streak, recorded: false };
     }
@@ -135,9 +138,10 @@ export class BadgeEngine {
   }> {
     const rawStreaks = await prisma.$queryRawUnsafe<Array<{ activityDate: string }>>(
       `SELECT DISTINCT "activityDate" FROM student_daily_streaks
-       WHERE "studentId" = $1
+       WHERE "studentId" = $1 AND "activityType" = ANY($2)
        ORDER BY "activityDate" DESC`,
-      studentId
+      studentId,
+      STREAK_ACTIVITY_TYPES_SQL
     );
 
     if (!rawStreaks || rawStreaks.length === 0) {
@@ -305,6 +309,20 @@ export class BadgeEngine {
     }
     const outcomeRanks = Array.from(bestOutcome.values());
     const competitionRegistrations = confirmedRegistrations.length;
+
+    // Phase 4 — verified participation, distinct from registration. Only a
+    // registration that an organizer/judge/admin verified proves participation;
+    // a plain REGISTERED row, a pending review, or a voided record never
+    // counts. Deduped per distinct competition so a student can never
+    // double-count the same hackathon/competition.
+    const verifiedParticipationKeys = new Set<string>();
+    for (const reg of registrations) {
+      const invalid = VOID_PARTICIPATION_STATUSES.includes(String(reg.status));
+      const verified = reg.status === 'VERIFIED' || Boolean(reg.verifiedAt);
+      if (verified && !invalid) verifiedParticipationKeys.add(reg.opportunityId ?? reg.id);
+    }
+    const verifiedCompetitionParticipations = verifiedParticipationKeys.size;
+
     const projectSubmissionsCount = outcomeRanks.filter((r) => r >= 1).length;
     const finalistCount = outcomeRanks.filter((r) => r >= 2).length;
     const podiumCount = outcomeRanks.filter((r) => r === 3).length;
@@ -312,6 +330,75 @@ export class BadgeEngine {
 
     // ── C. Consistency & Streak ────────────────────────────────────────────
     const streakStats = await this.calculateStreak(studentId);
+
+    // ── C2. Platform-specific coding streaks (Phase 2) ─────────────────────
+    // Only ownership-verified, capability-supported platforms contribute, and
+    // platforms are never combined. A failure here must never fabricate a
+    // streak or break the rest of the badge evaluation, so it degrades to zero.
+    let codingStreakStats: {
+      verifiedCodingStreakDays: number;
+      codingStreakPlatform: string | null;
+      codingAcceptedActivityCount: number;
+    } = { verifiedCodingStreakDays: 0, codingStreakPlatform: null, codingAcceptedActivityCount: 0 };
+    try {
+      const coding = await platformStreakService.getCodingStreakStats(studentId);
+      codingStreakStats = {
+        verifiedCodingStreakDays: coding.verifiedCodingStreakDays,
+        codingStreakPlatform: coding.codingStreakPlatform,
+        codingAcceptedActivityCount: coding.codingAcceptedActivityCount,
+      };
+    } catch {
+      // Leave the zeroed default — never a fabricated streak.
+    }
+
+    // ── B2. Verified contest participation (Phase 3) ───────────────────────
+    // Only platforms that are supported AND ownership-verified AND not
+    // UNAVAILABLE contribute. Missing rank / participant-total / rating data
+    // stays missing (0 or null) — never estimated. A failure degrades to zeros
+    // so the remaining badge evaluation is never blocked.
+    let contestStats: {
+      contestParticipationCount: number;
+      contestPlatforms: string[];
+      contestPlatform: string | null;
+      contestRatedContestsCount: number;
+      contestPersonalBestRating: number | null;
+      contestPersonalBestPlatform: string | null;
+      contestCumulativeRatingImprovement: number;
+      contestTop10PercentFinishes: number;
+      contestTop5PercentFinishes: number;
+    } = {
+      contestParticipationCount: 0,
+      contestPlatforms: [],
+      contestPlatform: null,
+      contestRatedContestsCount: 0,
+      contestPersonalBestRating: null,
+      contestPersonalBestPlatform: null,
+      contestCumulativeRatingImprovement: 0,
+      contestTop10PercentFinishes: 0,
+      contestTop5PercentFinishes: 0,
+    };
+    try {
+      const contests = await contestVerificationService.getContestBadgeStats(studentId);
+      const busiestPlatform = [...contests.byPlatform].sort(
+        (a, b) => b.participationCount - a.participationCount,
+      )[0];
+      contestStats = {
+        contestParticipationCount: contests.totalVerifiedParticipations,
+        contestPlatforms: contests.byPlatform
+          .filter((p) => p.participationCount > 0)
+          .map((p) => p.platform)
+          .sort(),
+        contestPlatform: busiestPlatform?.participationCount ? busiestPlatform.platform : null,
+        contestRatedContestsCount: contests.ratedContestsCount,
+        contestPersonalBestRating: contests.personalBestRating,
+        contestPersonalBestPlatform: contests.personalBestPlatform,
+        contestCumulativeRatingImprovement: contests.bestCumulativeRatingImprovement,
+        contestTop10PercentFinishes: contests.top10PercentFinishes,
+        contestTop5PercentFinishes: contests.top5PercentFinishes,
+      };
+    } catch {
+      // Leave the zeroed default — never fabricated contest evidence.
+    }
 
     // ── D. Professional Development ────────────────────────────────────────
     const skillsCount = profile?.skills?.length ?? 0;
@@ -356,6 +443,7 @@ export class BadgeEngine {
       internshipCompletedCount,
 
       competitionRegistrations,
+      verifiedCompetitionParticipations,
       projectSubmissionsCount,
       finalistCount,
       podiumCount,
@@ -365,6 +453,12 @@ export class BadgeEngine {
       longestStreakDays: streakStats.longestStreak,
       totalActiveDays: streakStats.totalActiveDays,
       activeWeeksInMonth: streakStats.activeWeeksInMonth,
+
+      verifiedCodingStreakDays: codingStreakStats.verifiedCodingStreakDays,
+      codingStreakPlatform: codingStreakStats.codingStreakPlatform,
+      codingAcceptedActivityCount: codingStreakStats.codingAcceptedActivityCount,
+
+      ...contestStats,
 
       profileCompleteness,
       resumeUploaded,
@@ -577,10 +671,19 @@ export class BadgeEngine {
       const awardedAt = new Date();
       const credentialId = buildCredentialId(studentId, badge.id, awardedAt);
 
+      // Badge-specific evidence reference (Phase 2 coding-streak badges record
+      // the exact platform + verified streak that justified the award).
+      const evidenceRef = evaluator.evidence?.(stats) ?? null;
+
       const { inserted } = await this.insertBadgeRow({
         studentId,
         badge,
-        evidenceJson: JSON.stringify({ ...evaluation, awardSource: 'ENGINE', awardedAt: awardedAt.toISOString() }),
+        evidenceJson: JSON.stringify({
+          ...evaluation,
+          awardSource: 'ENGINE',
+          awardedAt: awardedAt.toISOString(),
+          ...(evidenceRef ? { evidence: evidenceRef } : {}),
+        }),
         credentialId,
         awardSource: 'ENGINE',
         awardedById: null,
@@ -949,7 +1052,7 @@ export class BadgeEngine {
       if (!rows.length) return { found: false };
 
       const row = rows[0];
-      const catalogDef = BADGE_CATALOG.find((b) => b.id === row.badgeId);
+      const catalogDef = getBadgeById(row.badgeId);
       const status = (row.credentialStatus as 'VALID' | 'REVOKED') || 'VALID';
 
       return {

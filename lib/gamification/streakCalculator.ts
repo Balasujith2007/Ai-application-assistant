@@ -24,6 +24,58 @@
 export const STREAK_MILESTONES = [5, 15, 30, 50, 100, 180] as const;
 export type StreakMilestone = (typeof STREAK_MILESTONES)[number];
 
+/**
+ * The ONLY verified career activities that earn a `Career Activity Streak`
+ * day. A student earns one streak day per calendar day on which at least one
+ * of these *server-verified submission* events occurs:
+ *
+ *   • APPLICATION_SUBMITTED  — an internship or job application was submitted
+ *   • HACKATHON_REGISTERED   — a hackathon application/registration was accepted
+ *   • COMPETITION_REGISTERED — a competition application/registration was accepted
+ *
+ * Everything else is explicitly NON-qualifying: logging in, opening the
+ * dashboard, viewing/seaching/saving opportunities, opening achievements,
+ * profile edits, resume uploads, skills/projects/experience, clicking a
+ * check-in button, and any passive navigation. Legacy `DAILY_CHECKIN` /
+ * `CHECKIN` rows are preserved in `student_daily_streaks` for history, but are
+ * deliberately excluded from the streak calculation.
+ *
+ * INVARIANT: the same date is counted at most once (multiple qualifying
+ * activities on one calendar day = one streak day).
+ */
+export const CAREER_ACTIVITY_STREAK_TYPES = [
+  'APPLICATION_SUBMITTED',
+  'HACKATHON_REGISTERED',
+  'COMPETITION_REGISTERED',
+] as const;
+
+export type CareerActivityStreakType = (typeof CAREER_ACTIVITY_STREAK_TYPES)[number];
+
+/**
+ * The full set of activity types stored in `student_daily_streaks` that may
+ * contribute to the career activity streak. `STREAK_RESCUE` is a synthetic,
+ * explicitly student-initiated restoration day (never automatic) and is the
+ * only non-submission type allowed to bridge a missed day.
+ */
+export const STREAK_ACTIVITY_TYPES = [...CAREER_ACTIVITY_STREAK_TYPES, 'STREAK_RESCUE'] as const;
+
+export type StreakActivityType = (typeof STREAK_ACTIVITY_TYPES)[number];
+
+/** Fast membership guard for the career-activity streak source set. */
+export const STREAK_ACTIVITY_TYPE_SET: ReadonlySet<string> = new Set<string>(STREAK_ACTIVITY_TYPES);
+
+/** True only for a verified career submission that earns a streak day. */
+export function isCareerActivityType(activityType: string): boolean {
+  return (CAREER_ACTIVITY_STREAK_TYPES as readonly string[]).includes(
+    (activityType || '').toUpperCase()
+  );
+}
+
+/** True for any activity type allowed to contribute to the streak (incl. rescue). */
+export function isStreakActivityType(activityType: string): boolean {
+  return STREAK_ACTIVITY_TYPE_SET.has((activityType || '').toUpperCase());
+}
+
 /** Shifts a YYYY-MM-DD string by `deltaDays` using pure UTC math (no TZ drift). */
 export function shiftDate(isoDate: string, deltaDays: number): string {
   const [y, m, d] = isoDate.split('-').map(Number);

@@ -8,7 +8,11 @@ import {
   buildWeeklyActivity,
   computeStreakCore,
   getNextStreakMilestone,
+  STREAK_ACTIVITY_TYPES,
 } from './streakCalculator';
+
+/** Activity types that may contribute to the Career Activity Streak. */
+const STREAK_ACTIVITY_TYPES_SQL = [...STREAK_ACTIVITY_TYPES];
 
 /**
  * Returns the current date in YYYY-MM-DD formatted according to the configured timezone.
@@ -87,33 +91,21 @@ export class CheckInService {
 
     const todayStr = getFormattedDateInTz();
 
-    // 1. Check if student has already checked in today via the dedicated DailyCheckIn table
-    let todayCheckIn: any = null;
+    // 1. Today's *verified career activity*. A qualifying day is earned ONLY by
+    //    a verified submission (internship/job/hackathon/competition) — never by
+    //    logging in, opening the dashboard, or clicking a check-in button.
+    let todayActivityCount = 0;
     try {
-      if ((prisma as any).dailyCheckIn?.findUnique) {
-        todayCheckIn = await (prisma as any).dailyCheckIn.findUnique({
-          where: {
-            studentId_checkInDate: {
-              studentId,
-              checkInDate: todayStr,
-            },
-          },
-        });
-      } else {
-        const rows = await prisma.$queryRawUnsafe<any[]>(
-          `SELECT * FROM daily_check_ins WHERE "studentId" = $1 AND "checkInDate" = $2 LIMIT 1`,
-          studentId,
-          todayStr
-        );
-        todayCheckIn = rows[0] || null;
-      }
-    } catch {
-      const rows = await prisma.$queryRawUnsafe<any[]>(
-        `SELECT * FROM daily_check_ins WHERE "studentId" = $1 AND "checkInDate" = $2 LIMIT 1`,
+      const rows = await prisma.$queryRawUnsafe<Array<{ cnt: bigint | number }>>(
+        `SELECT COUNT(DISTINCT "activityType") AS cnt FROM student_daily_streaks
+         WHERE "studentId" = $1 AND "activityDate" = $2 AND "activityType" = ANY($3)`,
         studentId,
-        todayStr
-      ).catch(() => []);
-      todayCheckIn = rows[0] || null;
+        todayStr,
+        STREAK_ACTIVITY_TYPES_SQL
+      );
+      todayActivityCount = Number(rows?.[0]?.cnt ?? 0);
+    } catch {
+      todayActivityCount = 0;
     }
 
     // 2. Fetch authoritative streak metrics from StudentDailyStreak
@@ -142,45 +134,45 @@ export class CheckInService {
       },
     });
 
-    // 4. Calculate next eligible check-in time
+    // 4. Seconds until the next calendar day (Asia/Kolkata) — the streak rolls
+    //    over at midnight; no action is required from the student.
     const { nextCheckInIso, secondsRemaining } = getNextEligibleCheckIn();
 
-    // 5. Recent 14-day activity history
+    // 5. Recent verified career-activity days (14 most recent qualifying days).
+    //    Legacy DAILY_CHECKIN rows are excluded — only verified career
+    //    submissions (and explicit STREAK_RESCUE restorations) count.
     let recentStreaks: any[] = [];
     try {
-      if ((prisma as any).studentDailyStreak?.findMany) {
-        recentStreaks = await (prisma as any).studentDailyStreak.findMany({
-          where: { studentId },
-          orderBy: { activityDate: 'desc' },
-          take: 14,
-        });
-      } else {
-        recentStreaks = await prisma.$queryRawUnsafe<any[]>(
-          `SELECT "activityDate", "activityType" FROM student_daily_streaks WHERE "studentId" = $1 ORDER BY "activityDate" DESC LIMIT 14`,
-          studentId
-        );
-      }
-    } catch {
       recentStreaks = await prisma.$queryRawUnsafe<any[]>(
-        `SELECT "activityDate", "activityType" FROM student_daily_streaks WHERE "studentId" = $1 ORDER BY "activityDate" DESC LIMIT 14`,
-        studentId
-      ).catch(() => []);
+        `SELECT DISTINCT "activityDate", MIN("activityType") AS "activityType"
+         FROM student_daily_streaks
+         WHERE "studentId" = $1 AND "activityType" = ANY($2)
+         GROUP BY "activityDate"
+         ORDER BY "activityDate" DESC
+         LIMIT 14`,
+        studentId,
+        STREAK_ACTIVITY_TYPES_SQL
+      );
+    } catch {
+      recentStreaks = [];
     }
 
-    // 6. Earliest recorded qualifying activity — used to avoid flagging days
-    // that predate the student's account as "missed" in the weekly strip.
+    // 6. Earliest verified career-activity day — used to avoid flagging days
+    // that predate the student's first qualifying activity as "missed".
     let firstActivityDate: string | null = null;
     try {
       const minRows = await prisma.$queryRawUnsafe<Array<{ min: string | null }>>(
-        `SELECT MIN("activityDate") AS min FROM student_daily_streaks WHERE "studentId" = $1`,
-        studentId
+        `SELECT MIN("activityDate") AS min FROM student_daily_streaks
+         WHERE "studentId" = $1 AND "activityType" = ANY($2)`,
+        studentId,
+        STREAK_ACTIVITY_TYPES_SQL
       );
       firstActivityDate = minRows?.[0]?.min ?? null;
     } catch {
       firstActivityDate = null;
     }
 
-    // 7. Weekly (Monday→Sunday) strip sourced purely from real activity records.
+    // 7. Weekly (Monday→Sunday) strip sourced purely from real verified activity.
     const activeDateSet = new Set<string>(recentStreaks.map((s: any) => s.activityDate));
     const weeklyActivity = buildWeeklyActivity(activeDateSet, todayStr, firstActivityDate);
 
@@ -188,28 +180,24 @@ export class CheckInService {
     const careerMilestones = buildMilestoneProgress(streakInfo.currentStreak);
     const nextCareerMilestone = getNextStreakMilestone(streakInfo.currentStreak);
 
-    // 9. Legacy 7-day cycle milestone — preserved for the class leaderboard bonus.
-    const nextMilestone = Math.ceil((streakInfo.currentStreak + 1) / 7) * 7;
-    const progressToNextMilestone = streakInfo.currentStreak % 7;
+    // Every verified career submission today collapses into ONE streak day.
+    const qualifiedToday = todayActivityCount > 0;
 
     const result = {
       success: true,
       studentId,
-      checkedInToday: Boolean(todayCheckIn),
-      checkInDate: todayCheckIn?.checkInDate || todayStr,
+      qualifiedToday,
+      todayActivityCount,
+      lastActivityDate: streakInfo.lastQualifyingDate,
       todayXpEarned: todayPointsResult._sum.pointsAwarded || 0,
       totalEarnedXp: totalPointsResult._sum.pointsAwarded || 0,
-      dailyCheckInXp: XP_CONFIG.DAILY_CHECKIN,
-      nextEligibleCheckIn: nextCheckInIso,
-      secondsUntilNextCheckIn: secondsRemaining,
+      nextCheckIn: nextCheckInIso,
+      secondsUntilNextDay: secondsRemaining,
       streak: {
         currentStreak: streakInfo.currentStreak,
         longestStreak: streakInfo.longestStreak,
         totalActiveDays: streakInfo.totalActiveDays,
         lastQualifyingDate: streakInfo.lastQualifyingDate,
-        nextMilestone: nextMilestone === streakInfo.currentStreak ? nextMilestone + 7 : nextMilestone,
-        progressInCycle: progressToNextMilestone,
-        targetInCycle: 7,
         milestones: careerMilestones,
         nextCareerMilestone,
       },
@@ -226,8 +214,15 @@ export class CheckInService {
   }
 
   /**
-   * Executes a daily check-in for the authenticated student.
-   * Completely idempotent: database uniqueness constraint prevents duplicate check-ins on the same day.
+   * Legacy daily check-in entry point.
+   *
+   * Daily check-in NO LONGER awards a streak day or any XP. A Career Activity
+   * Streak day is earned ONLY by a verified career submission — a successfully
+   * submitted internship, job, hackathon or competition application
+   * (`CAREER_ACTIVITY_STREAK_TYPES`). This method is retained as a safe no-op so
+   * existing clients keep working; it writes nothing to the database, records no
+   * verified activity, awards no XP and evaluates no badges. It only returns the
+   * student's current, accurate career-activity status.
    */
   async performDailyCheckIn(studentId: string): Promise<{
     success: boolean;
@@ -240,178 +235,20 @@ export class CheckInService {
   }> {
     const todayStr = getFormattedDateInTz();
 
-    // 1. Check if already checked in today
-    let existingCheckIn: any = null;
-    try {
-      if ((prisma as any).dailyCheckIn?.findUnique) {
-        existingCheckIn = await (prisma as any).dailyCheckIn.findUnique({
-          where: {
-            studentId_checkInDate: {
-              studentId,
-              checkInDate: todayStr,
-            },
-          },
-        });
-      } else {
-        const rows = await prisma.$queryRawUnsafe<any[]>(
-          `SELECT * FROM daily_check_ins WHERE "studentId" = $1 AND "checkInDate" = $2 LIMIT 1`,
-          studentId,
-          todayStr
-        );
-        existingCheckIn = rows[0] || null;
-      }
-    } catch {
-      const rows = await prisma.$queryRawUnsafe<any[]>(
-        `SELECT * FROM daily_check_ins WHERE "studentId" = $1 AND "checkInDate" = $2 LIMIT 1`,
-        studentId,
-        todayStr
-      ).catch(() => []);
-      existingCheckIn = rows[0] || null;
-    }
-
-    if (existingCheckIn) {
-      const status = await this.getStudentCheckInStatus(studentId);
-      return {
-        success: true,
-        alreadyCheckedIn: true,
-        xpAwarded: 0,
-        streakBonusAwarded: 0,
-        checkInDate: todayStr,
-        message: 'You have already completed your daily check-in today!',
-        status,
-      };
-    }
-
-    // 2. Insert check-in into database. We catch unique constraint violations to handle concurrent duplicate requests safely.
-    let checkInRecord: any;
-    try {
-      if ((prisma as any).dailyCheckIn?.create) {
-        checkInRecord = await (prisma as any).dailyCheckIn.create({
-          data: {
-            studentId,
-            checkInDate: todayStr,
-            xpAwarded: XP_CONFIG.DAILY_CHECKIN,
-            timeZone: XP_CONFIG.TIMEZONE,
-          },
-        });
-      } else {
-        const dciId = `dci_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-        const rows = await prisma.$queryRawUnsafe<any[]>(
-          `INSERT INTO daily_check_ins ("id", "studentId", "checkInDate", "xpAwarded", "timeZone", "createdAt")
-           VALUES ($1, $2, $3, $4, $5, NOW())
-           RETURNING *`,
-          dciId,
-          studentId,
-          todayStr,
-          XP_CONFIG.DAILY_CHECKIN,
-          XP_CONFIG.TIMEZONE
-        );
-        checkInRecord = rows[0];
-      }
-    } catch (err: any) {
-      // Prisma unique constraint violation code is P2002 or postgres unique violation
-      if (err.code === 'P2002' || err.message?.includes('unique constraint') || err.message?.includes('duplicate key')) {
-        const status = await this.getStudentCheckInStatus(studentId);
-        return {
-          success: true,
-          alreadyCheckedIn: true,
-          xpAwarded: 0,
-          streakBonusAwarded: 0,
-          checkInDate: todayStr,
-          message: 'Daily check-in already recorded for today.',
-          status,
-        };
-      }
-      throw err;
-    }
-
-    // 3. Record in student_daily_streaks (idempotent upsert)
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO student_daily_streaks (id, "studentId", "activityDate", "activityType", "sourceReference", "qualifyingScore", "createdAt")
-       VALUES ($1, $2, $3, 'DAILY_CHECKIN', $4, 1.0, NOW())
-       ON CONFLICT ("studentId", "activityDate") DO UPDATE SET "activityType" = 'DAILY_CHECKIN'`,
-      `streak_${studentId}_${todayStr}`,
-      studentId,
-      todayStr,
-      checkInRecord.id
-    );
-
-    // 4. Record auditable VerifiedActivity for daily check-in
-    const activity = await verificationLedger.recordActivity({
-      studentId,
-      sourceType: 'CONSISTENCY',
-      sourcePlatform: 'CAREERAI',
-      sourceAccountId: checkInRecord.id,
-      activityType: 'DAILY_CHECKIN',
-      externalActivityId: `checkin_${studentId}_${todayStr}`,
-      verificationStatus: 'VERIFIED',
-      verificationMethod: 'SERVER_CHECKIN',
-      evidenceReference: `checkin_${checkInRecord.id}`,
-      occurredAt: new Date(),
-      rawMetadata: { checkInDate: todayStr, timeZone: XP_CONFIG.TIMEZONE, xp: XP_CONFIG.DAILY_CHECKIN },
-    });
-
-    // 5. Award 5 XP to points ledger with auditable link
-    await verificationLedger.awardPoints({
-      studentId,
-      verifiedActivityId: activity.id,
-      category: 'CONSISTENCY',
-      pointsAwarded: XP_CONFIG.DAILY_CHECKIN,
-      reason: `Daily Check-in for ${todayStr} (+${XP_CONFIG.DAILY_CHECKIN} XP)`,
-      periodKey: 'ALL_TIME',
-    });
-
-    // 6. Recalculate streak
-    const streakInfo = await this.calculateAuthoritativeStreak(studentId);
-
-    // 7. Check if 7-day streak milestone bonus applies
-    let streakBonusAwarded = 0;
-    if (streakInfo.currentStreak > 0 && streakInfo.currentStreak % 7 === 0) {
-      const milestoneKey = `streak_bonus_7_${studentId}_${todayStr}_${streakInfo.currentStreak}`;
-      
-      const milestoneActivity = await verificationLedger.recordActivity({
-        studentId,
-        sourceType: 'CONSISTENCY',
-        sourcePlatform: 'CAREERAI',
-        activityType: 'STREAK_7DAY_BONUS',
-        externalActivityId: milestoneKey,
-        verificationStatus: 'VERIFIED',
-        verificationMethod: 'AUTOMATIC_ENGINE',
-        occurredAt: new Date(),
-        rawMetadata: { milestoneDays: streakInfo.currentStreak, bonusXp: XP_CONFIG.STREAK_7DAY_BONUS },
-      });
-
-      const bonusEntry = await verificationLedger.awardPoints({
-        studentId,
-        verifiedActivityId: milestoneActivity.id,
-        category: 'CONSISTENCY',
-        pointsAwarded: XP_CONFIG.STREAK_7DAY_BONUS,
-        reason: `${streakInfo.currentStreak}-Day Streak Bonus Milestone (+${XP_CONFIG.STREAK_7DAY_BONUS} XP)`,
-        periodKey: 'ALL_TIME',
-      });
-
-      if (bonusEntry) {
-        streakBonusAwarded = XP_CONFIG.STREAK_7DAY_BONUS;
-      }
-    }
-
-    // 8. Trigger badge evaluation (e.g. 3-day starter, 7-day streak, etc.)
-    await badgeEngine.evaluateAndAwardBadges(studentId);
-    invalidateLeaderboardCache();
-
-    // 9. Drop the cached status so the response reflects the fresh streak/XP.
+    // Intentionally a NO-OP for rewards: check-in is no longer a streak or XP
+    // source. Nothing is written to `daily_check_ins`, `student_daily_streaks`,
+    // `verified_activity` or `points_ledger`.
     studentStatusCache.delete(studentId);
     const status = await this.getStudentCheckInStatus(studentId);
 
     return {
       success: true,
-      alreadyCheckedIn: false,
-      xpAwarded: XP_CONFIG.DAILY_CHECKIN,
-      streakBonusAwarded,
+      alreadyCheckedIn: true,
+      xpAwarded: 0,
+      streakBonusAwarded: 0,
       checkInDate: todayStr,
-      message: streakBonusAwarded > 0
-        ? `Checked in! Earned +${XP_CONFIG.DAILY_CHECKIN} XP and unlocked a +${streakBonusAwarded} XP 7-Day Streak Bonus! 🔥`
-        : `Checked in successfully! You earned +${XP_CONFIG.DAILY_CHECKIN} XP. Keep up the streak! 🔥`,
+      message:
+        'Daily check-in no longer affects your streak. Submit an internship, job, hackathon or competition application to earn a Career Activity Streak day.',
       status,
     };
   }
@@ -475,20 +312,32 @@ export class CheckInService {
       periodKey: 'ALL_TIME',
     });
 
-    // 3. Record in student_daily_streaks (Idempotent: ON CONFLICT DO NOTHING)
-    const streakResult = await prisma.$executeRawUnsafe(
-      `INSERT INTO student_daily_streaks (id, "studentId", "activityDate", "activityType", "sourceReference", "qualifyingScore", "createdAt")
-       VALUES ($1, $2, $3, $4, $5, 1.0, NOW())
-       ON CONFLICT ("studentId", "activityDate") DO NOTHING`,
-      `streak_${studentId}_${todayStr}`,
-      studentId,
-      todayStr,
-      eventType,
-      externalActivityId
-    );
+    // 3. Record a Career Activity Streak day ONLY for a verified career
+    //    *submission*. Coding progress is an external-coding metric and must
+    //    never contribute to the career application streak. Idempotent: at most
+    //    one active streak row per calendar day (`ON CONFLICT DO NOTHING`).
+    const careerStreakType: string | null =
+      eventType === 'INTERNSHIP'
+        ? 'APPLICATION_SUBMITTED'
+        : eventType === 'HACKATHON'
+        ? 'HACKATHON_REGISTERED'
+        : null; // CODING → external coding streak, never the career streak
 
-    // If a new row was inserted, streak was extended for today
-    const streakExtended = streakResult > 0;
+    let streakExtended = false;
+    if (careerStreakType) {
+      const streakResult = await prisma.$executeRawUnsafe(
+        `INSERT INTO student_daily_streaks (id, "studentId", "activityDate", "activityType", "sourceReference", "qualifyingScore", "createdAt")
+         VALUES ($1, $2, $3, $4, $5, 1.0, NOW())
+         ON CONFLICT ("studentId", "activityDate") DO NOTHING`,
+        `streak_${studentId}_${todayStr}`,
+        studentId,
+        todayStr,
+        careerStreakType,
+        externalActivityId
+      );
+      // If a new row was inserted, the streak was extended for today.
+      streakExtended = streakResult > 0;
+    }
 
     // Recalculate badges
     await badgeEngine.evaluateAndAwardBadges(studentId);
@@ -596,11 +445,15 @@ export class CheckInService {
     totalActiveDays: number;
     lastQualifyingDate: string | null;
   }> {
+    // Only verified career-activity days count. Legacy `DAILY_CHECKIN` /
+    // `CHECKIN` rows are preserved for history but are excluded here, so a
+    // check-in-only past can never be treated as a verified career streak.
     const rawStreaks = await prisma.$queryRawUnsafe<Array<{ activityDate: string }>>(
       `SELECT DISTINCT "activityDate" FROM student_daily_streaks
-       WHERE "studentId" = $1
+       WHERE "studentId" = $1 AND "activityType" = ANY($2)
        ORDER BY "activityDate" DESC`,
-      studentId
+      studentId,
+      STREAK_ACTIVITY_TYPES_SQL
     );
 
     const todayStr = getFormattedDateInTz();

@@ -2,6 +2,10 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { getFormattedDateInTz, checkInService } from './checkInService';
 import { getTokenRules, type TokenRulesConfig } from './tokenConfig';
+import { STREAK_ACTIVITY_TYPES } from './streakCalculator';
+
+/** Activity types that may contribute to the Career Activity Streak. */
+const STREAK_ACTIVITY_TYPES_SQL = [...STREAK_ACTIVITY_TYPES];
 
 /**
  * Token Usage Engine
@@ -80,9 +84,15 @@ function runLengthThrough(dateSet: Set<string>, gap: string): number {
 
 async function fetchActivityDates(studentId: string, tx?: TxClient): Promise<Set<string>> {
   const client = tx ?? prisma;
+  // Only verified career-activity days (plus explicit STREAK_RESCUE restorations)
+  // count. Legacy `DAILY_CHECKIN` / `CHECKIN` rows are ignored so a rescue can
+  // never be derived from — or bridge — check-in-only history.
   const rows = await client.$queryRawUnsafe<Array<{ activityDate: string }>>(
-    `SELECT DISTINCT "activityDate" FROM student_daily_streaks WHERE "studentId" = $1 ORDER BY "activityDate" DESC`,
-    studentId
+    `SELECT DISTINCT "activityDate" FROM student_daily_streaks
+     WHERE "studentId" = $1 AND "activityType" = ANY($2)
+     ORDER BY "activityDate" DESC`,
+    studentId,
+    STREAK_ACTIVITY_TYPES_SQL
   );
   return new Set(rows.map((r) => r.activityDate));
 }

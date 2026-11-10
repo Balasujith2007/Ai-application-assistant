@@ -59,6 +59,7 @@ export const CANONICAL_SIDEBARS: Record<Role, Array<{ title: string; path: strin
     { title: 'Gift Distribution', path: '/dashboard/super-admin/gamification/distribution', order: 11, enabled: true },
     { title: 'Audit Logs', path: '/dashboard/super-admin/audit-logs', order: 12, enabled: true },
     { title: 'System Health', path: '/dashboard/super-admin/system-health', order: 13, enabled: true },
+    { title: 'External Verification', path: '/dashboard/super-admin/external-verification', order: 14, enabled: true },
   ],
   FACULTY: [],
   PLACEMENT_CELL: [],

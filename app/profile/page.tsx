@@ -42,6 +42,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Input, Textarea } from '@/components/ui/Input';
 import { LoadingSpinner } from '@/components/ui/index';
+import { ExternalSyncStatusPanel } from '@/components/ExternalSyncStatusPanel';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import type { Profile, Education, Project, Experience, Skill } from '@/types';
@@ -185,6 +186,8 @@ export default function ProfilePage() {
   const [verifiedList, setVerifiedList] = useState<any[]>([]);
   // Server-derived verification summary (never fabricated on the client).
   const [verification, setVerification] = useState<{
+    profileExists: boolean;
+    ownershipVerified: boolean;
     profileVerified: boolean;
     placementVerified: boolean;
     aiResumeSynced: boolean;
@@ -321,10 +324,11 @@ export default function ProfilePage() {
 
   // Verification indicators are driven exclusively by the server-derived verification
   // summary. When the summary is unavailable they fall back to a real backend signal
-  // (verified platform records) instead of a fabricated client-side heuristic.
+  // (proven ownership records) instead of a fabricated client-side heuristic.
+  // Profile existence alone is deliberately NOT treated as verification.
   const isProfileVerified = Boolean(
-    verification?.profileVerified ??
-      (verifiedList?.some((v: any) => v.verificationStatus === 'VERIFIED') ?? false)
+    verification?.ownershipVerified ??
+      (verifiedList?.some((v: any) => v.ownershipStatus === 'OWNERSHIP_VERIFIED') ?? false)
   );
 
   const isPlacementVerified = Boolean(verification?.placementVerified);
@@ -2656,6 +2660,16 @@ function SocialSection({ profile, onUpdate }: { profile: Profile | null; onUpdat
         description="Connect and verify your GitHub, LinkedIn, Codolio, CodeChef, LeetCode, and Portfolio website. Verified links are verified live and attached to your application resume."
       />
 
+      <div className="rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5 space-y-3">
+        <div>
+          <h4 className="text-xs sm:text-sm font-bold text-slate-900">Competitive-programming sync status</h4>
+          <p className="text-[11px] text-slate-500">
+            Connected platforms, account ownership state, and the latest verified-activity import.
+          </p>
+        </div>
+        <ExternalSyncStatusPanel />
+      </div>
+
       <div className="grid grid-cols-1 gap-3.5 xl:grid-cols-2">
         {platforms.map((p) => {
           const verified = verifiedMap[p.key];
@@ -2675,10 +2689,16 @@ function SocialSection({ profile, onUpdate }: { profile: Profile | null; onUpdat
                     <span className="text-[10.5px] text-slate-500">{p.subtitle}</span>
                   </div>
                 </div>
-                {verified && (
+                {verified && verified.ownershipVerified && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">
                     <CheckCircle className="h-3.5 w-3.5" />
-                    <span>Verified ✓ {verified.verificationStatus === 'FORMAT_VERIFIED' ? '(Format)' : ''}</span>
+                    <span>Ownership verified</span>
+                  </span>
+                )}
+                {verified && !verified.ownershipVerified && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-700 border border-amber-200">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    <span>Connected · ownership unverified</span>
                   </span>
                 )}
               </div>

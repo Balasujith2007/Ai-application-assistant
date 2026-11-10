@@ -7,8 +7,6 @@ import {
   Flame,
   Zap,
   Check,
-  Clock,
-  AlertCircle,
   CheckCircle2,
   Users,
   ChevronRight,
@@ -54,18 +52,17 @@ interface WeeklyActivityDay {
 }
 
 interface CheckInState {
-  checkedInToday: boolean;
-  checkInDate?: string;
+  qualifiedToday: boolean;
+  todayActivityCount: number;
+  lastActivityDate: string | null;
   todayXpEarned: number;
   totalEarnedXp: number;
-  dailyCheckInXp?: number;
-  secondsUntilNextCheckIn: number;
+  secondsUntilNextDay?: number;
   streak: {
     currentStreak: number;
     longestStreak: number;
     totalActiveDays: number;
-    progressInCycle: number;
-    targetInCycle: number;
+    lastQualifyingDate: string | null;
     milestones?: CareerMilestoneProgress[];
     nextCareerMilestone?: { days: number; remaining: number } | null;
   };
@@ -131,13 +128,6 @@ type TabId = 'tracker' | 'leaderboard' | 'badges';
 // ─────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────
-function formatSecondsToHM(secs: number): string {
-  const h = Math.floor(secs / 3600);
-  const m = Math.floor((secs % 3600) / 60);
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m`;
-}
-
 function getAuthHeader(): Record<string, string> {
   if (typeof window === 'undefined') return {};
   const token = localStorage.getItem('token');
@@ -343,7 +333,7 @@ function TrophyRankIcon({ size = 26 }: { size?: number }) {
 }
 
 // ─────────────────────────────────────────────
-// Tab 1: Daily Career Check-In (strict streak)
+// Tab 1: Career Activity Streak (verified applications)
 // ─────────────────────────────────────────────
 const WEEKLY_DAY_STYLE: Record<
   WeeklyDayStatus,
@@ -398,18 +388,8 @@ function DayCell({ day }: { day: WeeklyActivityDay }) {
   );
 }
 
-function DailyCheckInTab({
-  checkIn,
-  checkInLoading,
-  checkInMsg,
-  onCheckIn,
-}: {
-  checkIn: CheckInState | null;
-  checkInLoading: boolean;
-  checkInMsg: { text: string; type: 'success' | 'error' } | null;
-  onCheckIn: () => void;
-}) {
-  if (!checkIn) {
+function CareerActivityStreakTab({ streak }: { streak: CheckInState | null }) {
+  if (!streak) {
     return (
       <div className="h-full w-full space-y-2.5 animate-pulse py-1">
         <div className="h-9 rounded-xl bg-gray-100" />
@@ -420,15 +400,14 @@ function DailyCheckInTab({
     );
   }
 
-  const currentStreak = checkIn.streak?.currentStreak ?? 0;
-  const longestStreak = checkIn.streak?.longestStreak ?? 0;
-  const totalActiveDays = checkIn.streak?.totalActiveDays ?? 0;
-  const checkedIn = Boolean(checkIn.checkedInToday);
-  const dailyXp = checkIn.dailyCheckInXp ?? 0;
-  const todayXp = checkIn.todayXpEarned ?? 0;
-  const nextMilestone = checkIn.streak?.nextCareerMilestone ?? null;
-  const milestones = checkIn.streak?.milestones ?? [];
-  const weekly = checkIn.weeklyActivity ?? [];
+  const currentStreak = streak.streak?.currentStreak ?? 0;
+  const longestStreak = streak.streak?.longestStreak ?? 0;
+  const totalActiveDays = streak.streak?.totalActiveDays ?? 0;
+  const verifiedToday = Boolean(streak.qualifiedToday);
+  const todayActivityCount = streak.todayActivityCount ?? 0;
+  const nextMilestone = streak.streak?.nextCareerMilestone ?? null;
+  const milestones = streak.streak?.milestones ?? [];
+  const weekly = streak.weeklyActivity ?? [];
 
   const milestonePct = nextMilestone
     ? Math.min(100, Math.round((currentStreak / nextMilestone.days) * 100))
@@ -442,31 +421,31 @@ function DailyCheckInTab({
           <FlameStreakIcon size={22} />
           <div className="min-w-0">
             <h4 className="truncate text-[12px] font-bold leading-tight text-gray-900">
-              Daily Career Check-In
+              Career Activity Streak
             </h4>
             <p className="truncate text-[9px] font-medium text-gray-400">
-              Resets at midnight · Asia/Kolkata
+              Verified applications · Asia/Kolkata
             </p>
           </div>
         </div>
         <span
           className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-bold ${
-            checkedIn
+            verifiedToday
               ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
               : 'border-amber-200 bg-amber-50 text-amber-700'
           }`}
         >
           <span
-            className={`h-1.5 w-1.5 rounded-full ${checkedIn ? 'bg-emerald-500' : 'animate-pulse bg-amber-500'}`}
+            className={`h-1.5 w-1.5 rounded-full ${verifiedToday ? 'bg-emerald-500' : 'bg-amber-500'}`}
           />
-          {checkedIn ? 'Completed' : 'Pending'}
+          {verifiedToday ? 'Verified today' : 'No activity yet'}
         </span>
       </div>
 
       {/* Hero streak */}
       <div className="shrink-0 rounded-xl border border-amber-100/90 bg-gradient-to-br from-[#fffdf7] to-amber-50/40 p-3">
         <div className="flex items-center gap-3">
-          <div className="animate-flame-pulse">
+          <div className={currentStreak > 0 ? 'animate-flame-pulse' : ''}>
             <FlameStreakIcon size={40} />
           </div>
           <div className="min-w-0 flex-1">
@@ -479,9 +458,11 @@ function DailyCheckInTab({
               </span>
             </div>
             <p className="mt-0.5 text-[10px] font-medium text-gray-500">
-              {checkedIn
-                ? `Today's check-in logged · +${todayXp || dailyXp} XP earned`
-                : `Check in today to reach ${currentStreak + 1}`}
+              {verifiedToday
+                ? todayActivityCount > 1
+                  ? `Career activity verified today · ${todayActivityCount} submissions`
+                  : 'Career activity verified today.'
+                : 'No qualifying career activity today.'}
             </p>
           </div>
           <div className="shrink-0 text-right">
@@ -549,66 +530,13 @@ function DailyCheckInTab({
         </div>
       )}
 
-      {/* Inline feedback */}
-      {checkInMsg && (
-        <div
-          aria-live="polite"
-          className={`flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[9.5px] font-semibold ${
-            checkInMsg.type === 'success'
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-              : 'border-rose-200 bg-rose-50 text-rose-800'
-          }`}
-        >
-          {checkInMsg.type === 'success' ? (
-            <CheckCircle2 className="h-3 w-3 shrink-0 text-emerald-600" />
-          ) : (
-            <AlertCircle className="h-3 w-3 shrink-0 text-rose-600" />
-          )}
-          <span className="truncate">{checkInMsg.text}</span>
-        </div>
-      )}
-
-      {/* Action */}
-      <div className="mt-auto shrink-0 pt-0.5">
-        {checkedIn ? (
-          <div
-            className={`flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50/70 px-3 py-2 ${
-              checkInMsg?.type === 'success' ? 'animate-checkin-pop' : ''
-            }`}
-          >
-            <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700">
-              <CheckCircle2 className="h-4 w-4" /> Checked in today
-            </span>
-            <span className="text-[10px] font-bold tabular-nums text-emerald-600">
-              +{todayXp || dailyXp} XP
-            </span>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={onCheckIn}
-            disabled={checkInLoading}
-            className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-[12px] font-bold text-white shadow-sm transition-all active:scale-[0.98] disabled:opacity-60"
-            style={{ background: 'linear-gradient(135deg, #990024, #c71f47)' }}
-          >
-            {checkInLoading ? (
-              <>
-                <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                Checking in…
-              </>
-            ) : (
-              <>
-                <Check className="h-3.5 w-3.5" /> Check In · +{dailyXp} XP
-              </>
-            )}
-          </button>
-        )}
-        {checkedIn && checkIn.secondsUntilNextCheckIn > 0 && (
-          <p className="mt-1 flex items-center justify-center gap-1 text-[9px] font-medium text-gray-400">
-            <Clock className="h-2.5 w-2.5" /> Next check-in in{' '}
-            {formatSecondsToHM(checkIn.secondsUntilNextCheckIn)}
-          </p>
-        )}
+      {/* How this streak works */}
+      <div className="mt-auto flex shrink-0 items-start gap-1.5 rounded-xl border border-gray-100 bg-white p-2.5">
+        <Sparkles className="mt-0.5 h-3 w-3 shrink-0 text-[#990024]" />
+        <p className="text-[9px] font-medium leading-snug text-gray-500">
+          Submit an internship, job, hackathon or competition application to earn a streak day.
+          Multiple applications on the same day count as one day.
+        </p>
       </div>
     </div>
   );
@@ -1081,9 +1009,7 @@ export function StudentPerformancePanel() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>('tracker');
 
-  const [checkIn, setCheckIn] = useState<CheckInState | null>(null);
-  const [checkInLoading, setCheckInLoading] = useState(false);
-  const [checkInMsg, setCheckInMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [careerStreak, setCareerStreak] = useState<CheckInState | null>(null);
 
   const [lbData, setLbData] = useState<{
     rankings: LeaderboardEntry[];
@@ -1098,11 +1024,11 @@ export function StudentPerformancePanel() {
   const [nextMilestone, setNextMilestone] = useState<BadgeItem | null>(null);
   const [coinBalance, setCoinBalance] = useState<number>(0);
 
-  const fetchCheckIn = useCallback(async () => {
+  const fetchCareerStreak = useCallback(async () => {
     try {
       const res = await fetch('/api/check-in', { headers: getAuthHeader() });
       const json = await res.json();
-      if (json.success) setCheckIn(json);
+      if (json.success) setCareerStreak(json);
     } catch {
       /* silent */
     }
@@ -1155,11 +1081,11 @@ export function StudentPerformancePanel() {
   }, []);
 
   useEffect(() => {
-    fetchCheckIn();
+    fetchCareerStreak();
     fetchLeaderboard();
     fetchAchievements();
     fetchCoinBalance();
-  }, [fetchCheckIn, fetchLeaderboard, fetchAchievements, fetchCoinBalance]);
+  }, [fetchCareerStreak, fetchLeaderboard, fetchAchievements, fetchCoinBalance]);
 
   // Refresh the coin balance when the student returns to the dashboard
   // (e.g. after claiming a gift that credits coins).
@@ -1173,35 +1099,8 @@ export function StudentPerformancePanel() {
     };
   }, [fetchCoinBalance]);
 
-  const handleCheckIn = async () => {
-    if (checkInLoading || checkIn?.checkedInToday) return;
-    setCheckInLoading(true);
-    setCheckInMsg(null);
-    try {
-      const res = await fetch('/api/check-in', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-      });
-      const json = await res.json();
-      if (json.success) {
-        setCheckIn(json.status ?? null);
-        setCheckInMsg({ text: json.message || `+${json.xpAwarded} XP earned!`, type: 'success' });
-        await fetchLeaderboard();
-        setTimeout(() => setCheckInMsg(null), 4000);
-      } else {
-        setCheckInMsg({ text: json.message || 'Check-in failed.', type: 'error' });
-        setTimeout(() => setCheckInMsg(null), 3500);
-      }
-    } catch {
-      setCheckInMsg({ text: 'Network error.', type: 'error' });
-      setTimeout(() => setCheckInMsg(null), 3500);
-    } finally {
-      setCheckInLoading(false);
-    }
-  };
-
-  const currentStreak = checkIn?.streak?.currentStreak ?? achieveSummary?.currentStreak ?? 0;
-  const totalXp = checkIn?.totalEarnedXp ?? achieveSummary?.totalXp ?? 0;
+  const currentStreak = careerStreak?.streak?.currentStreak ?? achieveSummary?.currentStreak ?? 0;
+  const totalXp = careerStreak?.totalEarnedXp ?? achieveSummary?.totalXp ?? 0;
   const currentRank = lbData?.currentRank;
 
   const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
@@ -1276,14 +1175,7 @@ export function StudentPerformancePanel() {
 
         {/* STRICT FIXED VIEWPORT: fills remaining flex space; parent h-[330px] provides the height cap */}
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden min-w-0 w-full box-border pt-1">
-          {activeTab === 'tracker' && (
-            <DailyCheckInTab
-              checkIn={checkIn}
-              checkInLoading={checkInLoading}
-              checkInMsg={checkInMsg}
-              onCheckIn={handleCheckIn}
-            />
-          )}
+          {activeTab === 'tracker' && <CareerActivityStreakTab streak={careerStreak} />}
           {activeTab === 'leaderboard' && (
             <LeaderboardTab
               lbData={lbData}

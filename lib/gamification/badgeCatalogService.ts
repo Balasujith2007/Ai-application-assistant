@@ -15,9 +15,16 @@
  */
 
 import prisma from '@/lib/prisma';
-import { BADGE_CATALOG, BadgeCategory, BadgeDefinition, BadgeTier } from './badgeConfig';
+import { ALL_BADGE_DEFINITIONS, BadgeCategory, BadgeDefinition, BadgeTier, isCodingStreakBadge, isContestBadge } from './badgeConfig';
+import { EXTERNAL_VERIFIED_PLATFORMS } from '@/lib/leaderboard/types';
 
 export type BadgeRarity = 'COMMON' | 'RARE' | 'EPIC' | 'LEGENDARY' | 'MYTHIC';
+
+/** Evidence a badge requires before it may be awarded (Phase 2 §7, Phase 3 §4). */
+export type BadgeEvidenceRequirement =
+  | 'NONE'
+  | 'VERIFIED_ACCEPTED_SUBMISSION'
+  | 'VERIFIED_CONTEST_PARTICIPATION';
 
 /** A fully resolved badge: code definition merged with any DB overrides. */
 export interface EffectiveBadge {
@@ -38,6 +45,11 @@ export interface EffectiveBadge {
   sortOrder: number;
   artworkKey: string | null;
   monthlyRule: Record<string, unknown> | null;
+  /** Phase 2 policy — Super-Admin configurable, audited. */
+  requireOwnershipVerification: boolean;
+  /** Allowed backing platforms; null = any capability-supported platform. */
+  eligibleProviders: string[] | null;
+  evidenceRequirement: BadgeEvidenceRequirement;
 }
 
 export const RARITY_BY_TIER: Record<BadgeTier, BadgeRarity> = {
@@ -52,6 +64,19 @@ const CACHE_TTL_MS = 30_000;
 let cache: { at: number; badges: EffectiveBadge[] } | null = null;
 
 function fromCode(def: BadgeDefinition, index: number): EffectiveBadge {
+  // Phase 2 / Phase 3 safety defaults: platform coding-streak milestones and
+  // verified-contest milestones are high-value and may only be awarded from
+  // records that are both ownership-verified and backed by provider-verified
+  // evidence. Super Admin can relax these, but the safe default is never
+  // assumed to be "no evidence required".
+  const streakBadge = isCodingStreakBadge(def.id);
+  const contestBadge = isContestBadge(def.id);
+  const externalBadge = streakBadge || contestBadge;
+  const evidenceRequirement: BadgeEvidenceRequirement = contestBadge
+    ? 'VERIFIED_CONTEST_PARTICIPATION'
+    : streakBadge
+      ? 'VERIFIED_ACCEPTED_SUBMISSION'
+      : 'NONE';
   return {
     id: def.id,
     title: def.title,
@@ -70,12 +95,37 @@ function fromCode(def: BadgeDefinition, index: number): EffectiveBadge {
     sortOrder: index,
     artworkKey: def.id,
     monthlyRule: null,
+    requireOwnershipVerification: externalBadge,
+    eligibleProviders: null,
+    evidenceRequirement,
   };
 }
 
 function toFiniteNumber(value: unknown, fallback: number): number {
   const n = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(n) ? n : fallback;
+}
+
+/**
+ * Normalizes a persisted `eligibleProviders` JSON value into a clean list of
+ * supported platform ids, or `null` when the badge is not provider-restricted.
+ * Unknown / malformed values degrade to `null` (any supported platform) rather
+ * than blocking awards on an unreadable configuration.
+ */
+function toEligibleProviders(value: unknown): string[] | null {
+  if (value === null || value === undefined) return null;
+  if (!Array.isArray(value)) return null;
+  const allowed = new Set<string>(EXTERNAL_VERIFIED_PLATFORMS);
+  const list = value
+    .map((v) => String(v).toUpperCase())
+    .filter((v) => allowed.has(v));
+  return list.length > 0 ? Array.from(new Set(list)) : null;
+}
+
+function toEvidenceRequirement(value: unknown): BadgeEvidenceRequirement {
+  if (value === 'VERIFIED_ACCEPTED_SUBMISSION') return 'VERIFIED_ACCEPTED_SUBMISSION';
+  if (value === 'VERIFIED_CONTEST_PARTICIPATION') return 'VERIFIED_CONTEST_PARTICIPATION';
+  return 'NONE';
 }
 
 /**
@@ -87,7 +137,7 @@ export async function getEffectiveBadgeCatalog(forceRefresh = false): Promise<Ef
     return cache.badges;
   }
 
-  const base = BADGE_CATALOG.map(fromCode);
+  const base = ALL_BADGE_DEFINITIONS.map(fromCode);
   let badges = base;
 
   try {
@@ -114,6 +164,15 @@ export async function getEffectiveBadgeCatalog(forceRefresh = false): Promise<Ef
           sortOrder: typeof row.sortOrder === 'number' ? row.sortOrder : b.sortOrder,
           artworkKey: row.artworkKey ?? b.artworkKey,
           monthlyRule: (row.monthlyRule as Record<string, unknown> | null) ?? b.monthlyRule,
+          requireOwnershipVerification:
+            typeof row.requireOwnershipVerification === 'boolean'
+              ? row.requireOwnershipVerification
+              : b.requireOwnershipVerification,
+          eligibleProviders:
+            row.eligibleProviders === null || row.eligibleProviders === undefined
+              ? b.eligibleProviders
+              : toEligibleProviders(row.eligibleProviders),
+          evidenceRequirement: toEvidenceRequirement(row.evidenceRequirement),
         };
       });
     }
@@ -144,7 +203,7 @@ export async function getEffectiveBadge(
 
 /** Code definition lookup (holds the `evaluate` function). */
 export function getBadgeEvaluator(badgeId: string): BadgeDefinition | undefined {
-  return BADGE_CATALOG.find((b) => b.id === badgeId);
+  return ALL_BADGE_DEFINITIONS.find((b) => b.id === badgeId);
 }
 
 export interface SeedResult {
@@ -156,13 +215,21 @@ export interface SeedResult {
 /**
  * Seeds/refreshes the `badge_catalog` table from the code framework.
  * Code-owned fields are refreshed; admin-owned fields (threshold, active,
- * artworkKey, monthlyRule, rarity) are preserved on existing rows.
+ * artworkKey, monthlyRule, rarity and the Phase 2 ownership/providers/evidence
+ * policy) are preserved on existing rows.
  */
 export async function seedBadgeCatalog(actorId?: string): Promise<SeedResult> {
   let seeded = 0;
   try {
-    for (let i = 0; i < BADGE_CATALOG.length; i++) {
-      const def = BADGE_CATALOG[i];
+    for (let i = 0; i < ALL_BADGE_DEFINITIONS.length; i++) {
+      const def = ALL_BADGE_DEFINITIONS[i];
+      const streakBadge = isCodingStreakBadge(def.id);
+      const contestBadge = isContestBadge(def.id);
+      const evidenceRequirement: BadgeEvidenceRequirement = contestBadge
+        ? 'VERIFIED_CONTEST_PARTICIPATION'
+        : streakBadge
+          ? 'VERIFIED_ACCEPTED_SUBMISSION'
+          : 'NONE';
       await prisma.badgeCatalog.upsert({
         where: { badgeId: def.id },
         create: {
@@ -181,10 +248,15 @@ export async function seedBadgeCatalog(actorId?: string): Promise<SeedResult> {
           active: true,
           sortOrder: i,
           artworkKey: def.id,
+          // Phase 2 / Phase 3 policy defaults (admin-owned from here on).
+          requireOwnershipVerification: streakBadge || contestBadge,
+          evidenceRequirement,
           updatedById: actorId ?? null,
         },
         update: {
-          // Code-owned metadata only — never clobber admin-owned fields.
+          // Code-owned metadata only — never clobber admin-owned fields
+          // (threshold, active, artworkKey, monthlyRule, rarity and the Phase 2
+          // ownership/providers/evidence policy).
           title: def.title,
           category: def.category,
           tier: def.tier,
@@ -221,6 +293,11 @@ export interface BadgeCatalogPatch {
   active?: boolean;
   artworkKey?: string | null;
   monthlyRule?: Record<string, unknown> | null;
+  /** Phase 2 policy (§7) — Super Admin only, audited. */
+  requireOwnershipVerification?: boolean;
+  /** Platform ids that may back this badge; `null` = any supported platform. */
+  eligibleProviders?: string[] | null;
+  evidenceRequirement?: BadgeEvidenceRequirement;
 }
 
 export interface UpdateCatalogResult {
@@ -238,7 +315,7 @@ export async function updateBadgeCatalogEntry(
   patch: BadgeCatalogPatch,
   actorId?: string
 ): Promise<UpdateCatalogResult> {
-  const def = BADGE_CATALOG.find((b) => b.id === badgeId);
+  const def = ALL_BADGE_DEFINITIONS.find((b) => b.id === badgeId);
   if (!def) return { ok: false, error: `Unknown badge id: ${badgeId}` };
 
   if (patch.threshold !== undefined) {
@@ -246,6 +323,41 @@ export async function updateBadgeCatalogEntry(
     if (!Number.isFinite(t) || t <= 0) {
       return { ok: false, error: 'Threshold must be a positive number.' };
     }
+  }
+
+  // Phase 2 §7 — validate the provider allow-list against supported platforms.
+  let normalizedProviders: string[] | null | undefined;
+  if (patch.eligibleProviders !== undefined) {
+    if (patch.eligibleProviders === null) {
+      normalizedProviders = null;
+    } else if (!Array.isArray(patch.eligibleProviders)) {
+      return { ok: false, error: 'eligibleProviders must be an array of platform ids or null.' };
+    } else {
+      const allowed = new Set<string>(EXTERNAL_VERIFIED_PLATFORMS);
+      const unknown = patch.eligibleProviders
+        .map((p) => String(p).toUpperCase())
+        .filter((p) => !allowed.has(p));
+      if (unknown.length > 0) {
+        return {
+          ok: false,
+          error: `Unsupported provider id(s): ${unknown.join(', ')}. Allowed: ${EXTERNAL_VERIFIED_PLATFORMS.join(', ')}.`,
+        };
+      }
+      normalizedProviders = toEligibleProviders(patch.eligibleProviders);
+    }
+  }
+
+  if (
+    patch.evidenceRequirement !== undefined &&
+    patch.evidenceRequirement !== 'NONE' &&
+    patch.evidenceRequirement !== 'VERIFIED_ACCEPTED_SUBMISSION' &&
+    patch.evidenceRequirement !== 'VERIFIED_CONTEST_PARTICIPATION'
+  ) {
+    return {
+      ok: false,
+      error:
+        "evidenceRequirement must be 'NONE', 'VERIFIED_ACCEPTED_SUBMISSION' or 'VERIFIED_CONTEST_PARTICIPATION'.",
+    };
   }
 
   const data: Record<string, unknown> = { updatedById: actorId ?? null };
@@ -262,6 +374,19 @@ export async function updateBadgeCatalogEntry(
   if (patch.active !== undefined) data.active = Boolean(patch.active);
   if (patch.artworkKey !== undefined) data.artworkKey = patch.artworkKey;
   if (patch.monthlyRule !== undefined) data.monthlyRule = patch.monthlyRule;
+  if (patch.requireOwnershipVerification !== undefined) {
+    data.requireOwnershipVerification = Boolean(patch.requireOwnershipVerification);
+  }
+  if (normalizedProviders !== undefined) data.eligibleProviders = normalizedProviders;
+  if (patch.evidenceRequirement !== undefined) data.evidenceRequirement = patch.evidenceRequirement;
+
+  const streakBadge = isCodingStreakBadge(badgeId);
+  const contestBadge = isContestBadge(badgeId);
+  const defaultEvidenceRequirement: BadgeEvidenceRequirement = contestBadge
+    ? 'VERIFIED_CONTEST_PARTICIPATION'
+    : streakBadge
+      ? 'VERIFIED_ACCEPTED_SUBMISSION'
+      : 'NONE';
 
   try {
     await prisma.badgeCatalog.upsert({
@@ -280,9 +405,12 @@ export async function updateBadgeCatalogEntry(
         rarity: patch.rarity ?? RARITY_BY_TIER[def.tier],
         awardSource: def.awardSource,
         active: patch.active ?? true,
-        sortOrder: BADGE_CATALOG.findIndex((b) => b.id === badgeId),
+        sortOrder: ALL_BADGE_DEFINITIONS.findIndex((b) => b.id === badgeId),
         artworkKey: patch.artworkKey ?? def.id,
         monthlyRule: (patch.monthlyRule as never) ?? undefined,
+        requireOwnershipVerification: patch.requireOwnershipVerification ?? (streakBadge || contestBadge),
+        evidenceRequirement: patch.evidenceRequirement ?? defaultEvidenceRequirement,
+        eligibleProviders: (normalizedProviders ?? undefined) as never,
         updatedById: actorId ?? null,
       },
       update: data as never,

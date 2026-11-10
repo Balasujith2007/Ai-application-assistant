@@ -1,8 +1,41 @@
 import { ContestPlatformAdapter } from './adapterInterface';
 import { ContestStatsResult } from '../types';
+import { ExternalProviderAdapter } from './providerInterface';
+import {
+  NormalizedContestResult,
+  NormalizedDailyActivity,
+  NormalizedProfile,
+  NormalizedRatingPoint,
+  NormalizedSubmission,
+  ProviderCapabilities,
+  ProviderId,
+  ProviderResult,
+  providerFailure,
+  providerSuccess,
+} from './providerTypes';
 
-export class CodeChefAdapter implements ContestPlatformAdapter {
+export class CodeChefAdapter implements ContestPlatformAdapter, ExternalProviderAdapter {
   readonly platform = 'CODECHEF' as const;
+  readonly provider: ProviderId = 'CODECHEF';
+
+  getProviderCapabilities(): ProviderCapabilities {
+    return {
+      profileLookup: true,
+      dailyActivity: false,
+      acceptedSubmissions: false,
+      submissionTimestamps: false,
+      contestHistory: false,
+      ratingHistory: false,
+      ownership: 'NONE',
+      apiKind: 'SCRAPED',
+      dataFreshness: 'CURRENT_ONLY',
+      notes: [
+        'CodeChef publishes no public data API. Profile data is scraped from the public HTML page.',
+        'Scraping yields a current snapshot only — no daily submission history and no contest results.',
+        'CodeChef profiles expose no editable free-text field, so account ownership cannot be proven.',
+      ],
+    };
+  }
 
   parseUsernameFromUrl(url: string): string | null {
     if (!url || typeof url !== 'string') return null;
@@ -123,6 +156,96 @@ export class CodeChefAdapter implements ContestPlatformAdapter {
         error: isTimeout ? 'CodeChef request timeout' : (err?.message || 'CodeChef network error'),
       };
     }
+  }
+
+  // ── ExternalProviderAdapter implementation (Phase 1) ──────────────────────
+
+  async validateProfile(username: string): Promise<ProviderResult<NormalizedProfile>> {
+    return this.fetchProfile(username);
+  }
+
+  async fetchProfile(username: string): Promise<ProviderResult<NormalizedProfile>> {
+    const clean = (username || '').trim();
+    if (!this.isValidUsername(clean)) {
+      return providerFailure('CODECHEF', 'INVALID_USERNAME', 'Invalid CodeChef username format.');
+    }
+    try {
+      const res = await fetch(this.getCanonicalUrl(clean), {
+        method: 'GET',
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (res.status === 404) {
+        return providerFailure('CODECHEF', 'NOT_FOUND', 'CodeChef user profile not found (404).');
+      }
+      if (!res.ok) {
+        return providerFailure('CODECHEF', 'PROVIDER_ERROR', `CodeChef returned HTTP ${res.status}.`);
+      }
+      const html = await res.text();
+      return providerSuccess('CODECHEF', {
+        provider: 'CODECHEF',
+        externalAccountId: clean,
+        profileUrl: this.getCanonicalUrl(clean),
+        currentRating: this.scrapeRating(html),
+        rankTier: this.scrapeStars(html),
+        problemsSolved: this.scrapeSolved(html),
+        retrievedAt: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      const isTimeout = err?.name === 'TimeoutError' || err?.name === 'AbortError';
+      return providerFailure(
+        'CODECHEF',
+        isTimeout ? 'TIMEOUT' : 'NETWORK_ERROR',
+        err?.message || 'CodeChef network error',
+      );
+    }
+  }
+
+  async fetchDailyActivity(): Promise<ProviderResult<NormalizedDailyActivity[]>> {
+    return providerFailure(
+      'CODECHEF',
+      'UNSUPPORTED',
+      'CodeChef HTML does not expose reliable historical daily submission activity.',
+    );
+  }
+
+  async fetchAcceptedSubmissions(): Promise<ProviderResult<NormalizedSubmission[]>> {
+    return providerFailure(
+      'CODECHEF',
+      'UNSUPPORTED',
+      'CodeChef exposes no public submission history endpoint.',
+    );
+  }
+
+  async fetchContestHistory(): Promise<ProviderResult<NormalizedContestResult[]>> {
+    return providerFailure('CODECHEF', 'UNSUPPORTED', 'CodeChef contest results are not publicly retrievable.');
+  }
+
+  async fetchRatingHistory(): Promise<ProviderResult<NormalizedRatingPoint[]>> {
+    return providerFailure('CODECHEF', 'UNSUPPORTED', 'CodeChef rating history requires an authenticated session.');
+  }
+
+  private scrapeRating(html: string): number | undefined {
+    const m =
+      html.match(/class=["']rating-number["'][^>]*>(\d+)</i) ||
+      html.match(/<div[^>]*rating-header[^>]*>[\s\S]*?<div[^>]*>(\d+)<\/div>/i);
+    return m ? parseInt(m[1], 10) : undefined;
+  }
+
+  private scrapeStars(html: string): string | undefined {
+    const m = html.match(/(\d+)★/i) || html.match(/rating-star[^>]*>(\d+)\s*star/i);
+    return m ? `${m[1]} Star` : undefined;
+  }
+
+  private scrapeSolved(html: string): number | undefined {
+    const m =
+      html.match(/Total Problems Solved:\s*(\d+)/i) ||
+      html.match(/<h3>Total Problems Solved:\s*<\/h3>[\s\S]*?<p[^>]*>(\d+)<\/p>/i);
+    return m ? parseInt(m[1], 10) : undefined;
   }
 }
 

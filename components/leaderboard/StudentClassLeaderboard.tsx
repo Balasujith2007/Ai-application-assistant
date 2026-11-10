@@ -22,7 +22,6 @@ import {
   X,
   Search,
   Check,
-  Clock,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
@@ -154,8 +153,6 @@ export function ClassLeaderboard({
   // States for Image 3 & Image 4 features
   const [mounted, setMounted] = useState(false);
   const [showRankPopover, setShowRankPopover] = useState(false);
-  const [streakFrozen, setStreakFrozen] = useState(false);
-  const [streakToast, setStreakToast] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -167,23 +164,21 @@ export function ClassLeaderboard({
   const [achievementsData, setAchievementsData] = useState<any>(null);
   const [achievementsLoading, setAchievementsLoading] = useState(false);
 
-  // Daily Check-in & Search States
-  const [checkInLoading, setCheckInLoading] = useState(false);
-  const [checkInState, setCheckInState] = useState<{
-    checkedInToday: boolean;
+  // Career activity streak state
+  const [streakState, setStreakState] = useState<{
+    qualifiedToday: boolean;
+    todayActivityCount: number;
     todayXpEarned: number;
     totalEarnedXp?: number;
-    nextEligibleCheckIn: string | null;
-    secondsUntilNextCheckIn: number;
+    lastActivityDate: string | null;
+    secondsUntilNextDay?: number;
     streak: {
       currentStreak: number;
       longestStreak: number;
       totalActiveDays: number;
-      progressInCycle: number;
-      targetInCycle: number;
+      lastQualifyingDate: string | null;
     };
   } | null>(null);
-  const [checkInMsg, setCheckInMsg] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -244,7 +239,7 @@ export function ClassLeaderboard({
     }
   }, [variant]);
 
-  const fetchCheckInStatus = useCallback(async () => {
+  const fetchCareerStreak = useCallback(async () => {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       const headers: Record<string, string> = {};
@@ -252,17 +247,17 @@ export function ClassLeaderboard({
       const res = await fetch('/api/check-in', { headers });
       const json = await res.json();
       if (json.success) {
-        setCheckInState(json);
+        setStreakState(json);
       }
     } catch (err) {
-      console.error('Failed to load check-in status:', err);
+      console.error('Failed to load career activity streak:', err);
     }
   }, []);
 
   useEffect(() => {
     fetchLeaderboard(period);
-    fetchCheckInStatus();
-  }, [fetchLeaderboard, fetchCheckInStatus, period]);
+    fetchCareerStreak();
+  }, [fetchLeaderboard, fetchCareerStreak, period]);
 
   const fetchAchievements = useCallback(async () => {
     if (achievementsData) return;
@@ -283,39 +278,9 @@ export function ClassLeaderboard({
     }
   }, [achievementsData]);
 
-  const handleCheckIn = async () => {
-    if (checkInLoading || checkInState?.checkedInToday) return;
-    setCheckInLoading(true);
-    setCheckInMsg(null);
-    try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-      const res = await fetch('/api/check-in', { method: 'POST', headers });
-      const json = await res.json();
-      if (json.success) {
-        setCheckInState(json.status || null);
-        setCheckInMsg({
-          text: json.message || `Checked in! +${json.xpAwarded} XP`,
-          type: 'success',
-        });
-        await fetchLeaderboard(period);
-        setTimeout(() => setCheckInMsg(null), 5000);
-      } else {
-        setCheckInMsg({ text: json.message || 'Check-in failed.', type: 'error' });
-        setTimeout(() => setCheckInMsg(null), 4000);
-      }
-    } catch (err: any) {
-      setCheckInMsg({ text: err?.message || 'Check-in network error.', type: 'error' });
-      setTimeout(() => setCheckInMsg(null), 4000);
-    } finally {
-      setCheckInLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchCheckInStatus();
-  }, [fetchCheckInStatus]);
+    fetchCareerStreak();
+  }, [fetchCareerStreak]);
 
   useEffect(() => {
     if (activeNavTab === 'badges') {
@@ -350,20 +315,6 @@ export function ClassLeaderboard({
     } finally {
       setSyncing(false);
     }
-  };
-
-  const handleRestoreStreak = () => {
-    setStreakToast('Streak restored successfully! Consistency streak is active.');
-    setTimeout(() => setStreakToast(null), 3500);
-  };
-
-  const handleFreezeStreak = () => {
-    setStreakFrozen((prev) => {
-      const next = !prev;
-      setStreakToast(next ? 'Streak freeze activated! Protected for 48 hours.' : 'Streak freeze deactivated.');
-      setTimeout(() => setStreakToast(null), 3500);
-      return next;
-    });
   };
 
   const handleShare = () => {
@@ -452,22 +403,22 @@ export function ClassLeaderboard({
   const currentLearnerEntry = uniqueRankings.find((r: any) => r.isCurrentUser);
   const realCurrentRank = currentLearnerEntry?.rank || currentStudent?.rank;
 
-  const realTotalXp = checkInState?.totalEarnedXp != null
-    ? checkInState.totalEarnedXp
+  const realTotalXp = streakState?.totalEarnedXp != null
+    ? streakState.totalEarnedXp
     : (currentLearnerEntry?.earnedXp != null && currentLearnerEntry.earnedXp > 0
         ? currentLearnerEntry.earnedXp
         : (currentStudent?.earnedXp != null && currentStudent.earnedXp > 0
             ? currentStudent.earnedXp
             : (currentStudent?.totalScore != null ? Number(currentStudent.totalScore) : 0)));
 
-  const realCurrentStreak = checkInState?.streak?.currentStreak != null
-    ? checkInState.streak.currentStreak
+  const realCurrentStreak = streakState?.streak?.currentStreak != null
+    ? streakState.streak.currentStreak
     : (currentLearnerEntry?.streak != null
         ? currentLearnerEntry.streak
         : (currentStudent?.streak != null ? currentStudent.streak : 0));
 
-  const realLongestStreak = checkInState?.streak?.longestStreak != null
-    ? checkInState.streak.longestStreak
+  const realLongestStreak = streakState?.streak?.longestStreak != null
+    ? streakState.streak.longestStreak
     : realCurrentStreak;
 
   const realRankDisplay = realCurrentRank
@@ -989,7 +940,7 @@ export function ClassLeaderboard({
                       <div className="flex items-center gap-1.5 whitespace-nowrap">
                         <span className="text-gray-600 font-medium">Earned Today:</span>
                         <span>🪙</span>
-                        <span className="font-bold text-gray-900">+{checkInState?.todayXpEarned || 0} XP</span>
+                        <span className="font-bold text-gray-900">+{streakState?.todayXpEarned || 0} XP</span>
                       </div>
                       <div className="flex items-center gap-1.5 whitespace-nowrap">
                         <span className="text-gray-600 font-medium">Available Balance:</span>
@@ -1024,33 +975,16 @@ export function ClassLeaderboard({
                         </div>
                       </div>
                     </div>
-                    <div className="mt-4 space-y-2.5">
+                    <div className="mt-4 space-y-2">
                       <div className="text-xs text-gray-600">
                         <span>Longest: </span>
                         <span className="font-bold text-gray-900">{realLongestStreak}d</span>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          id="btn-restore-streak"
-                          onClick={handleRestoreStreak}
-                          className="rounded-lg bg-white border border-gray-200 py-1.5 px-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 active:scale-95 transition shadow-2xs text-center cursor-pointer whitespace-nowrap"
-                        >
-                          Restore
-                        </button>
-                        <button
-                          type="button"
-                          id="btn-freeze-streak"
-                          onClick={handleFreezeStreak}
-                          className={`rounded-lg py-1.5 px-2 text-xs font-semibold transition shadow-2xs text-center active:scale-95 cursor-pointer whitespace-nowrap ${
-                            streakFrozen
-                              ? 'bg-blue-600 text-white border border-blue-600'
-                              : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
-                          }`}
-                        >
-                          {streakFrozen ? 'Frozen ❄️' : 'Freeze'}
-                        </button>
-                      </div>
+                      <p className="text-[11px] leading-snug text-gray-500">
+                        Earned only by submitting an internship, job, hackathon or competition
+                        application. Missed a day? Use an explicit Streak Rescue Token from your
+                        Tokens page.
+                      </p>
                     </div>
                   </div>
 
@@ -1173,86 +1107,58 @@ export function ClassLeaderboard({
 
           {activeNavTab === 'leaderboard' && (
             <>
-              {/* Daily Check-in & Streak Widget */}
-              <div className="rounded-xl border border-amber-200/90 bg-gradient-to-br from-[#FFFDF9] via-white to-amber-50/40 p-3.5 shadow-2xs space-y-2.5">
+              {/* Career Activity Streak Widget */}
+              <div className="rounded-xl border border-rose-200/80 bg-gradient-to-br from-[#FFF9FA] via-white to-rose-50/40 p-3.5 shadow-2xs space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-white font-black text-xs shadow-2xs">
-                      🪙
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-rose-700 text-white shadow-2xs">
+                      <Flame className="h-4 w-4" />
                     </div>
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <h4 className="text-xs font-bold text-gray-900 leading-tight">Daily Check-In</h4>
-                        <span className="text-[10px] font-extrabold text-amber-700 bg-amber-100/80 px-1.5 py-0.2 rounded-md">
-                          +5 XP
+                        <h4 className="text-xs font-bold text-gray-900 leading-tight">Career Activity Streak</h4>
+                        <span className="text-[10px] font-extrabold text-rose-700 bg-rose-100/80 px-1.5 py-0.2 rounded-md">
+                          Verified applications
                         </span>
                       </div>
                       <p className="text-[10px] text-gray-500 font-medium mt-0.5">
-                        {checkInState?.checkedInToday
-                          ? 'Today\'s XP earned • Next check-in resets at midnight'
-                          : 'Check in now to build your consecutive streak!'}
+                        {streakState?.qualifiedToday
+                          ? 'Career activity verified today.'
+                          : 'No qualifying career activity today.'}
                       </p>
                     </div>
                   </div>
 
-                  {checkInState?.checkedInToday ? (
-                    <div className="flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-emerald-200">
+                  <div
+                    className={`flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg border ${
+                      streakState?.qualifiedToday
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-gray-50 text-gray-500 border-gray-200'
+                    }`}
+                  >
+                    {streakState?.qualifiedToday ? (
                       <Check className="h-3 w-3 text-emerald-600" />
-                      <span>Done</span>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      id="btn-claim-daily-checkin"
-                      onClick={handleCheckIn}
-                      disabled={checkInLoading}
-                      style={{
-                        background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-                        color: '#FFFFFF',
-                        boxShadow: '0 2px 8px rgba(217, 119, 6, 0.35)',
-                      }}
-                      className="rounded-lg px-3.5 py-1.5 text-xs font-bold hover:brightness-105 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 whitespace-nowrap"
-                    >
-                      {checkInLoading ? (
-                        <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      ) : (
-                        <span>Claim +5 XP 🪙</span>
-                      )}
-                    </button>
-                  )}
+                    ) : (
+                      <Flame className="h-3 w-3 text-gray-400" />
+                    )}
+                    <span>{streakState?.qualifiedToday ? 'Verified today' : 'No activity yet'}</span>
+                  </div>
                 </div>
 
-                {/* Streak Progress & Countdown */}
-                <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-amber-100/70">
+                {/* Streak Summary */}
+                <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-rose-100/70">
                   <div className="flex items-center gap-1 font-semibold text-gray-700">
                     <span>🔥</span>
-                    <span className="font-bold text-gray-900">
-                      {checkInState?.streak?.currentStreak || breakdown?.consistency?.activeDaysCount || 15}d Streak
-                    </span>
-                    <span className="text-gray-400 font-normal">
-                      ({(checkInState?.streak?.progressInCycle ?? (15 % 7))}/7d to +25 XP bonus)
-                    </span>
+                    <span className="font-bold text-gray-900">{realCurrentStreak}d Streak</span>
                   </div>
                   <div className="text-[10px] text-gray-500 font-medium">
-                    {checkInState?.checkedInToday ? (
-                      <span className="flex items-center gap-0.5 text-gray-600">
-                        <Clock className="h-2.5 w-2.5 text-gray-400" />
-                        Next: {checkInState.secondsUntilNextCheckIn ? `${Math.floor(checkInState.secondsUntilNextCheckIn / 3600)}h ${Math.floor((checkInState.secondsUntilNextCheckIn % 3600) / 60)}m` : 'Tomorrow'}
-                      </span>
-                    ) : (
-                      <span className="text-amber-700 font-bold">Ready to claim!</span>
-                    )}
+                    Longest: <span className="font-bold text-gray-700">{realLongestStreak}d</span>
                   </div>
                 </div>
 
-                {checkInMsg && (
-                  <div className={`p-2 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 ${
-                    checkInMsg.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
-                  }`}>
-                    {checkInMsg.type === 'success' ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" /> : <AlertCircle className="h-3.5 w-3.5 text-rose-600 shrink-0" />}
-                    <span>{checkInMsg.text}</span>
-                  </div>
-                )}
+                <p className="text-[10px] text-gray-500 font-medium leading-relaxed">
+                  Submit an internship, job, hackathon or competition application to earn a streak day. Multiple applications on the same day count as one day.
+                </p>
               </div>
 
               {/* Sapphire League Card */}
@@ -1634,17 +1540,6 @@ export function ClassLeaderboard({
 
         {/* Floating Toasts */}
         <AnimatePresence>
-          {streakToast && (
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 15 }}
-              className="fixed bottom-6 right-6 z-50 rounded-xl bg-gray-900 text-white px-4 py-3 text-xs font-semibold shadow-2xl flex items-center gap-2 border border-gray-700"
-            >
-              <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-              <span>{streakToast}</span>
-            </motion.div>
-          )}
           {shareToast && (
             <motion.div
               initial={{ opacity: 0, y: 15 }}
@@ -1672,17 +1567,6 @@ export function ClassLeaderboard({
 
       {/* Floating Toasts for Full View */}
       <AnimatePresence>
-        {streakToast && (
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 15 }}
-            className="fixed bottom-6 right-6 z-50 rounded-xl bg-gray-900 text-white px-4 py-3 text-xs font-semibold shadow-2xl flex items-center gap-2 border border-gray-700"
-          >
-            <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-            <span>{streakToast}</span>
-          </motion.div>
-        )}
         {shareToast && (
           <motion.div
             initial={{ opacity: 0, y: 15 }}

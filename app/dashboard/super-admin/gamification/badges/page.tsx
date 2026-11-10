@@ -49,6 +49,10 @@ interface CatalogBadge {
   sortOrder: number;
   artworkKey: string | null;
   monthlyRule: Record<string, unknown> | null;
+  /** Phase 2 §7 — streak-badge policy (Super Admin owned, audited). */
+  requireOwnershipVerification: boolean;
+  eligibleProviders: string[] | null;
+  evidenceRequirement: 'NONE' | 'VERIFIED_ACCEPTED_SUBMISSION';
 }
 
 interface AuditEntry {
@@ -73,6 +77,12 @@ interface StreakMilestone {
 
 const RARITIES = ['COMMON', 'RARE', 'EPIC', 'LEGENDARY', 'MYTHIC'];
 const BADGE_TIERS: BadgeTier[] = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND'];
+/** Platforms that can back a streak badge (Phase 2 §7 provider eligibility). */
+const ELIGIBLE_PROVIDERS = ['LEETCODE', 'CODECHEF', 'ATCODER', 'CODEFORCES'] as const;
+const EVIDENCE_REQUIREMENTS: Array<{ value: CatalogBadge['evidenceRequirement']; label: string }> = [
+  { value: 'NONE', label: 'No evidence requirement' },
+  { value: 'VERIFIED_ACCEPTED_SUBMISSION', label: 'Verified accepted submission (ownership) ' },
+];
 
 const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: 'catalog', label: 'Badge Catalog', icon: <Award className="h-4 w-4" /> },
@@ -198,6 +208,9 @@ export default function BadgeManagementPage() {
           active: editing.active,
           artworkKey: editing.artworkKey,
           monthlyRule: editing.monthlyRule,
+          requireOwnershipVerification: editing.requireOwnershipVerification,
+          eligibleProviders: editing.eligibleProviders,
+          evidenceRequirement: editing.evidenceRequirement,
         },
         { headers: authHeaders() }
       );
@@ -339,8 +352,9 @@ export default function BadgeManagementPage() {
             <ShieldCheck className="h-8 w-8 text-kit-600" /> Badge &amp; Recognition Management
           </h1>
           <p className="mt-1 max-w-3xl text-gray-500">
-            Manage the 30-badge professional framework: eligibility thresholds, descriptions, artwork, streak
-            milestones, monthly award rules and award history. Manual changes always require a reason and are audited.
+            Manage the professional badge framework: eligibility thresholds, descriptions, artwork, streak milestones
+            and platform coding-streak policy, monthly award rules and award history. Manual changes always require a
+            reason and are audited.
           </p>
         </div>
         <Button variant="outline" onClick={handleSeed} isLoading={busy} className="gap-2">
@@ -454,6 +468,13 @@ export default function BadgeManagementPage() {
             <p className="mt-1 text-sm text-gray-500">
               Awarded once per milestone from verified career activity, using Asia/Kolkata date boundaries. Page views
               and other meaningless actions never count. Each milestone badge is unlocked at most once.
+            </p>
+            <p className="mt-2 text-sm text-gray-500">
+              This tab lists every <strong>CONSISTENCY</strong> badge, which includes both the global career-activity
+              streak milestones and the Phase 2 platform coding-streak milestones (50 → Code Consistency, 100 → Code
+              Discipline, 150 → Coding Dedication, 200 → Legendary Coder, 250 → Eternal Problem Solver, 365 → One Year
+              Coding Legend). Platform streak badges additionally require a verified accepted submission on an
+              ownership-verified platform — configure that in each badge&apos;s edit dialog.
             </p>
           </div>
           <div className="overflow-x-auto">
@@ -865,6 +886,75 @@ export default function BadgeManagementPage() {
                 Badge active (inactive badges are never awarded and show as locked)
               </span>
             </label>
+
+            <div className="space-y-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <div>
+                <h4 className="text-sm font-bold text-gray-800">Streak-badge policy (Phase 2)</h4>
+                <p className="mt-1 text-xs text-gray-500">
+                  These settings gate automatic awards. Only ownership-verified platforms can back a high-value coding
+                  streak badge. Every change is audited.
+                </p>
+              </div>
+
+              <label className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-gray-300 text-kit-600 focus:ring-kit-500"
+                  checked={editing.requireOwnershipVerification}
+                  onChange={(e) => setEditing({ ...editing, requireOwnershipVerification: e.target.checked })}
+                />
+                <span className="text-sm font-medium text-gray-800">
+                  Require <strong>OWNERSHIP_VERIFIED</strong> (profile existence and format checks are not enough)
+                </span>
+              </label>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Evidence requirement</label>
+                <select
+                  className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-sm focus:border-kit-600 focus:outline-none focus:ring-2 focus:ring-kit-600"
+                  value={editing.evidenceRequirement}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      evidenceRequirement: e.target.value as CatalogBadge['evidenceRequirement'],
+                    })
+                  }
+                >
+                  {EVIDENCE_REQUIREMENTS.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  Eligible providers (leave all unchecked for any supported platform)
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {ELIGIBLE_PROVIDERS.map((p) => {
+                    const selected = (editing.eligibleProviders ?? []).includes(p);
+                    return (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => {
+                          const current = editing.eligibleProviders ?? [];
+                          const next = selected ? current.filter((x) => x !== p) : [...current, p];
+                          setEditing({ ...editing, eligibleProviders: next.length ? next : null });
+                        }}
+                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                          selected ? 'bg-kit-600 text-white' : 'bg-white text-gray-700 ring-1 ring-gray-300 hover:bg-gray-100'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
 
             <Textarea
               label="Monthly award rule (JSON, optional)"

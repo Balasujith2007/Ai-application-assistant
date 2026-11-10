@@ -1262,6 +1262,13 @@ model BadgeCatalog {
   sortOrder   Int      @default(0)
   artworkKey  String?
   monthlyRule Json?
+  // ── Phase 2 streak-badge policy (additive, Super-Admin owned) ──
+  /// High-value streak badges may only be awarded when ownership is proven.
+  requireOwnershipVerification Boolean @default(false)
+  /// JSON array of platform ids allowed to back this badge; null = any supported.
+  eligibleProviders            Json?
+  /// NONE | VERIFIED_ACCEPTED_SUBMISSION
+  evidenceRequirement          String  @default("NONE")
   updatedById String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

@@ -6,7 +6,15 @@ export type PeriodType = 'WEEKLY' | 'MONTHLY' | 'SEMESTER' | 'ALL_TIME';
 
 export type ActivitySourceType = 'CONTEST' | 'HACKATHON' | 'INTERNSHIP' | 'CONSISTENCY';
 
-export type ContestPlatform = 'CODEFORCES' | 'LEETCODE' | 'CODECHEF' | 'CODOLIO';
+export type ContestPlatform = 'CODEFORCES' | 'LEETCODE' | 'CODECHEF' | 'CODOLIO' | 'ATCODER';
+
+/** Platforms for which an external public data integration exists. */
+export const EXTERNAL_VERIFIED_PLATFORMS: ContestPlatform[] = [
+  'LEETCODE',
+  'CODECHEF',
+  'ATCODER',
+  'CODEFORCES',
+];
 
 export type VerificationStatus = 'VERIFIED' | 'PENDING' | 'PENDING_REVIEW' | 'REJECTED' | 'UNAVAILABLE';
 

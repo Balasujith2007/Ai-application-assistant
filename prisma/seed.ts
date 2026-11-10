@@ -238,6 +238,7 @@ async function main() {
     { role: Role.SUPER_ADMIN, title: 'Auto-Fill Agent', path: '/dashboard/super-admin/auto-fill-agent', order: 8 },
     { role: Role.SUPER_ADMIN, title: 'AI Features', path: '/dashboard/super-admin/ai-features', order: 9 },
     { role: Role.SUPER_ADMIN, title: 'System Health', path: '/dashboard/super-admin/system-health', order: 10 },
+    { role: Role.SUPER_ADMIN, title: 'External Verification', path: '/dashboard/super-admin/external-verification', order: 11 },
   ];
 
   for (const item of defaultSidebarItems) {

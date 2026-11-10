@@ -60,9 +60,11 @@ export async function GET(req: Request) {
 
 /**
  * POST /api/check-in
- * Submits a daily check-in for the authenticated student.
- * Derives student identity strictly from the server session.
- * Disallows client-supplied student IDs, dates, or XP amounts.
+ * Legacy daily check-in endpoint. Daily check-in NO LONGER awards a streak day
+ * or any XP — a Career Activity Streak day is earned only by a verified career
+ * submission (internship/job/hackathon/competition application). Retained as a
+ * safe no-op so existing clients keep working; it never writes rewards.
+ * Student identity is derived strictly from the server session.
  */
 export async function POST(req: Request) {
   try {
@@ -98,10 +100,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // 4. Execute idempotent check-in on the server
+    // 4. No-op: check-in is no longer a streak/reward source.
     const result = await checkInService.performDailyCheckIn(userId);
 
-    return NextResponse.json(result, { status: result.alreadyCheckedIn ? 200 : 201 });
+    return NextResponse.json(result, { status: 200 });
   } catch (error: any) {
     console.error('Error performing check-in:', error);
     return NextResponse.json(

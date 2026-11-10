@@ -1,19 +1,35 @@
 /**
- * AI Career Platform — Professional 30-Badge Achievement Framework
- * -----------------------------------------------------------------
- * Badges are grouped into five categories (six badges each) and are awarded
- * ONLY from verified career events collected by the badge engine:
+ * AI Career Platform — Professional Badge Achievement Framework
+ * ---------------------------------------------------------------
+ * Badges are grouped into five categories plus two extension groups:
  *
  *   A. Career Excellence          — internship / job application milestones
  *   B. Innovation & Competition   — hackathons, competitions and projects
+ *   B2. Contest Verification      — provider-verified competitive-programming contests
  *   C. Consistency & Streak       — daily career-activity streaks
+ *   C2. Coding Streak Milestones  — platform-specific daily accepted submissions
  *   D. Professional Development   — profile, resume, skills, projects, experience
  *   E. Monthly Excellence         — monthly recognition (awarded by the monthly engine)
  *
+ * The original framework defined 30 badges (6 per category). Phase 2 adds six
+ * platform-specific coding-streak milestones (C2) and Phase 3 adds eight
+ * contest-verification milestones (B2), bringing the catalog to 44 while
+ * leaving all 36 pre-existing badges byte-for-byte unchanged.
+ *
+ * Phase 4 adds four evidence-based career/competition achievements. They are
+ * declared in `PHASE4_BADGE_DEFINITIONS` and merged into
+ * `ALL_BADGE_DEFINITIONS` (44 + 4 = 48) so the original `BADGE_CATALOG` — and
+ * therefore every prior-phase eligibility rule and test — stays byte-for-byte
+ * identical. Phase 4 only adds concepts that were genuinely uncovered; the
+ * duplicate-concept audit is documented next to the definitions.
+ *
  * Design notes
  *  - This platform is a Student Career Growth & Opportunity Platform, so LMS
- *    metrics (lessons, courses, learning streaks, coding-contest ratings) are
- *    deliberately NOT part of the framework.
+ *    metrics (lessons, courses, learning streaks) are deliberately NOT part of
+ *    the framework. The one deliberate exception is externally *verified*
+ *    competitive-programming evidence: Phase 2 accepted-submission streaks and
+ *    Phase 3 contest participation, both of which are provider-verified and
+ *    ownership-gated rather than self-reported.
  *  - Every threshold here is a DEFAULT. Super Admin can override the threshold,
  *    title, description, criteria text, icon, category, tier and active flag per
  *    badge through the persisted `BadgeCatalog` table (see `badgeCatalogService`).
@@ -49,7 +65,14 @@ export interface StudentActivityStats {
   internshipCompletedCount: number;
 
   // ── B. Innovation & Competition ──
+  /** Confirmed registrations (registration state) — NOT proof of participation. */
   competitionRegistrations: number;
+  /**
+   * Phase 4 — distinct hackathons/competitions where participation was
+   * *verified* by an organizer, judge or admin (registration status VERIFIED
+   * or a recorded verifiedAt timestamp). Registration alone never contributes.
+   */
+  verifiedCompetitionParticipations: number;
   projectSubmissionsCount: number;
   finalistCount: number;
   podiumCount: number;
@@ -60,6 +83,37 @@ export interface StudentActivityStats {
   longestStreakDays: number;
   totalActiveDays: number;
   activeWeeksInMonth: number;
+
+  // ── C2. Platform-specific coding streaks (Phase 2) ──
+  // Derived ONLY from verified accepted submissions on a platform whose account
+  // ownership is proven. Platforms are never combined for badge eligibility.
+  verifiedCodingStreakDays: number;
+  codingStreakPlatform: string | null;
+  codingAcceptedActivityCount: number;
+
+  // ── B2. Verified contest participation (Phase 3) ──
+  // Derived ONLY from provider-verified contest records on a platform that is
+  // supported, ownership-verified AND has non-UNAVAILABLE contest coverage.
+  // Every value below is echoed from a provider record or computed from one —
+  // a missing rank, participant total or rating delta stays missing (0/null),
+  // it is never estimated.
+  /** Verified contest participations across all eligible platforms. */
+  contestParticipationCount: number;
+  /** Platforms that contributed at least one verified participation. */
+  contestPlatforms: string[];
+  /** Platform whose contest evidence produced the highest participation count. */
+  contestPlatform: string | null;
+  /** Contests that exposed a verifiable rating delta. */
+  contestRatedContestsCount: number;
+  /** Highest rating any eligible provider reported, or null when unknown. */
+  contestPersonalBestRating: number | null;
+  contestPersonalBestPlatform: string | null;
+  /** Best per-platform sum of positive rating gains across >= 2 rated contests. */
+  contestCumulativeRatingImprovement: number;
+  /** Verified top-10% finishes (requires a real rank AND a real participant total). */
+  contestTop10PercentFinishes: number;
+  /** Verified top-5% finishes (requires a real rank AND a real participant total). */
+  contestTop5PercentFinishes: number;
 
   // ── D. Professional Development ──
   profileCompleteness: number;
@@ -101,6 +155,12 @@ export interface BadgeDefinition {
   xpReward: number;
   awardSource: BadgeAwardSource;
   evaluate: (stats: StudentActivityStats, threshold: number) => BadgeEvaluation;
+  /**
+   * OPTIONAL. Extra, verifiable evidence persisted with the award so the
+   * credential can reference the exact records that justified it. Must only
+   * echo already-verified statistics — never invent or estimate a value.
+   */
+  evidence?: (stats: StudentActivityStats) => Record<string, unknown> | null;
 }
 
 export const BADGE_CATEGORIES: Array<{ key: BadgeCategory; label: string; icon: string }> = [
@@ -180,6 +240,75 @@ function monthly(eligible: boolean): BadgeEvaluation {
     targetValue: 1,
     progressPercentage: 0,
     progressAvailable: false,
+  };
+}
+
+/**
+ * Evidence reference for a platform coding-streak badge (Phase 2). Echoes the
+ * verified per-platform streak that produced eligibility — it never derives,
+ * estimates or combines platforms.
+ */
+function codingStreakEvidence(stats: StudentActivityStats): Record<string, unknown> | null {
+  if (!stats.codingStreakPlatform || stats.verifiedCodingStreakDays <= 0) return null;
+  return {
+    source: 'PLATFORM_CODING_STREAK',
+    platform: stats.codingStreakPlatform,
+    longestStreakDays: stats.verifiedCodingStreakDays,
+    acceptedActivityDays: stats.codingAcceptedActivityCount,
+  };
+}
+
+/**
+ * Evidence reference for a verified-contest badge (Phase 3). Echoes ONLY the
+ * provider-verified contest statistics that produced eligibility. Percentile
+ * counts stay 0 when no participant total was published, and a personal-best
+ * rating stays null when no rating was published — never estimated.
+ */
+function contestEvidence(stats: StudentActivityStats): Record<string, unknown> | null {
+  const platform = stats.contestPlatform ?? stats.contestPersonalBestPlatform ?? null;
+  if (!platform && stats.contestParticipationCount <= 0) return null;
+  return {
+    source: 'VERIFIED_CONTEST_PARTICIPATION',
+    platform,
+    platforms: stats.contestPlatforms,
+    verifiedParticipations: stats.contestParticipationCount,
+    ratedContests: stats.contestRatedContestsCount,
+    personalBestRating: stats.contestPersonalBestRating,
+    personalBestPlatform: stats.contestPersonalBestPlatform,
+    cumulativeRatingImprovement: stats.contestCumulativeRatingImprovement,
+    top10PercentFinishes: stats.contestTop10PercentFinishes,
+    top5PercentFinishes: stats.contestTop5PercentFinishes,
+  };
+}
+
+/**
+ * Evidence reference for a Phase 4 career-application badge. Echoes ONLY the
+ * count of real, successfully-submitted application records that produced
+ * eligibility. Drafts (SAVED), withdrawn and abandoned applications are never
+ * counted by the engine, so they can never appear here.
+ */
+function applicationEvidence(stats: StudentActivityStats): Record<string, unknown> | null {
+  if (stats.applicationsSubmitted <= 0) return null;
+  return {
+    source: 'VERIFIED_APPLICATION_RECORDS',
+    submittedApplications: stats.applicationsSubmitted,
+    countedStatuses: ['APPLIED', 'UNDER_REVIEW', 'SHORTLISTED', 'INTERVIEW', 'SELECTED', 'REJECTED', 'DISQUALIFIED'],
+    excludedStatuses: ['SAVED', 'WITHDRAWN', 'INITIATED'],
+  };
+}
+
+/**
+ * Evidence reference for a Phase 4 hackathon/competition badge. Echoes ONLY the
+ * count of distinct competitions whose participation was verified by an
+ * organizer/judge/admin. A plain registration is never evidence of
+ * participation and therefore never appears here.
+ */
+function participationEvidence(stats: StudentActivityStats): Record<string, unknown> | null {
+  if (stats.verifiedCompetitionParticipations <= 0) return null;
+  return {
+    source: 'ORGANIZER_VERIFIED_PARTICIPATION',
+    verifiedParticipations: stats.verifiedCompetitionParticipations,
+    confirmedRegistrations: stats.competitionRegistrations,
   };
 }
 
@@ -449,6 +578,269 @@ export const BADGE_CATALOG: BadgeDefinition[] = [
   },
 
   // =========================================================================
+  // C2. CODING STREAK MILESTONES (Phase 2)
+  // -------------------------------------------------------------------------
+  // Platform-specific streaks: consecutive calendar days with at least one
+  // VERIFIED, ACCEPTED submission on ONE competitive-programming platform.
+  // They are independent from — and never combined with — the global career
+  // streak above.
+  //
+  // DUPLICATE-CONCEPT CHECK (required by Phase 2 §3):
+  //   The existing C. badges ('streak-consistency-elite' @50 and
+  //   'streak-century-achiever' @100 and 'streak-unstoppable' @180) measure
+  //   `longestStreakDays` — the GLOBAL career-activity streak built from any
+  //   qualifying career event. The six badges below measure
+  //   `verifiedCodingStreakDays` — accepted competitive-programming
+  //   submissions on a single provably-owned platform. Different evidence
+  //   source, different unit of proof, therefore NOT a duplicate concept.
+  //   All six ids are new (no id collision) and each carries a unique artwork
+  //   key (artworkKey defaults to the badge id in badgeCatalogService).
+  // =========================================================================
+  {
+    id: 'coding-streak-consistency',
+    title: 'Code Consistency',
+    category: 'CONSISTENCY',
+    tier: 'SILVER',
+    description: 'Solve at least one problem every day for 50 days on a single coding platform.',
+    criteria:
+      '50 consecutive calendar days each containing at least one verified accepted submission on one ownership-verified platform (Asia/Kolkata).',
+    icon: 'Code2',
+    defaultThreshold: 50,
+    unit: 'days',
+    xpReward: 700,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.verifiedCodingStreakDays, t),
+    evidence: codingStreakEvidence,
+  },
+  {
+    id: 'coding-streak-discipline',
+    title: 'Code Discipline',
+    category: 'CONSISTENCY',
+    tier: 'GOLD',
+    description: 'Sustain a 100-day unbroken daily problem-solving habit on one coding platform.',
+    criteria:
+      '100 consecutive calendar days each containing at least one verified accepted submission on one ownership-verified platform (Asia/Kolkata).',
+    icon: 'ShieldCheck',
+    defaultThreshold: 100,
+    unit: 'days',
+    xpReward: 1200,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.verifiedCodingStreakDays, t),
+    evidence: codingStreakEvidence,
+  },
+  {
+    id: 'coding-streak-dedication',
+    title: 'Coding Dedication',
+    category: 'CONSISTENCY',
+    tier: 'GOLD',
+    description: 'Commit to daily competitive programming for 150 consecutive days.',
+    criteria:
+      '150 consecutive calendar days each containing at least one verified accepted submission on one ownership-verified platform (Asia/Kolkata).',
+    icon: 'Target',
+    defaultThreshold: 150,
+    unit: 'days',
+    xpReward: 1800,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.verifiedCodingStreakDays, t),
+    evidence: codingStreakEvidence,
+  },
+  {
+    id: 'coding-streak-legendary',
+    title: 'Legendary Coder',
+    category: 'CONSISTENCY',
+    tier: 'PLATINUM',
+    description: 'Reach 200 consecutive days of verified daily problem solving.',
+    criteria:
+      '200 consecutive calendar days each containing at least one verified accepted submission on one ownership-verified platform (Asia/Kolkata).',
+    icon: 'Crown',
+    defaultThreshold: 200,
+    unit: 'days',
+    xpReward: 2600,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.verifiedCodingStreakDays, t),
+    evidence: codingStreakEvidence,
+  },
+  {
+    id: 'coding-streak-eternal',
+    title: 'Eternal Problem Solver',
+    category: 'CONSISTENCY',
+    tier: 'PLATINUM',
+    description: 'Maintain an exceptional 250-day verified coding streak.',
+    criteria:
+      '250 consecutive calendar days each containing at least one verified accepted submission on one ownership-verified platform (Asia/Kolkata).',
+    icon: 'Infinity',
+    defaultThreshold: 250,
+    unit: 'days',
+    xpReward: 3400,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.verifiedCodingStreakDays, t),
+    evidence: codingStreakEvidence,
+  },
+  {
+    id: 'coding-streak-year-legend',
+    title: 'One Year Coding Legend',
+    category: 'CONSISTENCY',
+    tier: 'DIAMOND',
+    description: 'Complete a full year — 365 consecutive days — of verified daily problem solving.',
+    criteria:
+      '365 consecutive calendar days each containing at least one verified accepted submission on one ownership-verified platform (Asia/Kolkata).',
+    icon: 'Trophy',
+    defaultThreshold: 365,
+    unit: 'days',
+    xpReward: 5000,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.verifiedCodingStreakDays, t),
+    evidence: codingStreakEvidence,
+  },
+
+  // =========================================================================
+  // B2. VERIFIED CONTEST PARTICIPATION (Phase 3)
+  // -------------------------------------------------------------------------
+  // Awarded ONLY from provider-verified contest participation on a platform
+  // that is simultaneously:
+  //   • capability-supported for contest history,
+  //   • ownership-verified (Phase 1 ownership challenge), and
+  //   • NOT reporting UNAVAILABLE contest coverage.
+  // A manual Super-Admin participation approval never satisfies the ownership
+  // requirement — ownership and participation remain separate states.
+  //
+  // DUPLICATE-CONCEPT CHECK (required by Phase 3 §5):
+  //   The B. INNOVATION badges measure hackathon/competition *registrations and
+  //   outcomes* recorded inside this platform. In particular
+  //   'innovation-podium-finisher' is a verified 2nd/3rd-place competition
+  //   outcome. The badges below measure externally verified *competitive-
+  //   programming contest* evidence sourced from provider adapters: participation
+  //   counts, percentile finishes and rating movement. Different evidence
+  //   source, different unit of proof, therefore NOT duplicate concepts.
+  //   No id or threshold below collides with the 36 pre-existing badges.
+  // =========================================================================
+  {
+    id: 'contest-first-participation',
+    title: 'First Contest',
+    category: 'INNOVATION',
+    tier: 'BRONZE',
+    description: 'Take part in your first provider-verified competitive-programming contest.',
+    criteria:
+      'One contest participation verified from a supported provider feed on an ownership-verified account. Registration alone does not count.',
+    icon: 'Flag',
+    defaultThreshold: 1,
+    unit: 'contest',
+    xpReward: 300,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.contestParticipationCount, t),
+    evidence: contestEvidence,
+  },
+  {
+    id: 'contest-regular',
+    title: 'Contest Regular',
+    category: 'INNOVATION',
+    tier: 'SILVER',
+    description: 'Become a regular competitive programmer with five verified contests.',
+    criteria: 'Five provider-verified contest participations across your ownership-verified accounts.',
+    icon: 'Swords',
+    defaultThreshold: 5,
+    unit: 'contests',
+    xpReward: 700,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.contestParticipationCount, t),
+    evidence: contestEvidence,
+  },
+  {
+    id: 'contest-competitive-coder',
+    title: 'Competitive Coder',
+    category: 'INNOVATION',
+    tier: 'GOLD',
+    description: 'Compete consistently with ten verified contest participations.',
+    criteria: 'Ten provider-verified contest participations across your ownership-verified accounts.',
+    icon: 'Sword',
+    defaultThreshold: 10,
+    unit: 'contests',
+    xpReward: 1200,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.contestParticipationCount, t),
+    evidence: contestEvidence,
+  },
+  {
+    id: 'contest-veteran',
+    title: 'Contest Veteran',
+    category: 'INNOVATION',
+    tier: 'PLATINUM',
+    description: 'Sustain a long competitive-programming career with twenty-five verified contests.',
+    criteria: 'Twenty-five provider-verified contest participations across your ownership-verified accounts.',
+    icon: 'Milestone',
+    defaultThreshold: 25,
+    unit: 'contests',
+    xpReward: 2000,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.contestParticipationCount, t),
+    evidence: contestEvidence,
+  },
+  {
+    id: 'contest-podium-challenger',
+    title: 'Podium Challenger',
+    category: 'INNOVATION',
+    tier: 'GOLD',
+    description: 'Finish inside the top 10% of a verified contest.',
+    criteria:
+      'A verified top-10% contest finish. Requires BOTH a provider-published rank AND a provider-published participant total of at least 20 — a percentile is never estimated.',
+    icon: 'Podium',
+    defaultThreshold: 1,
+    unit: 'top-10% finish',
+    xpReward: 1500,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.contestTop10PercentFinishes, t),
+    evidence: contestEvidence,
+  },
+  {
+    id: 'contest-top-performer',
+    title: 'Top Performer',
+    category: 'INNOVATION',
+    tier: 'PLATINUM',
+    description: 'Finish inside the top 5% of a verified contest.',
+    criteria:
+      'A verified top-5% contest finish. Requires BOTH a provider-published rank AND a provider-published participant total of at least 20 — a percentile is never estimated.',
+    icon: 'Gauge',
+    defaultThreshold: 1,
+    unit: 'top-5% finish',
+    xpReward: 2400,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.contestTop5PercentFinishes, t),
+    evidence: contestEvidence,
+  },
+  {
+    id: 'contest-rating-breakthrough',
+    title: 'Rating Breakthrough',
+    category: 'INNOVATION',
+    tier: 'GOLD',
+    description: 'Reach a verified personal-best contest rating.',
+    criteria:
+      'A provider-published post-contest rating of 1200 or higher (default milestone — Super Admin configurable). Only real provider rating values count; a rating is never inferred.',
+    icon: 'Ribbon',
+    defaultThreshold: 1200,
+    unit: 'rating points',
+    xpReward: 1600,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.contestPersonalBestRating ?? 0, t),
+    evidence: contestEvidence,
+  },
+  {
+    id: 'contest-rating-climber',
+    title: 'Rating Climber',
+    category: 'INNOVATION',
+    tier: 'PLATINUM',
+    description: 'Show sustained rating improvement across multiple verified contests.',
+    criteria:
+      'Cumulative positive rating gain of 200 points or higher on one platform, measured across at least two contests that publish both an old and a new rating.',
+    icon: 'TrendingUp',
+    defaultThreshold: 200,
+    unit: 'rating points',
+    xpReward: 1800,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.contestCumulativeRatingImprovement, t),
+    evidence: contestEvidence,
+  },
+
+  // =========================================================================
   // D. PROFESSIONAL DEVELOPMENT — real profile / resume / portfolio records
   // =========================================================================
   {
@@ -625,17 +1017,193 @@ export const BADGE_CATALOG: BadgeDefinition[] = [
   },
 ];
 
-export const BADGE_DEFINITIONS = BADGE_CATALOG;
+// ===========================================================================
+// PHASE 4 — CAREER ACHIEVEMENT & COMPETITION EXPANSION
+// ---------------------------------------------------------------------------
+// These four badges are declared separately from `BADGE_CATALOG` so the
+// original 44-badge array (and every Phase 1/2/3 eligibility rule + test that
+// pins its length) stays byte-for-byte unchanged. They are merged into
+// `ALL_BADGE_DEFINITIONS` for runtime evaluation.
+//
+// DUPLICATE-CONCEPT AUDIT (required by Phase 4 §4) — every Phase 4 §2/§3
+// proposal was compared against the existing 44 badges:
+//   • First Application    → ALREADY COVERED by `career-first-step`. REUSED.
+//   • Shortlist Achiever   → ALREADY COVERED by `career-shortlist-achiever`. REUSED.
+//   • Interview Ready      → ALREADY COVERED by `career-interview-ready`. REUSED.
+//   • Interview Performer  → ALREADY COVERED by `career-interview-performer`. REUSED.
+//   • Offer Achiever       → ALREADY COVERED by `career-breakthrough` (SELECTED). REUSED.
+//   • Career Breakthrough  → ALREADY COVERED by `career-breakthrough`. REUSED.
+//   • Project Presenter    → ALREADY COVERED by `innovation-project-builder`. REUSED.
+//   • Finalist             → ALREADY COVERED by `innovation-finalist`. REUSED.
+//   • Podium Finisher      → ALREADY COVERED by `innovation-podium-finisher`. REUSED.
+//   • Competition Champion → ALREADY COVERED by `innovation-competition-champion`. REUSED.
+//   • Innovation Elite     → ALREADY COVERED by `innovation-elite`. REUSED.
+//   • Application Explorer (5)  → NOT covered — NEW (volume milestone).
+//   • Career Explorer (10)      → NOT covered — NEW (volume milestone).
+//   • First Hackathon           → NOT covered — NEW (verified participation,
+//                                 distinct from `innovation-hackathon-explorer`
+//                                 which counts mere *registration*).
+//   • Hackathon Explorer (3)    → NOT covered — NEW. The title "Hackathon
+//                                 Explorer" is already taken, so the verified-
+//                                 participation milestone is titled
+//                                 "Hackathon Veteran" to avoid a name clash.
+// Each new badge therefore has a distinct concept, id, threshold, unit,
+// evidence source and category relationship — none duplicates an existing
+// badge or merely inflates the count.
+// ===========================================================================
+export const PHASE4_BADGE_DEFINITIONS: BadgeDefinition[] = [
+  {
+    id: 'career-application-explorer',
+    title: 'Application Explorer',
+    category: 'CAREER_EXCELLENCE',
+    tier: 'BRONZE',
+    description: 'Submit five verified internship or job applications.',
+    criteria:
+      'Five successfully-submitted internship/job applications. Drafts (SAVED), withdrawn and abandoned applications do not count, and each application counts once.',
+    icon: 'Send',
+    defaultThreshold: 5,
+    unit: 'applications',
+    xpReward: 250,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.applicationsSubmitted, t),
+    evidence: applicationEvidence,
+  },
+  {
+    id: 'career-application-veteran',
+    title: 'Career Explorer',
+    category: 'CAREER_EXCELLENCE',
+    tier: 'SILVER',
+    description: 'Submit ten verified internship or job applications.',
+    criteria:
+      'Ten successfully-submitted internship/job applications. Counts real submissions only — drafts and abandoned applications are excluded and no application is double-counted.',
+    icon: 'Briefcase',
+    defaultThreshold: 10,
+    unit: 'applications',
+    xpReward: 500,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.applicationsSubmitted, t),
+    evidence: applicationEvidence,
+  },
+  {
+    id: 'innovation-first-hackathon',
+    title: 'First Hackathon',
+    category: 'INNOVATION',
+    tier: 'BRONZE',
+    description: 'Take part in your first organizer-verified hackathon or competition.',
+    criteria:
+      'One hackathon/competition participation confirmed by an organizer, judge or admin. Registration alone does not count.',
+    icon: 'Flag',
+    defaultThreshold: 1,
+    unit: 'verified participation',
+    xpReward: 250,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.verifiedCompetitionParticipations, t),
+    evidence: participationEvidence,
+  },
+  {
+    id: 'innovation-hackathon-veteran',
+    title: 'Hackathon Veteran',
+    category: 'INNOVATION',
+    tier: 'SILVER',
+    description: 'Take part in three organizer-verified hackathons or competitions.',
+    criteria:
+      'Three organizer/admin-verified hackathon/competition participations. Each distinct competition counts once and registration is never treated as participation.',
+    icon: 'Rocket',
+    defaultThreshold: 3,
+    unit: 'verified participations',
+    xpReward: 600,
+    awardSource: 'ENGINE',
+    evaluate: (s, t) => measurable(s.verifiedCompetitionParticipations, t),
+    evidence: participationEvidence,
+  },
+];
 
+/**
+ * The complete runtime catalog: the frozen original framework plus the Phase 4
+ * additions. `BADGE_CATALOG` itself is left untouched for backwards
+ * compatibility; the engine, catalog service and admin console all resolve
+ * badges against this merged list.
+ */
+export const ALL_BADGE_DEFINITIONS: BadgeDefinition[] = [
+  ...BADGE_CATALOG,
+  ...PHASE4_BADGE_DEFINITIONS,
+];
+
+/** Phase 4 badge ids — used by the engine, admin console and test suite. */
+export const PHASE4_BADGE_IDS = [
+  'career-application-explorer',
+  'career-application-veteran',
+  'innovation-first-hackathon',
+  'innovation-hackathon-veteran',
+] as const;
+
+export type Phase4BadgeId = (typeof PHASE4_BADGE_IDS)[number];
+
+export function isPhase4Badge(badgeId: string): boolean {
+  return (PHASE4_BADGE_IDS as readonly string[]).includes(badgeId);
+}
+
+export const PHASE4_BADGES = ALL_BADGE_DEFINITIONS.filter((b) => isPhase4Badge(b.id));
+
+export const BADGE_DEFINITIONS = ALL_BADGE_DEFINITIONS;
+
+/** Resolves a badge from the full runtime catalog (original + Phase 4). */
 export function getBadgeById(id: string): BadgeDefinition | undefined {
-  return BADGE_CATALOG.find((b) => b.id === id);
+  return ALL_BADGE_DEFINITIONS.find((b) => b.id === id);
 }
 
 /** Badges awarded by the standard per-student evaluation engine. */
-export const ENGINE_BADGES = BADGE_CATALOG.filter((b) => b.awardSource === 'ENGINE');
+export const ENGINE_BADGES = ALL_BADGE_DEFINITIONS.filter((b) => b.awardSource === 'ENGINE');
 
 /** Badges awarded exclusively by the monthly recognition engine. */
-export const MONTHLY_BADGES = BADGE_CATALOG.filter((b) => b.awardSource === 'MONTHLY');
+export const MONTHLY_BADGES = ALL_BADGE_DEFINITIONS.filter((b) => b.awardSource === 'MONTHLY');
+
+/**
+ * Phase 2 platform coding-streak milestone badges. These are the ONLY badges
+ * that require a verified ACCEPTED-submission streak on an ownership-proven
+ * platform, so both the engine and the Super Admin console key off this list.
+ */
+export const CODING_STREAK_BADGE_IDS = [
+  'coding-streak-consistency',
+  'coding-streak-discipline',
+  'coding-streak-dedication',
+  'coding-streak-legendary',
+  'coding-streak-eternal',
+  'coding-streak-year-legend',
+] as const;
+
+export type CodingStreakBadgeId = (typeof CODING_STREAK_BADGE_IDS)[number];
+
+export function isCodingStreakBadge(badgeId: string): boolean {
+  return (CODING_STREAK_BADGE_IDS as readonly string[]).includes(badgeId);
+}
+
+export const CODING_STREAK_BADGES = BADGE_CATALOG.filter((b) => isCodingStreakBadge(b.id));
+
+/**
+ * Phase 3 verified-contest milestone badges. These are the ONLY badges that
+ * require provider-verified contest participation on an ownership-verified
+ * platform with non-UNAVAILABLE contest coverage, so both the badge engine and
+ * the Super Admin console key off this list.
+ */
+export const CONTEST_BADGE_IDS = [
+  'contest-first-participation',
+  'contest-regular',
+  'contest-competitive-coder',
+  'contest-veteran',
+  'contest-podium-challenger',
+  'contest-top-performer',
+  'contest-rating-breakthrough',
+  'contest-rating-climber',
+] as const;
+
+export type ContestBadgeId = (typeof CONTEST_BADGE_IDS)[number];
+
+export function isContestBadge(badgeId: string): boolean {
+  return (CONTEST_BADGE_IDS as readonly string[]).includes(badgeId);
+}
+
+export const CONTEST_BADGES = BADGE_CATALOG.filter((b) => isContestBadge(b.id));
 
 /**
  * Legacy badge IDs retired by the 30-badge professional framework. These stop
